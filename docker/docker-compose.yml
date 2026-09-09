@@ -1,0 +1,49 @@
+services:
+  ros:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USERNAME: developer
+        USER_UID: 1000
+        USER_GID: 1000
+
+    image: smart-community:latest
+    container_name: smart-community-dev
+
+    network_mode: host
+
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - __NV_PRIME_RENDER_OFFLOAD=1
+      - __GLX_VENDOR_LIBRARY_NAME=nvidia
+      - __VK_LAYER_NV_optimus=NVIDIA_only
+
+    volumes:
+      - ../car_2026:/workspace/car_2026
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+
+    devices:
+      - /dev/dri:/dev/dri
+
+    group_add:
+      - "44"
+      - "992"
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    stdin_open: true
+    tty: true
+
+    working_dir: /workspace/car_2026
+
+    command: /bin/bash
