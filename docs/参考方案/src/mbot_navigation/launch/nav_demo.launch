@@ -1,0 +1,34 @@
+<launch>
+
+    <!-- 地图配置文件（可换成 my_map.yaml / my_map1.yaml） -->
+    <arg name="map" default="map.yaml" />
+
+    <!-- 运行地图服务器，加载地图 -->
+    <node name="map_server" pkg="map_server" type="map_server" args="$(find mbot_navigation)/map/$(arg map)"/>
+
+    <!-- 运行 move_base 导航栈 -->
+    <include file="$(find mbot_navigation)/launch/move_base.launch"/>
+
+    <!-- 启动 AMCL 定位 -->
+    <include file="$(find mbot_navigation)/launch/amcl.launch" />
+
+    <!-- 启动 RViz -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mbot_navigation)/config/nav.rviz"/>
+
+    <!-- 自动发布初始位姿（map 坐标系下，需与 Gazebo 中机器人出生点一致） -->
+    <node pkg="rostopic" type="rostopic" name="set_initial_pose"
+          args="pub -1 /initialpose geometry_msgs/PoseWithCovarianceStamped
+                '{ header: { frame_id: map },
+                   pose: { pose: { position: {x: 1.71, y: -1.629, z: 0.0},
+                                   orientation: {z: 0.707, w: 0.707} } } }'" />
+
+    <!-- 多点巡航节点（读 waypoints.yaml） -->
+    <node pkg="mbot_navigation" type="waypoint_nav.py" name="waypoint_nav" output="screen"
+          launch-prefix="bash -c 'sleep 6; $0 $@'">
+        <rosparam param="waypoints" file="$(find mbot_navigation)/param/waypoints.yaml"/>
+        <param name="frame_id" value="map"/>
+        <param name="goal_timeout" value="180.0"/>
+        <param name="max_retries" value="1"/>
+    </node>
+
+</launch>

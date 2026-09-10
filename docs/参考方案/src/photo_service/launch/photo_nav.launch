@@ -1,0 +1,13 @@
+<launch>
+  <!--
+    拍照 + 状态机巡航任务启动文件。
+    前置条件：已启动 Gazebo 仿真（mbot_gazebo.launch）与导航栈（nav_demo.launch）。
+  -->
+
+  <!-- 拍照服务节点 -->
+  <node pkg="photo_service" type="photo_server.py" name="photo_service" output="screen"/>
+
+  <!-- SMACH 状态机：多点巡航 + 定点拍照 -->
+  <node pkg="photo_service" type="smach_photo_nav.py" name="smach_photo_nav" output="screen"
+        launch-prefix="bash -c 'sleep 3; $0 $@'"/>
+</launch>

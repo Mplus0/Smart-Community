@@ -1,0 +1,18 @@
+<launch>
+
+  <!-- 使用仿真时间 -->
+  <param name="use_sim_time" value="true"/>
+
+  <!-- 启动 gmapping 建图 -->
+  <include file="$(find mbot_navigation)/launch/gmapping.launch"/>
+
+  <!-- 加载机器人模型 -->
+  <param name="robot_description" command="$(find xacro)/xacro '$(find mbot_description)/urdf/mbot.xacro'"/>
+
+  <!-- 发布 TF -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="state_publisher" output="screen"/>
+
+  <!-- 启动 RViz 查看建图过程 -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mbot_navigation)/config/gmapping.rviz" output="screen"/>
+
+</launch>

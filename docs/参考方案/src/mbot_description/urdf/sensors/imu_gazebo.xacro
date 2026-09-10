@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="imu"> 
+ 
+	<xacro:property name="imu_w"     value="0.15" />
+	<xacro:property name="imu_h"     value="0.15" />
+	<xacro:property name="imu_d"     value="0.1" />
+	<xacro:property name="imu_mass"    value="0.01" />
+
+	<material name="red">
+		<color rgba="1 0 0 1"/>
+	</material>
+
+	<xacro:macro name="box_inertial_matrix" params="m w h d">
+        <inertial>
+            <mass value="${m}" />
+            <inertia ixx="${m*(h*h+d*d)/12}" ixy = "0" ixz = "0"
+                iyy="${m*(w*w+d*d)/12}" iyz = "0"
+                izz="${m*(w*w+h*h)/12}" /> 
+        </inertial>
+    </xacro:macro>
+ 
+	<xacro:macro name="imu" params="prefix:=imu">
+		<link name="${prefix}_link">
+			<visual>
+				<origin rpy="0 0 0" xyz="0 0 0" />
+				<geometry>
+					<box size="${imu_w} ${imu_h} ${imu_d}"/>
+				</geometry>                
+				<material name="red"/>
+			</visual>
+			<collision>
+				<origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+				<geometry>
+                	<box size="${imu_w} ${imu_h} ${imu_d}"/>
+                </geometry>
+            </collision>
+            <xacro:box_inertial_matrix  m="${imu_mass}" w="${imu_w}" h="${imu_h}" d="${imu_d}"/>
+		</link>
+		
+		<gazebo reference="${prefix}_link">
+            <material>Gazebo/Red</material>
+        </gazebo>
+      
+		<gazebo reference="${prefix}_link">
+			<gravity>true</gravity>
+			<sensor name="imu_sensor" type="imu">
+            	<always_on>true</always_on>
+            	<update_rate>100</update_rate>
+            	<visualize>true</visualize>
+            	<topic>__default_topic__</topic>
+            	<plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">  
+            		<topicName>imu_raw</topicName>
+                	<bodyName>imu_link</bodyName>
+                	<updateRateHZ>100.0</updateRateHZ>
+                	<gaussianNoise>0.0</gaussianNoise>
+                	<xyzOffset>0 0 0</xyzOffset>     
+                	<rpyOffset>0 0 0</rpyOffset>
+                	<frameName>imu_link</frameName>        
+            	</plugin>
+            	<pose>0 0 0 0 0 0</pose>
+        	</sensor>
+    	</gazebo>
+ 
+    </xacro:macro>
+</robot>

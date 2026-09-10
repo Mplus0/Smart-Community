@@ -1,0 +1,40 @@
+<launch>
+
+    <!-- 场景与仿真参数 -->
+    <arg name="world_name" default="$(find mbot_gazebo)/worlds/hzx.world"/>
+    <arg name="paused" default="false"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="gui" default="true"/>
+    <arg name="headless" default="false"/>
+    <arg name="debug" default="false"/>
+
+    <!-- 机器人初始位姿（与导航初始位姿保持一致） -->
+    <arg name="x"   default="1.71"/>
+    <arg name="y"   default="-1.629"/>
+    <arg name="z"   default="0.025"/>
+    <arg name="yaw" default="1.57"/>
+
+    <!-- 启动 Gazebo 并加载社区世界 -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world_name)"/>
+        <arg name="paused" value="$(arg paused)"/>
+        <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+        <arg name="gui" value="$(arg gui)"/>
+        <arg name="headless" value="$(arg headless)"/>
+        <arg name="debug" value="$(arg debug)"/>
+    </include>
+
+    <!-- 加载机器人模型（Noetic 下 xacro 无需 inorder 参数） -->
+    <param name="robot_description" command="$(find xacro)/xacro '$(find mbot_description)/urdf/mbot.xacro'"/>
+
+    <!-- 关节/状态发布 -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+        <param name="publish_frequency" type="double" value="50.0"/>
+    </node>
+
+    <!-- 在 Gazebo 中生成机器人 -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+          args="-urdf -model mbot -param robot_description -x $(arg x) -y $(arg y) -z $(arg z) -Y $(arg yaw)"/>
+
+</launch>
