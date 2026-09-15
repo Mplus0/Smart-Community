@@ -10,21 +10,24 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Base development tools
 # --------------------------------------------------
 RUN apt-get update && apt-get install -y \
-    sudo \
-    git \
-    curl \
-    wget \
-    vim \
-    nano \
-    tmux \
-    tree \
-    htop \
-    net-tools \
-    iputils-ping \
-    build-essential \
-    cmake \
-    python3-pip \
-    python3-catkin-tools \
+    ros-noetic-navigation \
+    ros-noetic-slam-gmapping \
+    ros-noetic-map-server \
+    ros-noetic-amcl \
+    ros-noetic-robot-localization \
+    ros-noetic-teb-local-planner \
+    ros-noetic-robot-state-publisher \
+    ros-noetic-joint-state-publisher \
+    ros-noetic-joint-state-publisher-gui \
+    ros-noetic-xacro \
+    ros-noetic-ros-control \
+    ros-noetic-ros-controllers \
+    ros-noetic-gazebo-ros \
+    ros-noetic-gazebo-ros-pkgs \
+    ros-noetic-gazebo-plugins \
+    ros-noetic-cv-bridge \
+    ros-noetic-image-transport \
+    ros-noetic-image-view \
     && rm -rf /var/lib/apt/lists/*
 
 # --------------------------------------------------
