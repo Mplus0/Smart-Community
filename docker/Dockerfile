@@ -56,6 +56,37 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # --------------------------------------------------
+# Cartographer / Cartographer ROS
+# --------------------------------------------------
+# Fixed commits validated with ROS Noetic / Ubuntu 20.04.
+ARG CARTOGRAPHER_SHA=877157a0d91788a7700221d87232d412cb3c1ef4
+ARG CARTOGRAPHER_ROS_SHA=c138034db0c47fe0ea5a2abe516acae02190dbf5
+
+RUN set -eux; \
+    mkdir -p /opt/cartographer_ws/src; \
+    git clone https://github.com/cartographer-project/cartographer.git \
+        /opt/cartographer_ws/src/cartographer; \
+    git -C /opt/cartographer_ws/src/cartographer \
+        checkout ${CARTOGRAPHER_SHA}; \
+    git clone https://github.com/cartographer-project/cartographer_ros.git \
+        /opt/cartographer_ws/src/cartographer_ros; \
+    git -C /opt/cartographer_ws/src/cartographer_ros \
+        checkout ${CARTOGRAPHER_ROS_SHA}; \
+    sed -i \
+        's#<depend>libabsl-dev</depend>#<!-- <depend>libabsl-dev</depend> -->#' \
+        /opt/cartographer_ws/src/cartographer/package.xml; \
+    rosdep update; \
+    rosdep install \
+        --from-paths /opt/cartographer_ws/src \
+        --ignore-src \
+        --rosdistro=noetic \
+        -y; \
+    cd /opt/cartographer_ws; \
+    ./src/cartographer/scripts/install_abseil.sh; \
+    . /opt/ros/noetic/setup.sh; \
+    catkin_make_isolated --install --use-ninja
+
+# --------------------------------------------------
 # Create non-root developer user
 # --------------------------------------------------
 RUN groupadd --gid ${USER_GID} ${USERNAME} \
@@ -71,7 +102,8 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 # --------------------------------------------------
 # ROS environment
 # --------------------------------------------------
-RUN echo "source /opt/ros/noetic/setup.bash" >> /home/${USERNAME}/.bashrc
+RUN echo "source /opt/ros/noetic/setup.bash" >> /home/${USERNAME}/.bashrc \
+    && echo "source /opt/cartographer_ws/install_isolated/setup.bash" >> /home/${USERNAME}/.bashrc
 
 RUN mkdir -p /workspace/car_2026/src \
     && chown -R ${USERNAME}:${USERNAME} /workspace
