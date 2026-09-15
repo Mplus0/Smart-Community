@@ -58,33 +58,49 @@ RUN apt-get update && apt-get install -y \
 # --------------------------------------------------
 # Cartographer / Cartographer ROS
 # --------------------------------------------------
-# Fixed commits validated with ROS Noetic / Ubuntu 20.04.
 ARG CARTOGRAPHER_SHA=877157a0d91788a7700221d87232d412cb3c1ef4
 ARG CARTOGRAPHER_ROS_SHA=c138034db0c47fe0ea5a2abe516acae02190dbf5
 
-RUN set -eux; \
-    mkdir -p /opt/cartographer_ws/src; \
-    git clone https://github.com/cartographer-project/cartographer.git \
-        /opt/cartographer_ws/src/cartographer; \
-    git -C /opt/cartographer_ws/src/cartographer \
-        checkout ${CARTOGRAPHER_SHA}; \
-    git clone https://github.com/cartographer-project/cartographer_ros.git \
-        /opt/cartographer_ws/src/cartographer_ros; \
-    git -C /opt/cartographer_ws/src/cartographer_ros \
-        checkout ${CARTOGRAPHER_ROS_SHA}; \
-    sed -i \
-        's#<depend>libabsl-dev</depend>#<!-- <depend>libabsl-dev</depend> -->#' \
-        /opt/cartographer_ws/src/cartographer/package.xml; \
-    rosdep update; \
-    rosdep install \
-        --from-paths /opt/cartographer_ws/src \
-        --ignore-src \
-        --rosdistro=noetic \
-        -y; \
-    cd /opt/cartographer_ws; \
-    ./src/cartographer/scripts/install_abseil.sh; \
-    . /opt/ros/noetic/setup.sh; \
-    catkin_make_isolated --install --use-ninja
+# Create Cartographer workspace.
+RUN mkdir -p /opt/cartographer_ws/src
+
+# Fetch and pin Cartographer.
+RUN git clone https://github.com/cartographer-project/cartographer.git \
+        /opt/cartographer_ws/src/cartographer \
+    && git -C /opt/cartographer_ws/src/cartographer \
+        checkout ${CARTOGRAPHER_SHA}
+
+# Fetch and pin Cartographer ROS.
+RUN git clone https://github.com/cartographer-project/cartographer_ros.git \
+        /opt/cartographer_ws/src/cartographer_ros \
+    && git -C /opt/cartographer_ws/src/cartographer_ros \
+        checkout ${CARTOGRAPHER_ROS_SHA}
+
+# Abseil is installed separately using Cartographer's pinned installer.
+RUN sed -i \
+    's#<depend>libabsl-dev</depend>#<!-- <depend>libabsl-dev</depend> -->#' \
+    /opt/cartographer_ws/src/cartographer/package.xml
+
+# Install system / ROS dependencies required by Cartographer.
+RUN apt-get update \
+    && /bin/bash -c "source /opt/ros/noetic/setup.bash \
+        && rosdep update --include-eol-distros --rosdistro=noetic \
+        && rosdep install \
+            --from-paths /opt/cartographer_ws/src \
+            --ignore-src \
+            --rosdistro=noetic \
+            -y" \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Cartographer's pinned Abseil version.
+RUN cd /opt/cartographer_ws \
+    && ./src/cartographer/scripts/install_abseil.sh
+
+# Build and install Cartographer ROS.
+RUN /bin/bash -c \
+    "source /opt/ros/noetic/setup.bash && \
+     cd /opt/cartographer_ws && \
+     catkin_make_isolated --install --use-ninja"
 
 # --------------------------------------------------
 # Create non-root developer user
