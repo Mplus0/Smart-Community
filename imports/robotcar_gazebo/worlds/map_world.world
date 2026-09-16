@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="default">
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://map_arena</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://ro1</uri>
+      <pose>-0.90 1.10 0 0 0 0</pose>
+    </include>
+    
+    <include>
+      <uri>model://ro2</uri>
+      <pose>-0.90 -0.20 0 0 0 3.1416</pose>
+    </include>
+    
+    <include>
+      <uri>model://cp</uri>
+      <pose>1.70 -1.10 0 0 0 -1.5708</pose>
+    </include>
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+  </world>
+</sdf>
