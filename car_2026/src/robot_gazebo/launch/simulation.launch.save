@@ -1,0 +1,43 @@
+<launch>
+
+  <!-- Gazebo world -->
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+  </include>
+
+  <!-- Robot description -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find robot_description)/urdf/robotcar.urdf.xacro" />
+
+
+  <!-- Publish TF -->
+  <node pkg="robot_state_publisher"
+        type="robot_state_publisher"
+        name="robot_state_publisher">
+    <param name="use_sim_time" value="true"/>
+  </node>
+
+
+  <!-- Spawn robot -->
+  <node pkg="gazebo_ros"
+        type="spawn_model"
+        name="spawn_robot"
+        args="-urdf
+              -param robot_description
+              -model robotcar
+              -x 0
+              -y 0
+              -z 0.1"
+        output="screen"/>
+
+
+  <!-- RViz -->
+  <node pkg="rviz"
+        type="rviz"
+        name="rviz"
+        output="screen"/>
+
+</launch>
