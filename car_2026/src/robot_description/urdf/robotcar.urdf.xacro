@@ -1,0 +1,265 @@
+<?xml version="1.0"?>
+<robot name="robotcar" xmlns:xacro="http://www.ros.org/wiki/xacro">
+ 
+  <xacro:property name="bbox_length" value="0.334"/>
+  <xacro:property name="bbox_width"  value="0.303"/>
+  <xacro:property name="bbox_height" value="0.222"/>
+  
+  <xacro:property name="ground_clearance" value="0.034"/>
+
+ 
+  <xacro:property name="wheel_diameter" value="0.075"/>
+  <xacro:property name="wheel_radius" value="${wheel_diameter/2.0}"/>
+  <xacro:property name="wheel_width" value="0.03"/>
+
+  
+  <xacro:property name="front_axle_to_front" value="${wheel_diameter}"/>
+  <xacro:property name="rear_axle_to_rear" value="${wheel_diameter}"/>
+
+ 
+  <xacro:property name="body_length" value="${(bbox_length/2 - camera_length)*2 - 0.002}"/>
+  <xacro:property name="body_width"  value="${bbox_width - 2*wheel_width - 0.002}"/>
+ 
+  <xacro:property name="body_height" value="${lidar_height - lidar_cyl_height/2.0 - ground_clearance}"/>
+
+ 
+  <xacro:property name="lidar_cyl_height" value="0.04"/>
+ 
+  <xacro:property name="lidar_diameter" value="0.05"/>
+  <xacro:property name="lidar_cyl_radius" value="${lidar_diameter/2.0}"/>
+  <xacro:property name="lidar_top_clearance" value="0.002"/>
+  <xacro:property name="lidar_height" value="${bbox_height - lidar_top_clearance - lidar_cyl_height/2.0}"/>
+
+  
+  <xacro:property name="lidar_offset_from_front" value="0.095"/>
+  <xacro:property name="camera_offset_from_front" value="0.0"/>
+  <xacro:property name="camera_height" value="0.0785"/>
+ 
+  <xacro:property name="camera_length" value="0.025"/>
+  <xacro:property name="camera_width" value="0.09"/>
+  <xacro:property name="camera_depth" value="0.037"/>
+
+  
+  <xacro:property name="max_linear_speed" value="0.6"/>
+
+  
+  <xacro:property name="car_mass" value="5.2"/>
+  <xacro:property name="body_mass" value="${car_mass - wheel_mass*4}"/>
+  <xacro:property name="wheel_mass" value="0.2"/>
+
+  
+  <link name="base_footprint">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.01"/>
+      </geometry>
+      <material name="Invisible">
+        <color rgba="0 0 0 0"/>
+      </material>
+    </visual>
+  </link>
+
+  
+  <link name="base_link">
+    <inertial>
+      <mass value="${body_mass}"/>
+      <origin xyz="0 0 ${ground_clearance + body_height/2.0}"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.04" iyz="0.0" izz="0.05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 ${ground_clearance + body_height/2.0}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+      <material name="Grey">
+        <color rgba="0.6 0.6 0.6 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${ground_clearance + body_height/2.0}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+    </collision>
+  </link>
+
+ 
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  
+  <xacro:property name="half_body_length" value="${body_length/2.0}"/>
+  <xacro:property name="half_bbox_length" value="${bbox_length/2.0}"/>
+  
+  <xacro:property name="front_axle_x" value="${half_bbox_length - wheel_radius}"/>
+  <xacro:property name="rear_axle_x" value="${-half_bbox_length + wheel_radius}"/>
+  <xacro:property name="left_wheel_y" value="${body_width/2.0 + wheel_width/2.0}"/>
+  <xacro:property name="right_wheel_y" value="${-left_wheel_y}"/>
+
+  
+  <xacro:macro name="mecanum_wheel" params="name x y">
+    <link name="${name}">
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.0015" iyz="0.0" izz="0.001"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="Black">
+          <color rgba="0.1 0.1 0.1 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <gazebo reference="${name}">
+      <mu1>0.0</mu1>
+      <mu2>0.0</mu2>
+    </gazebo>
+
+    <joint name="${name}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}"/>
+      <origin xyz="${x} ${y} ${wheel_radius}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+ 
+  <xacro:mecanum_wheel name="wheel_fl" x="${front_axle_x}" y="${left_wheel_y}"/>
+  <xacro:mecanum_wheel name="wheel_fr" x="${front_axle_x}" y="${right_wheel_y}"/>
+  <xacro:mecanum_wheel name="wheel_rl" x="${rear_axle_x}" y="${left_wheel_y}"/>
+  <xacro:mecanum_wheel name="wheel_rr" x="${rear_axle_x}" y="${right_wheel_y}"/>
+
+ 
+  <link name="camera_link">
+    <visual>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <box size="${camera_length} ${camera_width} ${camera_depth}"/>
+      </geometry>
+      <material name="Blue">
+        <color rgba="0.2 0.4 0.8 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    
+    <origin xyz="${half_bbox_length - camera_offset_from_front - camera_length/2.0} 0 ${camera_height}" rpy="0 0 0"/>
+    <child link="camera_link"/>
+  </joint>
+
+  
+  <link name="lidar_link">
+    <visual>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <cylinder radius="${lidar_cyl_radius}" length="${lidar_cyl_height}"/>
+      </geometry>
+      <material name="Red">
+        <color rgba="0.8 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    
+    <origin xyz="${half_bbox_length - lidar_offset_from_front} 0 ${lidar_height}" rpy="0 0 0"/>
+    <child link="lidar_link"/>
+  </joint>
+
+  
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+    <turnGravityOff>false</turnGravityOff>
+  </gazebo>
+
+  
+  <gazebo reference="lidar_link">
+    <sensor type="gpu_ray" name="lidar">
+      <always_on>true</always_on>
+      <update_rate>10</update_rate>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>720</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.06</min>
+          <max>10.0</max>
+          <resolution>0.01</resolution>
+        </range>
+      </ray>
+      <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_gpu_laser.so">
+        <topicName>/scan</topicName>
+        <frameName>lidar_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+ 
+  <gazebo reference="camera_link">
+    <sensor type="camera" name="rgb_camera">
+      <always_on>true</always_on>
+      <update_rate>15</update_rate>
+      <visualize>true</visualize>
+      <camera>
+        <horizontal_fov>2.094</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>480</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.001</near>
+          <far>8.0</far>
+        </clip>
+      </camera>
+      <plugin name="rgb_camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>15.0</updateRate>
+        <cameraName>rgb_camera</cameraName>
+        <frameName>camera_link</frameName>
+        <imageTopicName>/camera/rgb/image_raw</imageTopicName>
+        <cameraInfoTopicName>/camera/rgb/camera_info</cameraInfoTopicName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  
+  <gazebo>
+    <plugin name="planar_move" filename="libgazebo_ros_planar_move.so">
+      <robotNamespace>/</robotNamespace>
+      <commandTopic>cmd_vel</commandTopic>
+      <cmdTimeout>0.5</cmdTimeout>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <robotBaseFrame>base_footprint</robotBaseFrame>
+      <publishTf>true</publishTf>
+      <odometryRate>20.0</odometryRate>
+      <maxVelX>${max_linear_speed}</maxVelX>
+      <maxVelY>${max_linear_speed}</maxVelY>
+      <maxVelTheta>2.0</maxVelTheta>
+    </plugin>
+  </gazebo>
+
+</robot>
