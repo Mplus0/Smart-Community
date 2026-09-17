@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<robot name="robotcar" xmlns:xacro="http://wiki.ros.org/xacro">
-  <xacro:include filename="$(find robot_description)/urdf/robotcar_base.xacro"/>
-  <xacro:include filename="$(find robot_description)/urdf/robotcar_transmissions.xacro"/>
-  <xacro:include filename="$(find robot_description)/urdf/robotcar_gazebo.xacro"/>
-</robot>

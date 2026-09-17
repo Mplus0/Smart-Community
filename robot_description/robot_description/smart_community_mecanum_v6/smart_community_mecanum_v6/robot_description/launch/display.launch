@@ -1,7 +1,0 @@
-<launch>
-  <arg name="model" default="$(find robot_description)/urdf/robotcar.urdf.xacro"/>
-  <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg model)"/>
-  <node pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" name="joint_state_publisher_gui"/>
-  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find robot_description)/launch/robotcar.rviz" required="false"/>
-</launch>
