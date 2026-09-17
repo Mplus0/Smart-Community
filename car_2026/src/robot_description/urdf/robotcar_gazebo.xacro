@@ -1,30 +1,29 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro">
   <!--
-    v0.4 mecanum contact approximation for Gazebo Classic / ODE.
+    Gazebo Classic simulation strategy for the mecanum chassis.
 
-    Official STL geometry shows diagonally opposite wheels share handedness,
-    consistent with an X-layout.  The values below are SIMULATION BASELINES,
-    not measured tire/roller coefficients.
+    1. robotcar_planar_move drives ONLY the final Gazebo base_footprint link.
+       It does not use Model::SetLinearVel / Model::SetAngularVel, so it does
+       not overwrite wheel-link velocities.
+    2. gazebo_ros_control + wheel velocity controller keeps all four wheel
+       joints rotating according to the real mecanum inverse kinematics.
+    3. Wheel collisions provide low isotropic ground contact only; no fdir1
+       roller approximation is used.
 
-    mu1: high-friction (driven) direction
-    mu2: low-friction (roller/slip) direction
-
-    The cylinder collision is rotated +90 deg about X, so fdir1 is expressed
-    in the collision-local frame.  Values below correspond to +/-45 degree
-    driven directions in the chassis XY plane.
+    The official CAD-derived inertia is preserved.  The custom planar plugin
+    reads base_footprint's CoG directly from Gazebo and compensates its linear
+    velocity so /cmd_vel remains referenced to the base_footprint origin.
   -->
-  <xacro:property name="mecanum_mu_high" value="1.0"/>
-  <xacro:property name="mecanum_mu_low" value="0.05"/>
+
+  <xacro:property name="wheel_mu" value="0.05"/>
   <xacro:property name="contact_kp" value="1000000.0"/>
   <xacro:property name="contact_kd" value="10.0"/>
-  <xacro:property name="diag" value="0.7071067811865476"/>
 
-  <xacro:macro name="mecanum_contact" params="name fdir_z">
+  <xacro:macro name="wheel_contact" params="name">
     <gazebo reference="${name}_wheel_link">
-      <mu1>${mecanum_mu_high}</mu1>
-      <mu2>${mecanum_mu_low}</mu2>
-      <fdir1>${diag} 0 ${fdir_z}</fdir1>
+      <mu1>${wheel_mu}</mu1>
+      <mu2>${wheel_mu}</mu2>
       <kp>${contact_kp}</kp>
       <kd>${contact_kd}</kd>
       <minDepth>0.001</minDepth>
@@ -37,20 +36,27 @@
     <selfCollide>false</selfCollide>
   </gazebo>
 
-  <!-- Keep sensor child links as distinct Gazebo bodies/frames for later sensor plugins. -->
-  <gazebo reference="laser_joint"><preserveFixedJoint>true</preserveFixedJoint></gazebo>
-  <gazebo reference="camera_joint"><preserveFixedJoint>true</preserveFixedJoint></gazebo>
-  <gazebo reference="imu_joint"><preserveFixedJoint>true</preserveFixedJoint></gazebo>
-
-  <!-- X-layout: FL/RR one handedness, FR/RL the opposite. -->
-  <xacro:mecanum_contact name="front_left"  fdir_z="${diag}"/>
-  <xacro:mecanum_contact name="front_right" fdir_z="${-diag}"/>
-  <xacro:mecanum_contact name="rear_left"   fdir_z="${-diag}"/>
-  <xacro:mecanum_contact name="rear_right"  fdir_z="${diag}"/>
+  <xacro:wheel_contact name="front_left"/>
+  <xacro:wheel_contact name="front_right"/>
+  <xacro:wheel_contact name="rear_left"/>
+  <xacro:wheel_contact name="rear_right"/>
 
   <gazebo>
+    <!-- Four physical wheel joints remain controllable for rotation/odometry. -->
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
       <robotNamespace>/</robotNamespace>
+    </plugin>
+
+    <!--
+      Stable holonomic chassis motion referenced to base_footprint.
+      The plugin drives only base_footprint and publishes no odometry or TF;
+      formal odometry remains /wheel/odom and will later be fused with IMU.
+    -->
+    <plugin name="robotcar_planar_move" filename="librobotcar_planar_move.so">
+      <robotNamespace>/</robotNamespace>
+      <commandTopic>cmd_vel</commandTopic>
+      <baseLink>base_footprint</baseLink>
+      <cmdTimeout>0.5</cmdTimeout>
     </plugin>
   </gazebo>
 </robot>

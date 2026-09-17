@@ -60,7 +60,7 @@
   <xacro:macro name="physical_wheel" params="name x y">
     <link name="${name}_wheel_link">
       <!-- No visual here: the official full-robot STL already contains the wheel appearance. -->
-      <collision name="${name}_wheel_collision">
+      <collision name="${name}_wheel_link_collision">
         <origin xyz="0 0 0" rpy="1.5707963267948966 0 0"/>
         <geometry>
           <cylinder radius="${wheel_radius}" length="${wheel_width}"/>

@@ -15,8 +15,9 @@
   <xacro:property name="lidar_min_range" value="0.10"/> <!-- SIMULATION BASELINE; official minimum not supplied. -->
   <xacro:property name="lidar_max_range" value="10.0"/>
 
-  <gazebo reference="laser_link">
+  <gazebo reference="base_link">
     <sensor name="laser_sensor" type="ray">
+      <pose>${lidar_x} ${lidar_y} ${lidar_z} 0 0 0</pose>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>${lidar_update_rate}</update_rate>
@@ -56,8 +57,9 @@
   <xacro:property name="camera_near" value="0.6"/>
   <xacro:property name="camera_far" value="8.0"/>
 
-  <gazebo reference="camera_link">
+  <gazebo reference="base_link">
     <sensor name="depth_camera_sensor" type="depth">
+      <pose>${camera_x} ${camera_y} ${camera_z} 0 0 0</pose>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>${camera_update_rate}</update_rate>
@@ -97,8 +99,9 @@
   <xacro:property name="imu_update_rate" value="100.0"/>
   <xacro:property name="imu_gaussian_noise" value="0.0"/>
 
-  <gazebo reference="imu_link">
+  <gazebo reference="base_link">
     <sensor name="imu_sensor" type="imu">
+      <pose>${imu_x} ${imu_y} ${imu_z} 0 0 0</pose>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>${imu_update_rate}</update_rate>

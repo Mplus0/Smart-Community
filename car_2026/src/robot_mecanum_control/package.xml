@@ -1,18 +1,33 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>robot_mecanum_control</name>
-  <version>0.1.0</version>
-  <description>ROS1 command and raw wheel-odometry layer for the Smart Community X-layout mecanum base.</description>
+  <version>0.2.1</version>
+  <description>ROS1 mecanum command, wheel odometry, and Gazebo Classic planar-motion support for the Smart Community robot.</description>
   <maintainer email="maintainer@example.com">Smart Community Team</maintainer>
   <license>Proprietary</license>
+
   <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>gazebo_dev</build_depend>
+
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>gazebo_dev</build_export_depend>
+
   <exec_depend>rospy</exec_depend>
+  <exec_depend>roscpp</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>joint_state_controller</exec_depend>
   <exec_depend>velocity_controllers</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
   <exec_depend>robot_description</exec_depend>
 </package>
