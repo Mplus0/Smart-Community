@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<robot name="robotcar">
+  <!-- Plain-URDF equivalent of the Stage-2 kinematic Xacro. -->
+
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 -0.035791123" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robot_description/meshes/base_link.STL"/>
+      </geometry>
+      <material name="official_mesh">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <origin xyz="-0.0718509386 0.00738215784 0.0903852328" rpy="0 0 0"/>
+      <mass value="0.486218814966626"/>
+      <inertia ixx="0.00196277727666921"
+               ixy="2.50447049446755E-07"
+               ixz="0.000140534767811098"
+               iyy="0.00457256033711368"
+               iyz="2.68618064993882E-07"
+               izz="0.00493927269870476"/>
+    </inertial>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0.035791123" rpy="0 0 0"/>
+  </joint>
+
+  <link name="front_left_wheel_link"/>
+  <joint name="front_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_left_wheel_link"/>
+    <origin xyz="0.106000002 0.125 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="front_right_wheel_link"/>
+  <joint name="front_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="front_right_wheel_link"/>
+    <origin xyz="0.106000002 -0.125 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="rear_left_wheel_link"/>
+  <joint name="rear_left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_left_wheel_link"/>
+    <origin xyz="-0.106000002 0.125 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="rear_right_wheel_link"/>
+  <joint name="rear_right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="rear_right_wheel_link"/>
+    <origin xyz="-0.106000002 -0.125 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+</robot>

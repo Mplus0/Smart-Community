@@ -1,0 +1,43 @@
+# robot_description v0.6 Gazebo sensor simulation baseline.
+# "official" means traceable to the supplied official hardware parameter table.
+# "baseline" means a simulation choice that must not be presented as a hardware specification.
+
+lidar:
+  frame: laser_link
+  topic: /scan
+  update_rate_hz: 10.0                  # official range: 5-12 Hz
+  samples_per_scan: 500                 # derived: 5000 measurements/s / 10 Hz
+  angular_resolution_deg: 0.72          # derived: 360 / 500; official range 0.43-0.86 deg
+  min_angle_deg: -180.0
+  max_angle_deg: 180.0
+  min_range_m: 0.10                     # baseline; official minimum not supplied
+  max_range_m: 10.0                     # official
+  range_resolution_m: 0.01              # baseline
+  gaussian_noise_m: 0.0                 # baseline until noise is characterized
+
+depth_camera:
+  frame: camera_optical_frame
+  topics:
+    color_image: /camera/color/image_raw
+    color_info: /camera/color/camera_info
+    depth_image: /camera/depth/image_raw
+    depth_info: /camera/depth/camera_info
+    points: /camera/depth/points
+  width: 640                             # baseline for simulation performance
+  height: 480                            # baseline for simulation performance
+  official_max_depth_resolution: [1280, 1024]
+  update_rate_hz: 15.0                  # baseline; official frame rate not supplied
+  horizontal_fov_deg: 60.0              # baseline; official HFOV not supplied
+  near_clip_m: 0.6                      # official working-range lower bound
+  far_clip_m: 8.0                       # official working-range upper bound
+
+imu:
+  frame: imu_link
+  topic: /imu/data
+  update_rate_hz: 100.0                 # baseline within official 0.1-200 Hz range
+  gaussian_noise: 0.0                   # baseline; official stability is not assumed to be sigma
+  official_accel_range_g: 16.0
+  official_gyro_range_dps: 2000.0
+
+ultrasonic:
+  enabled: false                        # user confirmed ultrasonic is not used

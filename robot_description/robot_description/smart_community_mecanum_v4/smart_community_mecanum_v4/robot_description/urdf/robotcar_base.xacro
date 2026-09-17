@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!-- Geometry recovered from the official base_link.STL. -->
+  <xacro:property name="cad_wheel_center_z" value="0.035791123"/>
+  <xacro:property name="base_link_height" value="0.037230282"/>
+  <xacro:property name="wheel_x" value="0.106000002"/>
+  <xacro:property name="wheel_y" value="0.125000000"/>
+  <xacro:property name="wheel_radius" value="0.037230282"/>
+  <xacro:property name="wheel_width" value="0.032000005"/>
+
+  <!-- v0.3 physical baseline. These are traceable simulation values, not measured hardware specs. -->
+  <xacro:property name="wheel_mass" value="0.015000000"/>
+  <xacro:property name="wheel_damping" value="0.01"/>
+  <!-- Simulation safety limits; must be checked against the real drive hardware later. -->
+  <xacro:property name="wheel_max_velocity" value="30.0"/>
+  <xacro:property name="wheel_max_effort" value="1.0"/>
+
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <visual>
+      <!-- Keep official CAD appearance. The CAD wheel-centre plane is aligned with base_link. -->
+      <origin xyz="0 0 -${cad_wheel_center_z}" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robot_description/meshes/base_link.STL"/>
+      </geometry>
+      <material name="official_mesh">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+
+    <!-- Simplified lower-chassis collision recovered from the CAD lower-body envelope. -->
+    <collision name="base_lower_collision">
+      <origin xyz="0.009499997 0.000000000 0.009300001" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.310999990 0.175999999 0.052999999"/>
+      </geometry>
+    </collision>
+
+    <!-- Official lumped mass is redistributed into base + 4 wheels while preserving total mass. -->
+    <inertial>
+      <origin xyz="-0.081965593727 0.008421364598 0.103109011698" rpy="0 0 0"/>
+      <mass value="0.426218814966626"/>
+      <inertia ixx="0.000436463875"
+               ixy="-0.000036054530"
+               ixz="-0.000303973988"
+               iyy="0.002944287283"
+               iyz="0.000045938638"
+               izz="0.002944612902"/>
+    </inertial>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <!-- Actual wheel/ground contact plane: wheel centre is one radius above base_footprint. -->
+    <origin xyz="0 0 ${base_link_height}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:macro name="physical_wheel" params="name x y">
+    <link name="${name}_wheel_link">
+      <!-- No visual here: the official full-robot STL already contains the wheel appearance. -->
+      <collision name="${name}_wheel_collision">
+        <origin xyz="0 0 0" rpy="1.5707963267948966 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="${wheel_mass}"/>
+        <!-- Cylinder axis is Y after the collision rotation; inertia is expressed in link XYZ. -->
+        <inertia ixx="0.000006477853" ixy="0" ixz="0"
+                 iyy="0.000010395704" iyz="0"
+                 izz="0.000006477853"/>
+      </inertial>
+    </link>
+    <joint name="${name}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}_wheel_link"/>
+      <origin xyz="${x} ${y} 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit effort="${wheel_max_effort}" velocity="${wheel_max_velocity}"/>
+      <dynamics damping="${wheel_damping}" friction="0.0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:physical_wheel name="front_left"  x="${ wheel_x}" y="${ wheel_y}"/>
+  <xacro:physical_wheel name="front_right" x="${ wheel_x}" y="${-wheel_y}"/>
+  <xacro:physical_wheel name="rear_left"   x="${-wheel_x}" y="${ wheel_y}"/>
+  <xacro:physical_wheel name="rear_right"  x="${-wheel_x}" y="${-wheel_y}"/>
+</robot>

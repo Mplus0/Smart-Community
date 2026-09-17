@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>robot_description</name>
+  <version>0.2.0</version>
+  <description>Smart Community robot description reconstructed from the official mowen CAD export.</description>
+  <maintainer email="maintainer@example.com">Smart Community Team</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+</package>

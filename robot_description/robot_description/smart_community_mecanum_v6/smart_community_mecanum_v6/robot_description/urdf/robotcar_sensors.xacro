@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!--
+    Sensor frames for Smart Community robot.
+
+    Robot frame convention:
+      +X forward, +Y left, +Z up.
+
+    Horizontal positions are based on user measurements referenced to the
+    official STL front/rear envelope:
+      STL front X = +0.16499999 m
+      STL rear  X = -0.14600000 m
+      lidar center: 73 mm behind front edge  -> X ~= +0.0920 m
+      camera center: 30 mm behind front edge -> X ~= +0.1350 m
+      IMU centerline: 103 mm ahead of rear edge -> X ~= -0.0430 m
+
+    Z values are STL-derived estimates and must be verified in hardware:
+      lidar scan-center CAD Z ~= 0.157803 m
+      upper sensor deck CAD Z ~= 0.143591 m
+      front camera assembly CAD Z ~= 0.096079 m
+    The CAD mesh is shifted by cad_wheel_center_z relative to base_link.
+  -->
+
+  <xacro:property name="sensor_stl_front_x" value="0.16499999"/>
+  <xacro:property name="sensor_stl_rear_x" value="-0.14600000"/>
+  <xacro:property name="sensor_cad_wheel_center_z" value="0.035791123"/>
+
+  <xacro:property name="lidar_x" value="0.09199999"/>
+  <xacro:property name="lidar_y" value="0.0"/>
+  <xacro:property name="lidar_z" value="0.122011877"/>
+
+  <xacro:property name="camera_x" value="0.13499999"/>
+  <xacro:property name="camera_y" value="0.0"/>
+  <xacro:property name="camera_z" value="0.060287877"/>
+
+  <xacro:property name="imu_x" value="-0.04300000"/>
+  <xacro:property name="imu_y" value="0.0"/>
+  <!-- Logical IMU frame at the shared LiDAR/IMU mounting plane. -->
+  <xacro:property name="imu_z" value="0.107799877"/>
+
+  <link name="laser_link"/>
+  <joint name="laser_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="laser_link"/>
+    <origin xyz="${lidar_x} ${lidar_y} ${lidar_z}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link"/>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="${camera_x} ${camera_y} ${camera_z}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- REP-103 / ROS optical convention: +Z forward, +X right, +Y down. -->
+  <link name="camera_optical_frame"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="-1.5707963267948966 0 -1.5707963267948966"/>
+  </joint>
+
+  <link name="imu_link"/>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <!--
+      Position is measured/derived, but the real IMU board-axis rotation is
+      still unknown. For simulation the logical imu_link is aligned to base_link.
+    -->
+    <origin xyz="${imu_x} ${imu_y} ${imu_z}" rpy="0 0 0"/>
+  </joint>
+</robot>

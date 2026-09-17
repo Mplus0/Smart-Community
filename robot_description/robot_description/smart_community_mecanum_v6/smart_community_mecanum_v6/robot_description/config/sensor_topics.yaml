@@ -1,0 +1,34 @@
+# Intended ROS1 topic contract for robot_description v0.6.
+# Exact runtime topic resolution must be checked in Gazebo Classic.
+
+lidar:
+  topic: /scan
+  frame_id: laser_link
+  message_type: sensor_msgs/LaserScan
+
+depth_camera:
+  color_image:
+    topic: /camera/color/image_raw
+    frame_id: camera_optical_frame
+    message_type: sensor_msgs/Image
+  color_info:
+    topic: /camera/color/camera_info
+    frame_id: camera_optical_frame
+    message_type: sensor_msgs/CameraInfo
+  depth_image:
+    topic: /camera/depth/image_raw
+    frame_id: camera_optical_frame
+    message_type: sensor_msgs/Image
+  depth_info:
+    topic: /camera/depth/camera_info
+    frame_id: camera_optical_frame
+    message_type: sensor_msgs/CameraInfo
+  point_cloud:
+    topic: /camera/depth/points
+    frame_id: camera_optical_frame
+    message_type: sensor_msgs/PointCloud2
+
+imu:
+  topic: /imu/data
+  frame_id: imu_link
+  message_type: sensor_msgs/Imu

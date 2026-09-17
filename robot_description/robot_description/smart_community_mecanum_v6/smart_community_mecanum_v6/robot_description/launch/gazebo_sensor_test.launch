@@ -1,0 +1,26 @@
+<launch>
+  <arg name="gui" default="true"/>
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+
+  <param name="use_sim_time" value="$(arg use_sim_time)"/>
+  <param name="robot_description"
+         command="$(find xacro)/xacro --inorder $(find robot_description)/urdf/robotcar.urdf.xacro"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+  </include>
+
+  <node pkg="robot_state_publisher"
+        type="robot_state_publisher"
+        name="robot_state_publisher"
+        output="screen"/>
+
+  <node pkg="gazebo_ros"
+        type="spawn_model"
+        name="spawn_robotcar"
+        output="screen"
+        args="-urdf -param robot_description -model robotcar -x 0 -y 0 -z 0.08"/>
+</launch>

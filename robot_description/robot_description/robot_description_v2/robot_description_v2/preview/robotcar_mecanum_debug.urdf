@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot name="robotcar_mecanum_debug">
+  <material name="white"><color rgba="1 1 1 1"/></material>
+  <material name="fl"><color rgba="1 0.15 0.15 0.60"/></material>
+  <material name="fr"><color rgba="0.15 1 0.15 0.60"/></material>
+  <material name="rl"><color rgba="0.15 0.35 1 0.60"/></material>
+  <material name="rr"><color rgba="1 0.75 0.10 0.60"/></material>
+
+  <link name="base_footprint"/>
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 -0.035791123" rpy="0 0 0"/>
+      <geometry><mesh filename="../meshes/base_link.STL"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/><child link="base_link"/>
+    <origin xyz="0 0 0.035791123" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Debug cylinders are intentionally a little larger than the CAD wheel
+       so their link positions remain visible over the full-robot STL. -->
+  <link name="front_left_wheel_link"><visual><origin rpy="1.570796327 0 0"/><geometry><cylinder radius="0.0385" length="0.034"/></geometry><material name="fl"/></visual></link>
+  <joint name="front_left_wheel_joint" type="continuous"><parent link="base_link"/><child link="front_left_wheel_link"/><origin xyz="0.106000002 0.125 0"/><axis xyz="0 1 0"/></joint>
+
+  <link name="front_right_wheel_link"><visual><origin rpy="1.570796327 0 0"/><geometry><cylinder radius="0.0385" length="0.034"/></geometry><material name="fr"/></visual></link>
+  <joint name="front_right_wheel_joint" type="continuous"><parent link="base_link"/><child link="front_right_wheel_link"/><origin xyz="0.106000002 -0.125 0"/><axis xyz="0 1 0"/></joint>
+
+  <link name="rear_left_wheel_link"><visual><origin rpy="1.570796327 0 0"/><geometry><cylinder radius="0.0385" length="0.034"/></geometry><material name="rl"/></visual></link>
+  <joint name="rear_left_wheel_joint" type="continuous"><parent link="base_link"/><child link="rear_left_wheel_link"/><origin xyz="-0.106000002 0.125 0"/><axis xyz="0 1 0"/></joint>
+
+  <link name="rear_right_wheel_link"><visual><origin rpy="1.570796327 0 0"/><geometry><cylinder radius="0.0385" length="0.034"/></geometry><material name="rr"/></visual></link>
+  <joint name="rear_right_wheel_joint" type="continuous"><parent link="base_link"/><child link="rear_right_wheel_link"/><origin xyz="-0.106000002 -0.125 0"/><axis xyz="0 1 0"/></joint>
+</robot>

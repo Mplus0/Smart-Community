@@ -1,0 +1,117 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!--
+    v0.6 Gazebo Classic sensor baseline for ROS Noetic.
+
+    IMPORTANT:
+      * Official values are used where the supplied hardware table defines them.
+      * Values marked SIMULATION BASELINE are not claimed as hardware specifications.
+      * All plugins require Linux + ROS Noetic + Gazebo Classic runtime verification.
+  -->
+
+  <!-- LiDAR: official 10 m max, 5-12 Hz, 0.43-0.86 deg, 5000 measurements/s. -->
+  <xacro:property name="lidar_update_rate" value="10.0"/>
+  <xacro:property name="lidar_samples" value="500"/>
+  <xacro:property name="lidar_min_range" value="0.10"/> <!-- SIMULATION BASELINE; official minimum not supplied. -->
+  <xacro:property name="lidar_max_range" value="10.0"/>
+
+  <gazebo reference="laser_link">
+    <sensor name="laser_sensor" type="ray">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>${lidar_update_rate}</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>${lidar_samples}</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.141592653589793</min_angle>
+            <max_angle>3.141592653589793</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>${lidar_min_range}</min>
+          <max>${lidar_max_range}</max>
+          <resolution>0.01</resolution>
+        </range>
+      </ray>
+      <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+        <robotNamespace>/</robotNamespace>
+        <topicName>scan</topicName>
+        <frameName>laser_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!--
+    Depth camera:
+      Official: 0.6-8.0 m working range, max depth resolution 1280x1024.
+      Default 640x480 @ 15 Hz and 60 deg HFOV are PERFORMANCE/VIEW SIMULATION BASELINES.
+      They are intentionally not presented as official camera specifications.
+  -->
+  <xacro:property name="camera_width" value="640"/>
+  <xacro:property name="camera_height" value="480"/>
+  <xacro:property name="camera_update_rate" value="15.0"/>
+  <xacro:property name="camera_hfov" value="1.0471975511965976"/>
+  <xacro:property name="camera_near" value="0.6"/>
+  <xacro:property name="camera_far" value="8.0"/>
+
+  <gazebo reference="camera_link">
+    <sensor name="depth_camera_sensor" type="depth">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>${camera_update_rate}</update_rate>
+      <camera name="depth_camera">
+        <horizontal_fov>${camera_hfov}</horizontal_fov>
+        <image>
+          <width>${camera_width}</width>
+          <height>${camera_height}</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>${camera_near}</near>
+          <far>${camera_far}</far>
+        </clip>
+      </camera>
+      <plugin name="gazebo_ros_depth_camera" filename="libgazebo_ros_depth_camera.so">
+        <robotNamespace>/</robotNamespace>
+        <cameraName>camera</cameraName>
+        <imageTopicName>color/image_raw</imageTopicName>
+        <cameraInfoTopicName>color/camera_info</cameraInfoTopicName>
+        <depthImageTopicName>depth/image_raw</depthImageTopicName>
+        <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
+        <pointCloudTopicName>depth/points</pointCloudTopicName>
+        <frameName>camera_optical_frame</frameName>
+        <pointCloudCutoff>${camera_near}</pointCloudCutoff>
+        <pointCloudCutoffMax>${camera_far}</pointCloudCutoffMax>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!--
+    IMU:
+      Official sample-rate range is 0.1-200 Hz; 100 Hz is selected as the simulation baseline.
+      The official stability figures are NOT treated as Gaussian sigma because the table does
+      not define them that way, so simulated Gaussian noise remains zero until calibrated.
+  -->
+  <xacro:property name="imu_update_rate" value="100.0"/>
+  <xacro:property name="imu_gaussian_noise" value="0.0"/>
+
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>${imu_update_rate}</update_rate>
+      <plugin name="gazebo_ros_imu_sensor" filename="libgazebo_ros_imu_sensor.so">
+        <robotNamespace>/</robotNamespace>
+        <topicName>imu/data</topicName>
+        <frameName>imu_link</frameName>
+        <updateRateHZ>${imu_update_rate}</updateRateHZ>
+        <gaussianNoise>${imu_gaussian_noise}</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+        <initialOrientationAsReference>false</initialOrientationAsReference>
+      </plugin>
+    </sensor>
+  </gazebo>
+</robot>

@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!--
+    v0.4 mecanum contact approximation for Gazebo Classic / ODE.
+
+    Official STL geometry shows diagonally opposite wheels share handedness,
+    consistent with an X-layout.  The values below are SIMULATION BASELINES,
+    not measured tire/roller coefficients.
+
+    mu1: high-friction (driven) direction
+    mu2: low-friction (roller/slip) direction
+
+    The cylinder collision is rotated +90 deg about X, so fdir1 is expressed
+    in the collision-local frame.  Values below correspond to +/-45 degree
+    driven directions in the chassis XY plane.
+  -->
+  <xacro:property name="mecanum_mu_high" value="1.0"/>
+  <xacro:property name="mecanum_mu_low" value="0.05"/>
+  <xacro:property name="contact_kp" value="1000000.0"/>
+  <xacro:property name="contact_kd" value="10.0"/>
+  <xacro:property name="diag" value="0.7071067811865476"/>
+
+  <xacro:macro name="mecanum_contact" params="name fdir_z">
+    <gazebo reference="${name}_wheel_link">
+      <mu1>${mecanum_mu_high}</mu1>
+      <mu2>${mecanum_mu_low}</mu2>
+      <fdir1>${diag} 0 ${fdir_z}</fdir1>
+      <kp>${contact_kp}</kp>
+      <kd>${contact_kd}</kd>
+      <minDepth>0.001</minDepth>
+      <maxVel>0.1</maxVel>
+      <selfCollide>false</selfCollide>
+    </gazebo>
+  </xacro:macro>
+
+  <gazebo reference="base_link">
+    <selfCollide>false</selfCollide>
+  </gazebo>
+
+  <!-- X-layout: FL/RR one handedness, FR/RL the opposite. -->
+  <xacro:mecanum_contact name="front_left"  fdir_z="${diag}"/>
+  <xacro:mecanum_contact name="front_right" fdir_z="${-diag}"/>
+  <xacro:mecanum_contact name="rear_left"   fdir_z="${-diag}"/>
+  <xacro:mecanum_contact name="rear_right"  fdir_z="${diag}"/>
+
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/</robotNamespace>
+    </plugin>
+  </gazebo>
+</robot>
