@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="field_frame">
+    <static>true</static>
+
+    <link name="wall_north">
+      <pose>0 2.1 0.15 0 0 0</pose>
+      <collision name="collision"><geometry><box><size>4.2 0.05 0.3</size></box></geometry></collision>
+      <visual name="visual">
+        <geometry><box><size>4.2 0.05 0.3</size></box></geometry>
+        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/White</name></script></material>
+      </visual>
+    </link>
+
+    <link name="wall_south">
+      <pose>0 -2.1 0.15 0 0 0</pose>
+      <collision name="collision"><geometry><box><size>4.2 0.05 0.3</size></box></geometry></collision>
+      <visual name="visual">
+        <geometry><box><size>4.2 0.05 0.3</size></box></geometry>
+        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/White</name></script></material>
+      </visual>
+    </link>
+
+    <link name="wall_east">
+      <pose>2.1 0 0.15 0 0 0</pose>
+      <collision name="collision"><geometry><box><size>0.05 4.2 0.3</size></box></geometry></collision>
+      <visual name="visual">
+        <geometry><box><size>0.05 4.2 0.3</size></box></geometry>
+        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/White</name></script></material>
+      </visual>
+    </link>
+
+    <link name="wall_west">
+      <pose>-2.1 0 0.15 0 0 0</pose>
+      <collision name="collision"><geometry><box><size>0.05 4.2 0.3</size></box></geometry></collision>
+      <visual name="visual">
+        <geometry><box><size>0.05 4.2 0.3</size></box></geometry>
+        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/White</name></script></material>
+      </visual>
+    </link>
+
+  </model>
+</sdf>
