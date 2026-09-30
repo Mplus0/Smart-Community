@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="vehicle_board">
+    <static>true</static>
+    <pose>0 0 0.125 0 0 0</pose>
+    <link name="board">
+      <collision name="collision"><geometry><box><size>0.345 0.005 0.25</size></box></geometry></collision>
+      <visual name="visual">
+        <geometry><box><size>0.345 0.005 0.25</size></box></geometry>
+        <material>
+          <script>
+            <uri>model://vehicle_board/materials/scripts</uri>
+            <uri>model://vehicle_board/materials/textures</uri>
+            <name>vehicle_board</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

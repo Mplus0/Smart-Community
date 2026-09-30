@@ -1,0 +1,87 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+
+  <world name="smart_community_competition">
+
+    <!-- 物理引擎 -->
+    <physics name="default_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+    </physics>
+
+    <!-- 重力 -->
+    <gravity>0 0 -9.8</gravity>
+
+    <!-- 太阳光 -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- 比赛场地地面 -->
+    <include>
+      <uri>model://ground_map</uri>
+      <name>ground_map</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <!-- 4.2m × 4.2m 场地框架 -->
+    <include>
+      <uri>model://field_frame</uri>
+      <name>field_frame</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <!-- 车1 -->
+    <include>
+      <uri>model://vehicle_board</uri>
+      <name>vehicle_board1</name>
+      <pose>-0.48 -1.53 0.15 0 0 0</pose>
+    </include>
+
+    <!-- 车2 -->
+    <include>
+      <uri>model://vehicle_board</uri>
+      <name>vehicle_board2</name>
+      <pose>-1.06 -1.53 0.15 0 0 0</pose>
+    </include>
+
+    <!-- 车3 -->
+    <include>
+      <uri>model://vehicle_board</uri>
+      <name>vehicle_board3</name>
+      <pose>-1.66 -1.53 0.15 0 0 0</pose>
+    </include>
+
+    <!-- 红绿灯 -->
+    <include>
+      <uri>model://traffic_light</uri>
+      <name>traffic_light</name>
+      <pose>1.689 0.037 0 0 0 0</pose>
+    </include>
+
+    <!-- 车牌 1 -->
+    <include>
+      <uri>model://car_plate1</uri>
+      <name>car_plate1</name>
+      <pose>-0.48 -1.526 0.15 0 0 0</pose>
+    </include>
+
+
+    <!-- 车牌2 -->
+    <include>
+      <uri>model://car_plate2</uri>
+      <name>car_plate2</name>
+      <pose>-1.06 -1.526 0.15 0 0 0</pose>
+    </include>
+
+    <!-- 车牌3 -->
+    <include>
+      <uri>model://car_plate3</uri>
+      <name>car_plate3</name>
+      <pose>-1.66 -1.526 0.15 0 0 0</pose>
+    </include>
+
+  </world>
+
+</sdf>

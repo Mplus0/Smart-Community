@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="traffic_light">
+    <static>true</static>
+
+    <link name="panel">
+      <pose>0 0 0.41 0 0 0</pose>
+      <collision name="collision"><geometry><box><size>0.64 0.05 0.14</size></box></geometry></collision>
+      <visual name="visual">
+        <geometry><box><size>0.64 0.05 0.14</size></box></geometry>
+        <material><script>
+            <uri>model://traffic_light/materials/scripts/traffic_light.material</uri>
+            <name>traffic_light</name>
+          </script></material>
+      </visual>
+    </link>
+    <link name="leg_left">
+      <pose>-0.3325 0 0.24 0 0 0</pose>
+      <collision name="collision"><geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry></collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry>
+        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Black</name></script></material>
+      </visual>
+    </link>
+    <link name="leg_right">
+      <pose>0.3325 0 0.24 0 0 0</pose>
+      <collision name="collision"><geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry></collision>
+      <visual name="visual">
+        <geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry>
+        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Black</name></script></material>
+      </visual>
+    </link>
+  </model>
+</sdf>
