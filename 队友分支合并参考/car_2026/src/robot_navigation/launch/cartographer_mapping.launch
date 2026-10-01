@@ -1,0 +1,16 @@
+<launch>
+  <!-- Start the simulation, robot state publisher and EKF separately. -->
+  <arg name="configuration_basename" default="cartographer_2d.lua"/>
+
+  <node name="cartographer_node" pkg="cartographer_ros"
+        type="cartographer_node"
+        args="-configuration_directory $(find robot_navigation)/config -configuration_basename $(arg configuration_basename)"
+        output="screen">
+    <remap from="scan" to="/scan"/>
+    <remap from="odom" to="/odometry/filtered"/>
+  </node>
+
+  <node name="cartographer_occupancy_grid_node" pkg="cartographer_ros"
+        type="cartographer_occupancy_grid_node"
+        args="-resolution 0.05" output="screen"/>
+</launch>

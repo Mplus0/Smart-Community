@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="cm2">
+    <static>true</static>
+    <pose>0 0 0.075 0 0 0</pose>
+    <link name="cm2">
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.05 0.005 0.15</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.05 0.005 0.15</size>
+          </box>
+        </geometry>
+
+        <material>
+          <script>
+            <uri>model://cm2/materials/scripts/cm2.material</uri>
+            <uri>model://cm2/materials/textures/cm2.png</uri>
+            <name>cm2</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -82,6 +82,123 @@
       <pose>-1.66 -1.526 0.15 0 0 0</pose>
     </include>
 
+    <!-- ================================================== -->
+    <!-- 社区人员标识 -->
+    <!-- ================================================== -->
+
+    <include>
+      <uri>model://cm1</uri>
+      <name>cm1</name>
+      <pose>1.14 1.2 0.075 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://cm2</uri>
+      <name>cm2</name>
+      <pose>1.16 1 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm3</uri>
+      <name>cm3</name>
+      <pose>1.16 1.053 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm4</uri>
+      <name>cm4</name>
+      <pose>1.16 0.945 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm5</uri>
+      <name>cm5</name>
+      <pose>1.16 1.107 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm6</uri>
+      <name>cm6</name>
+      <pose>1.048 0.945 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm7</uri>
+      <name>cm7</name>
+      <pose>1.048 1 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm8</uri>
+      <name>cm8</name>
+      <pose>1.048 1.053 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm9</uri>
+      <name>cm9</name>
+      <pose>1.048 1.107 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm10</uri>
+      <name>cm10</name>
+      <pose>0.05 0.805 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm11</uri>
+      <name>cm11</name>
+      <pose>0.05 0.86 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm12</uri>
+      <name>cm12</name>
+      <pose>0.05 0.915 0.075 0 0 1.577</pose>
+    </include>
+
+    <include>
+      <uri>model://cm13</uri>
+      <name>cm13</name>
+      <pose>0.05 0.97 0.075 0 0 1.57</pose>
+    </include>
+
+    <include>
+      <uri>model://cm14</uri>
+      <name>cm14</name>
+      <pose>-0.24 0.5 0.075 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://cm15</uri>
+      <name>cm15</name>
+      <pose>-0.06 0.5 0.075 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://cm16</uri>
+      <name>cm16</name>
+      <pose>-0.12 0.5 0.075 0 0 0</pose>
+    </include>
+
+
+    <!-- ================================================== -->
+    <!-- 非社区人员标识 -->
+    <!-- ================================================== -->
+
+    <include>
+      <uri>model://ncm1</uri>
+      <name>ncm1</name>
+      <pose>1.07 1.2 0.075 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://ncm2</uri>
+      <name>ncm2</name>
+      <pose>-0.18 0.5 0.075 0 0 0</pose>
+    </include>
+
   </world>
 
 </sdf>

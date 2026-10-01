@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="red_on">
+    <static>true</static>
+    <pose>0 0 0.025 0 0 0</pose>
+    <link name="red_on">
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.14 0.005 0.14</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.14 0.005 0.14</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>model://red_on/materials/scripts/red_on.material</uri>
+            <uri>model://red_on/materials/textures/red_on.png</uri>
+            <name>red_on</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

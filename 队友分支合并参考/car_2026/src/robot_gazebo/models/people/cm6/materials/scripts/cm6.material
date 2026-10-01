@@ -1,0 +1,18 @@
+material cm6
+{
+  receive_shadows on
+  technique
+  {
+    pass
+    {
+      ambient 1 1 1 1
+      diffuse 1 1 1 1
+      specular 0.1 0.1 0.1 0
+      texture_unit
+      {
+        texture cm6.png
+        filtering anisotropic
+      }
+    }
+  }
+}

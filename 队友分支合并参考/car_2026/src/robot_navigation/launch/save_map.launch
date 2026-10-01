@@ -1,0 +1,10 @@
+<launch>
+  <!-- Run after Cartographer has finished covering the area you want to save. -->
+  <arg name="map_name" default="community_map"/>
+
+  <node pkg="map_server" type="map_saver" name="map_saver"
+        args="-f $(find robot_navigation)/map/$(arg map_name)"
+        output="screen">
+    <remap from="map" to="/map"/>
+  </node>
+</launch>

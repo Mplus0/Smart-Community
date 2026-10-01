@@ -1,0 +1,16 @@
+material green_on
+{
+  technique
+  {
+    pass
+    {
+      ambient 0.9 0.9 0.9 1
+      diffuse 0.9 0.9 0.9 1
+      specular 0.1 0.1 0.1 0
+      texture_unit
+      {
+        texture green_on.png
+      }
+    }
+  }
+}

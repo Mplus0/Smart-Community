@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="cm11">
+    <static>true</static>
+    <pose>0 0 0.075 0 0 0</pose>
+    <link name="cm11">
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.05 0.005 0.15</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.05 0.005 0.15</size>
+          </box>
+        </geometry>
+
+        <material>
+          <script>
+            <uri>model://cm11/materials/scripts/cm11.material</uri>
+            <uri>model://cm11/materials/textures/cm11.png</uri>
+            <name>cm11</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

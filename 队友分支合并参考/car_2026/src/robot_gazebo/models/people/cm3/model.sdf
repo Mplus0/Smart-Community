@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="cm3">
+    <static>true</static>
+    <pose>0 0 0.075 0 0 0</pose>
+    <link name="cm3">
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.05 0.005 0.15</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.05 0.005 0.15</size>
+          </box>
+        </geometry>
+
+        <material>
+          <script>
+            <uri>model://cm3/materials/scripts/cm3.material</uri>
+            <uri>model://cm3/materials/textures/cm3.png</uri>
+            <name>cm3</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="ground_map">
+    <static>true</static>
+    <pose>0 0 -0.025 0 0 0</pose>
+    <link name="link">
+      <collision name="collision">
+        <geometry><box><size>4.2 4.2 0.05</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>4.2 4.2 0.05</size></box></geometry>
+        <material>
+          <script>
+            <uri>model://ground_map/materials/scripts</uri>
+            <uri>model://ground_map/materials/textures</uri>
+            <name>ground_map</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

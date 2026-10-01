@@ -1,0 +1,16 @@
+material vehicle_board
+{
+  technique
+  {
+    pass
+    {
+      ambient 1.0 1.0 1.0 1
+      diffuse 1.0 1.0 1.0 1
+      texture_unit
+      {
+        texture car.png 
+        
+      }
+    }
+  }
+}
