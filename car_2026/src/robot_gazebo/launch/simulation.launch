@@ -111,6 +111,20 @@
 
   </group>
 
+  <!-- ================================================== -->
+  <!-- Mecanum chassis control -->
+  <!-- ================================================== -->
+
+  <include file="$(find robot_mecanum_control)/launch/mecanum_control.launch">
+    <arg name="publish_wheel_odom" value="true"/>
+  </include>
+
+
+  <!-- ================================================== -->
+  <!-- Local odometry fusion -->
+  <!-- ================================================== -->
+
+  <include file="$(find robot_mecanum_control)/launch/localization.launch"/>
 
   <!-- ================================================== -->
   <!-- RViz -->

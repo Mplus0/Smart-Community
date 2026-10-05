@@ -55,7 +55,9 @@
   <build_export_depend>xacro</build_export_depend>
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>xacro</exec_depend>
-
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>robot_mecanum_control</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

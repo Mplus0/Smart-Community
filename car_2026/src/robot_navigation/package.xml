@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>robot_navigation</name>
+  <version>0.1.0</version>
+
+  <description>
+    Navigation and mapping package for Smart Community robot.
+  </description>
+
+  <maintainer email="developer@todo.todo">
+    developer
+  </maintainer>
+
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Runtime -->
+  <exec_depend>roslaunch</exec_depend>
+  <exec_depend>tf</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <!-- Cartographer -->
+  <exec_depend>cartographer_ros</exec_depend>
+
+  <!-- Map -->
+  <exec_depend>map_server</exec_depend>
+
+  <!-- Existing robot modules -->
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>robot_mecanum_control</exec_depend>
+
+  <export>
+  </export>
+
+</package>
