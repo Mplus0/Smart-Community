@@ -1,6 +1,6 @@
 {
-  "car_plate2": "粤KVBH9P",
-  "car_plate3": "鲁ZS71VF",
+  "car_plate2": "鲁UT7Q62",
+  "car_plate3": "贵AGWPWY",
   "api_url": "http://new.hdsxsc.com:10086/server.php",
   "note": "null means the API failed and the previous texture was retained."
 }

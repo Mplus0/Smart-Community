@@ -5,6 +5,7 @@
   <!-- ================================================== -->
 
   <arg name="use_sim_time" default="true"/>
+  <arg name="open_rviz" default="true"/>
 
   <param name="/use_sim_time"
          value="$(arg use_sim_time)"/>
@@ -23,17 +24,9 @@
           -configuration_basename cartographer_2d.lua
         ">
 
-    <!-- Gazebo LiDAR -->
-    <remap from="scan"
-           to="/scan"/>
-
-    <!-- EKF fused odometry -->
-    <remap from="odom"
-           to="/odometry/filtered"/>
-
-    <!-- Gazebo IMU -->
-    <remap from="imu"
-           to="/imu/data"/>
+    <remap from="scan" to="/scan"/>
+    <remap from="odom" to="/odometry/filtered"/>
+    <remap from="imu" to="/imu/data"/>
 
   </node>
 
@@ -50,5 +43,17 @@
           -resolution 0.02
           -publish_period_sec 1.0
         "/>
+
+
+  <!-- ================================================== -->
+  <!-- RViz -->
+  <!-- ================================================== -->
+
+  <node if="$(arg open_rviz)"
+        pkg="rviz"
+        type="rviz"
+        name="rviz"
+        output="screen"
+        args="-d $(find robot_navigation)/rviz/mapping.rviz"/>
 
 </launch>
