@@ -3,32 +3,159 @@
   <model name="traffic_light">
     <static>true</static>
 
-    <link name="panel">
+    <!--
+      Competition dimensions:
+      overall: 0.64 m wide x 0.48 m high x 0.05 m deep
+      housing: 0.59 m wide x 0.14 m high x 0.05 m deep
+      legs:    0.025 m wide x 0.025 m deep x 0.48 m high
+
+      Coordinate convention:
+      X: horizontal width
+      Y: depth
+      Z: height
+    -->
+
+    <!-- Traffic-light housing -->
+    <link name="housing">
       <pose>0 0 0.41 0 0 0</pose>
-      <collision name="collision"><geometry><box><size>0.64 0.05 0.14</size></box></geometry></collision>
-      <visual name="visual">
-        <geometry><box><size>0.64 0.05 0.14</size></box></geometry>
-        <material><script>
-            <uri>model://traffic_light/materials/scripts/traffic_light.material</uri>
-            <name>traffic_light</name>
-          </script></material>
+
+      <collision name="housing_collision">
+        <geometry>
+          <box>
+            <size>0.59 0.05 0.14</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="housing_visual">
+        <geometry>
+          <box>
+            <size>0.59 0.05 0.14</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Black</name>
+          </script>
+        </material>
+      </visual>
+
+      <!-- Red lamp: initial state ON -->
+      <visual name="red_lamp">
+        <pose>0.195 0.0255 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.14 0.001 0.14</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>model://traffic_light/materials/scripts</uri>
+            <uri>model://traffic_light/materials/textures</uri>
+            <name>TrafficLight/RedOn</name>
+          </script>
+        </material>
+      </visual>
+
+      <!-- Yellow lamp: initial state OFF -->
+      <visual name="yellow_lamp">
+        <pose>0 0.0255 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.14 0.001 0.14</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>model://traffic_light/materials/scripts</uri>
+            <uri>model://traffic_light/materials/textures</uri>
+            <name>TrafficLight/YellowOff</name>
+          </script>
+        </material>
+      </visual>
+
+      <!-- Green lamp: initial state OFF -->
+      <visual name="green_lamp">
+        <pose>-0.195 0.0255 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.14 0.001 0.14</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>model://traffic_light/materials/scripts</uri>
+            <uri>model://traffic_light/materials/textures</uri>
+            <name>TrafficLight/GreenOff</name>
+          </script>
+        </material>
       </visual>
     </link>
+
+    <!-- Left support leg -->
     <link name="leg_left">
-      <pose>-0.3325 0 0.24 0 0 0</pose>
-      <collision name="collision"><geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry></collision>
-      <visual name="visual">
-        <geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry>
-        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Black</name></script></material>
+      <pose>-0.3075 0 0.24 0 0 0</pose>
+
+      <collision name="leg_left_collision">
+        <geometry>
+          <box>
+            <size>0.025 0.025 0.48</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="leg_left_visual">
+        <geometry>
+          <box>
+            <size>0.025 0.025 0.48</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Black</name>
+          </script>
+        </material>
       </visual>
     </link>
+
+    <!-- Right support leg -->
     <link name="leg_right">
-      <pose>0.3325 0 0.24 0 0 0</pose>
-      <collision name="collision"><geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry></collision>
-      <visual name="visual">
-        <geometry><cylinder><radius>0.025</radius><length>0.48</length></cylinder></geometry>
-        <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Black</name></script></material>
+      <pose>0.3075 0 0.24 0 0 0</pose>
+
+      <collision name="leg_right_collision">
+        <geometry>
+          <box>
+            <size>0.025 0.025 0.48</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="leg_right_visual">
+        <geometry>
+          <box>
+            <size>0.025 0.025 0.48</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Black</name>
+          </script>
+        </material>
       </visual>
     </link>
+
+    <!-- 自动红绿灯控制插件 -->
+    <plugin name="traffic_light_controller"
+            filename="libtraffic_light_plugin.so">
+
+      <red_duration>10.0</red_duration>
+      <yellow_duration>5.0</yellow_duration>
+      <green_duration>15.0</green_duration>
+
+    </plugin>
+
   </model>
 </sdf>

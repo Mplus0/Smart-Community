@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <model name="thin_plate_4person">
+    <static>true</static>
+
+    <link name="plate_link">
+      <pose>0 0 0.075 0 0 0</pose>
+
+      <collision name="plate_collision">
+        <geometry>
+          <box>
+            <size>0.002 0.230 0.150</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="plate_visual">
+        <geometry>
+          <box>
+            <size>0.002 0.230 0.150</size>
+          </box>
+        </geometry>
+
+        <material>
+          <ambient>0.65 0.65 0.65 1</ambient>
+          <diffuse>0.65 0.65 0.65 1</diffuse>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -9,7 +9,7 @@ material car_plate2
       specular 0.1 0.1 0.1 0
       texture_unit
       {
-        texture car_plate2.png
+        texture car_plate2.jpg
       }
     }
   }

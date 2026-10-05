@@ -18,6 +18,11 @@
       <uri>model://sun</uri>
     </include>
 
+
+    <!-- ================================================== -->
+    <!-- 比赛场地 -->
+    <!-- ================================================== -->
+
     <!-- 比赛场地地面 -->
     <include>
       <uri>model://ground_map</uri>
@@ -31,6 +36,11 @@
       <name>field_frame</name>
       <pose>0 0 0 0 0 0</pose>
     </include>
+
+
+    <!-- ================================================== -->
+    <!-- 车辆展示板 -->
+    <!-- ================================================== -->
 
     <!-- 车1 -->
     <include>
@@ -53,20 +63,36 @@
       <pose>-1.66 -1.53 0.15 0 0 0</pose>
     </include>
 
+
+    <!-- ================================================== -->
     <!-- 红绿灯 -->
+    <!-- ================================================== -->
+
+    <!-- 红绿灯 1 -->
     <include>
       <uri>model://traffic_light</uri>
-      <name>traffic_light</name>
-      <pose>1.689 0.037 0 0 0 0</pose>
+      <name>traffic_light_1</name>
+      <pose>1.689 0.037 0 0 0 -3.14</pose>
     </include>
 
-    <!-- 车牌 1 -->
+    <!-- 红绿灯 2 -->
+    <include>
+      <uri>model://traffic_light</uri>
+      <name>traffic_light_2</name>
+      <pose>-0.846 0.102 0 0 0 -1.57</pose>
+    </include>
+
+
+    <!-- ================================================== -->
+    <!-- 车牌 -->
+    <!-- ================================================== -->
+
+    <!-- 车牌1 -->
     <include>
       <uri>model://car_plate1</uri>
       <name>car_plate1</name>
       <pose>-0.48 -1.526 0.15 0 0 0</pose>
     </include>
-
 
     <!-- 车牌2 -->
     <include>
@@ -82,68 +108,93 @@
       <pose>-1.66 -1.526 0.15 0 0 0</pose>
     </include>
 
+
     <!-- ================================================== -->
-    <!-- 社区人员标识 -->
+    <!-- 第一组人员：4人 -->
+    <!-- X = 1.16，沿 Y 方向排列 -->
+    <!-- 中心间距 = 0.06 m -->
     <!-- ================================================== -->
 
     <include>
-      <uri>model://cm1</uri>
-      <name>cm1</name>
-      <pose>1.14 1.2 0.075 0 0 0</pose>
+      <uri>model://cm4</uri>
+      <name>cm4</name>
+      <pose>1.16 0.94 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm2</uri>
       <name>cm2</name>
-      <pose>1.16 1 0.075 0 0 1.57</pose>
+      <pose>1.16 1.00 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm3</uri>
       <name>cm3</name>
-      <pose>1.16 1.053 0.075 0 0 1.57</pose>
-    </include>
-
-    <include>
-      <uri>model://cm4</uri>
-      <name>cm4</name>
-      <pose>1.16 0.945 0.075 0 0 1.57</pose>
+      <pose>1.16 1.06 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm5</uri>
       <name>cm5</name>
-      <pose>1.16 1.107 0.075 0 0 1.57</pose>
+      <pose>1.16 1.12 0.075 0 0 1.57</pose>
     </include>
+
+    <!-- 第一组四人薄板 -->
+    <include>
+      <uri>model://thin_plate_4person</uri>
+      <name>thin_plate_group1</name>
+      <pose>1.1564 1.03 0 0 0 0</pose>
+    </include>
+
+
+    <!-- ================================================== -->
+    <!-- 第二组人员：4人 -->
+    <!-- X = 1.048，沿 Y 方向排列 -->
+    <!-- 中心间距 = 0.06 m -->
+    <!-- ================================================== -->
 
     <include>
       <uri>model://cm6</uri>
       <name>cm6</name>
-      <pose>1.048 0.945 0.075 0 0 1.57</pose>
+      <pose>1.048 0.94 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm7</uri>
       <name>cm7</name>
-      <pose>1.048 1 0.075 0 0 1.57</pose>
+      <pose>1.048 1.00 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm8</uri>
       <name>cm8</name>
-      <pose>1.048 1.053 0.075 0 0 1.57</pose>
+      <pose>1.048 1.06 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm9</uri>
       <name>cm9</name>
-      <pose>1.048 1.107 0.075 0 0 1.57</pose>
+      <pose>1.048 1.12 0.075 0 0 1.57</pose>
     </include>
+
+    <!-- 第二组四人薄板 -->
+    <include>
+      <uri>model://thin_plate_4person</uri>
+      <name>thin_plate_group2</name>
+      <pose>1.0516 1.03 0 0 0 0</pose>
+    </include>
+
+
+    <!-- ================================================== -->
+    <!-- 第三组人员：4人 -->
+    <!-- X = 0.05，沿 Y 方向排列 -->
+    <!-- 中心间距 = 0.06 m -->
+    <!-- ================================================== -->
 
     <include>
       <uri>model://cm10</uri>
       <name>cm10</name>
-      <pose>0.05 0.805 0.075 0 0 1.57</pose>
+      <pose>0.05 0.80 0.075 0 0 1.57</pose>
     </include>
 
     <include>
@@ -155,49 +206,86 @@
     <include>
       <uri>model://cm12</uri>
       <name>cm12</name>
-      <pose>0.05 0.915 0.075 0 0 1.577</pose>
+      <pose>0.05 0.92 0.075 0 0 1.57</pose>
     </include>
 
     <include>
       <uri>model://cm13</uri>
       <name>cm13</name>
-      <pose>0.05 0.97 0.075 0 0 1.57</pose>
+      <pose>0.05 0.98 0.075 0 0 1.57</pose>
     </include>
+
+    <!-- 第三组四人薄板 -->
+    <include>
+      <uri>model://thin_plate_4person</uri>
+      <name>thin_plate_group3</name>
+      <pose>0.0464 0.89 0 0 0 0</pose>
+    </include>
+
+
+    <!-- ================================================== -->
+    <!-- 第四组人员：4人 -->
+    <!-- Y = 0.50，沿 X 方向排列 -->
+    <!-- 中心间距 = 0.06 m -->
+    <!-- ================================================== -->
 
     <include>
       <uri>model://cm14</uri>
       <name>cm14</name>
-      <pose>-0.24 0.5 0.075 0 0 0</pose>
-    </include>
-
-    <include>
-      <uri>model://cm15</uri>
-      <name>cm15</name>
-      <pose>-0.06 0.5 0.075 0 0 0</pose>
-    </include>
-
-    <include>
-      <uri>model://cm16</uri>
-      <name>cm16</name>
-      <pose>-0.12 0.5 0.075 0 0 0</pose>
-    </include>
-
-
-    <!-- ================================================== -->
-    <!-- 非社区人员标识 -->
-    <!-- ================================================== -->
-
-    <include>
-      <uri>model://ncm1</uri>
-      <name>ncm1</name>
-      <pose>1.07 1.2 0.075 0 0 0</pose>
+      <pose>-0.24 0.50 0.075 0 0 0</pose>
     </include>
 
     <include>
       <uri>model://ncm2</uri>
       <name>ncm2</name>
-      <pose>-0.18 0.5 0.075 0 0 0</pose>
+      <pose>-0.18 0.50 0.075 0 0 0</pose>
     </include>
+
+    <include>
+      <uri>model://cm16</uri>
+      <name>cm16</name>
+      <pose>-0.12 0.50 0.075 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://cm15</uri>
+      <name>cm15</name>
+      <pose>-0.06 0.50 0.075 0 0 0</pose>
+    </include>
+
+    <!-- 第四组四人薄板 -->
+    <include>
+      <uri>model://thin_plate_4person</uri>
+      <name>thin_plate_group4</name>
+      <pose>-0.15 0.5036 0 0 0 1.5708</pose>
+    </include>
+
+
+    <!-- ================================================== -->
+    <!-- 第五组人员：2人 -->
+    <!-- Y = 1.20，沿 X 方向排列 -->
+    <!-- 中心间距 = 0.06 m -->
+    <!-- ================================================== -->
+
+    <include>
+      <uri>model://ncm1</uri>
+      <name>ncm1</name>
+      <pose>1.08 1.20 0.075 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://cm1</uri>
+      <name>cm1</name>
+      <pose>1.14 1.20 0.075 0 0 0</pose>
+    </include>
+
+    <!-- 第五组两人薄板 -->
+    <include>
+      <uri>model://thin_plate_2person</uri>
+      <name>thin_plate_group5</name>
+      <pose>1.11 1.1964 0 0 0 1.5708</pose>
+    </include>
+
 
   </world>
 
