@@ -101,3 +101,13 @@ install(
   DESTINATION
     ${CATKIN_PACKAGE_SHARE_DESTINATION}/worlds
 )
+
+# Install scripts
+install(
+  PROGRAMS
+    scripts/generate_random_plates.py
+    scripts/start_simulation.sh
+
+  DESTINATION
+    ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

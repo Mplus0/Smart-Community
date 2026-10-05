@@ -1,43 +1,123 @@
 <launch>
 
-  <!-- Gazebo world -->
-  <env name="GAZEBO_MODEL_PATH"
-       value="$(find robot_gazebo)/models:${GAZEBO_MODEL_PATH}"/>
+  <!-- ================================================== -->
+  <!-- Arguments -->
+  <!-- ================================================== -->
 
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="paused" value="false"/>
-    <arg name="use_sim_time" value="true"/>
-    <arg name="gui" value="true"/>
-  </include>
+  <!-- Competition world -->
+  <arg name="world_name"
+       default="$(find robot_gazebo)/worlds/competition_field.world"/>
 
-  <!-- Robot description -->
-  <param name="robot_description"
-         command="$(find xacro)/xacro $(find robot_description)/urdf/robotcar.urdf.xacro" />
+  <!-- Gazebo options -->
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
 
+  <!-- Robot options -->
+  <arg name="spawn_robot" default="true"/>
+  <arg name="robot_name" default="robotcar"/>
 
-  <!-- Publish TF -->
-  <node pkg="robot_state_publisher"
-        type="robot_state_publisher"
-        name="robot_state_publisher">
-    <param name="use_sim_time" value="true"/>
-  </node>
-
-
-  <!-- Spawn robot -->
-  <node pkg="gazebo_ros"
-        type="spawn_model"
-        name="spawn_robot"
-        args="-urdf
-              -param robot_description
-              -model robotcar
-              -x 0
-              -y 0
-              -z 0.1"
-        output="screen"/>
-
+<arg name="robot_x" default="1.696892"/>
+<arg name="robot_y" default="-1.680704"/>
+<arg name="robot_z" default="0.023994"/>
+<arg name="robot_yaw" default="1.568056"/>
 
   <!-- RViz -->
-  <node pkg="rviz"
+  <arg name="rviz" default="false"/>
+
+
+  <!-- ================================================== -->
+  <!-- Gazebo environment -->
+  <!-- ================================================== -->
+
+  <!-- Custom Gazebo models -->
+  <env name="GAZEBO_MODEL_PATH"
+       value="$(find robot_gazebo)/models:$(optenv GAZEBO_MODEL_PATH)"/>
+
+  <!-- Custom Gazebo plugins -->
+  <env name="GAZEBO_PLUGIN_PATH"
+       value="$(find robot_gazebo)/../../devel/lib:$(optenv GAZEBO_PLUGIN_PATH)"/>
+
+  <!-- Disable online Gazebo model database -->
+  <env name="GAZEBO_MODEL_DATABASE_URI"
+       value=""/>
+
+
+  <!-- ================================================== -->
+  <!-- Gazebo -->
+  <!-- ================================================== -->
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+
+    <arg name="world_name"
+         value="$(arg world_name)"/>
+
+    <arg name="paused"
+         value="$(arg paused)"/>
+
+    <arg name="use_sim_time"
+         value="$(arg use_sim_time)"/>
+
+    <arg name="gui"
+         value="$(arg gui)"/>
+
+    <arg name="headless"
+         value="$(arg headless)"/>
+
+    <arg name="debug"
+         value="$(arg debug)"/>
+
+  </include>
+
+
+  <!-- ================================================== -->
+  <!-- Robot description -->
+  <!-- ================================================== -->
+
+  <group if="$(arg spawn_robot)">
+
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find robot_description)/urdf/robotcar.urdf.xacro"/>
+
+
+    <!-- Robot TF -->
+    <node pkg="robot_state_publisher"
+          type="robot_state_publisher"
+          name="robot_state_publisher"
+          output="screen">
+
+      <param name="use_sim_time"
+             value="$(arg use_sim_time)"/>
+
+    </node>
+
+
+    <!-- Spawn robot -->
+    <node pkg="gazebo_ros"
+          type="spawn_model"
+          name="spawn_robot"
+          output="screen"
+          args="
+            -urdf
+            -param robot_description
+            -model $(arg robot_name)
+            -x $(arg robot_x)
+            -y $(arg robot_y)
+            -z $(arg robot_z)
+            -Y $(arg robot_yaw)
+          "/>
+
+  </group>
+
+
+  <!-- ================================================== -->
+  <!-- RViz -->
+  <!-- ================================================== -->
+
+  <node if="$(arg rviz)"
+        pkg="rviz"
         type="rviz"
         name="rviz"
         output="screen"/>
