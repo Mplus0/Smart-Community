@@ -20,7 +20,7 @@ TebLocalPlannerROS:
   global_plan_overwrite_orientation: true
   allow_init_with_backwards_motion: false
 
-  max_global_plan_lookahead_dist: 2.0
+  max_global_plan_lookahead_dist: 1.0
 
   feasibility_check_no_poses: 5
 
@@ -29,21 +29,21 @@ TebLocalPlannerROS:
   # TEB velocity limits (lateral motion disabled)
   # =======================================================
 
-  max_vel_x: 0.30
+  max_vel_x: 0.25
   max_vel_x_backwards: 0.08
 
   max_vel_y: 0.0
 
-  max_vel_theta: 0.35
+  max_vel_theta: 0.30
 
 
   # =======================================================
   # Acceleration limits
   # =======================================================
 
-  acc_lim_x: 0.35
+  acc_lim_x: 0.25
   acc_lim_y: 0.0
-  acc_lim_theta: 0.40
+  acc_lim_theta: 0.35
 
 
   # =======================================================
@@ -51,6 +51,14 @@ TebLocalPlannerROS:
   # =======================================================
 
   min_turning_radius: 0.0
+
+  footprint_model:
+    type: "polygon"
+    vertices:
+      - [-0.155, -0.141]
+      - [-0.155,  0.141]
+      - [ 0.155,  0.141]
+      - [ 0.155, -0.141]
 
 
   # =======================================================
@@ -68,7 +76,7 @@ TebLocalPlannerROS:
   # Obstacles
   # =======================================================
 
-  min_obstacle_dist: 0.08
+  min_obstacle_dist: 0.04
 
   inflation_dist: 0.12
 
