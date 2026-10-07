@@ -1,0 +1,37 @@
+<launch>
+
+  <arg name="use_sim_time" default="true"/>
+  <arg name="map_file"
+       default="$(find robot_navigation)/maps/localization_map.yaml"/>
+
+  <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+  <!-- ================================================== -->
+  <!-- Localization map -->
+  <!-- ================================================== -->
+
+  <node pkg="map_server"
+        type="map_server"
+        name="localization_map_server"
+        output="screen"
+        args="$(arg map_file)" />
+
+
+  <!-- ================================================== -->
+  <!-- AMCL -->
+  <!-- ================================================== -->
+
+  <node pkg="amcl"
+        type="amcl"
+        name="amcl"
+        output="screen"
+        clear_params="true">
+
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/amcl.yaml"/>
+
+    <remap from="scan" to="/scan"/>
+
+  </node>
+
+</launch>

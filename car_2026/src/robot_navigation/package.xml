@@ -26,7 +26,8 @@
 
   <!-- Map -->
   <exec_depend>map_server</exec_depend>
-
+  <exec_depend>amcl</exec_depend>
+  
   <!-- Existing robot modules -->
   <exec_depend>robot_description</exec_depend>
   <exec_depend>robot_mecanum_control</exec_depend>
