@@ -26,28 +26,28 @@ TebLocalPlannerROS:
 
 
   # =======================================================
-  # Mecanum velocity limits
+  # TEB velocity limits (lateral motion disabled)
   # =======================================================
 
   max_vel_x: 0.30
-  max_vel_x_backwards: 0.15
+  max_vel_x_backwards: 0.08
 
-  max_vel_y: 0.20
+  max_vel_y: 0.0
 
-  max_vel_theta: 0.60
+  max_vel_theta: 0.35
 
 
   # =======================================================
   # Acceleration limits
   # =======================================================
 
-  acc_lim_x: 0.40
-  acc_lim_y: 0.40
-  acc_lim_theta: 0.80
+  acc_lim_x: 0.35
+  acc_lim_y: 0.0
+  acc_lim_theta: 0.40
 
 
   # =======================================================
-  # Holonomic robot
+  # Differential-drive-style navigation (in-place rotation allowed)
   # =======================================================
 
   min_turning_radius: 0.0
@@ -58,7 +58,7 @@ TebLocalPlannerROS:
   # =======================================================
 
   xy_goal_tolerance: 0.08
-  yaw_goal_tolerance: 0.10
+  yaw_goal_tolerance: 0.12
 
   free_goal_vel: false
   complete_global_plan: true
@@ -68,9 +68,9 @@ TebLocalPlannerROS:
   # Obstacles
   # =======================================================
 
-  min_obstacle_dist: 0.10
+  min_obstacle_dist: 0.08
 
-  inflation_dist: 0.18
+  inflation_dist: 0.12
 
   include_costmap_obstacles: true
 
@@ -98,8 +98,8 @@ TebLocalPlannerROS:
   weight_acc_lim_y: 1.0
   weight_acc_lim_theta: 1.0
 
-  weight_kinematics_nh: 0.0
-  weight_kinematics_forward_drive: 0.0
+  weight_kinematics_nh: 1000.0
+  weight_kinematics_forward_drive: 10.0
 
   weight_optimaltime: 1.0
 
