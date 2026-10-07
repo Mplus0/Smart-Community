@@ -1,0 +1,75 @@
+<launch>
+
+  <arg name="use_sim_time" default="true"/>
+
+  <param name="/use_sim_time"
+         value="$(arg use_sim_time)"/>
+
+
+  <!-- ================================================== -->
+  <!-- AMCL + localization_map -->
+  <!-- ================================================== -->
+
+  <include file="$(find robot_navigation)/launch/localization.launch">
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+  </include>
+
+
+  <!-- ================================================== -->
+  <!-- Planning map
+       独立发布到 /planning_map
+  =================================================== -->
+
+  <node pkg="map_server"
+        type="map_server"
+        name="planning_map_server"
+        output="screen"
+        args="$(find robot_navigation)/maps/planning_map.yaml">
+
+    <remap from="map"
+           to="/planning_map"/>
+
+    <remap from="map_metadata"
+           to="/planning_map_metadata"/>
+
+  </node>
+
+
+  <!-- ================================================== -->
+  <!-- move_base -->
+  <!-- ================================================== -->
+
+  <node pkg="move_base"
+        type="move_base"
+        name="move_base"
+        output="screen"
+        clear_params="true">
+
+    <!-- move_base -->
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/move_base.yaml"/>
+
+    <!-- common costmap -->
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/costmap_common.yaml"
+              ns="global_costmap"/>
+
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/costmap_common.yaml"
+              ns="local_costmap"/>
+
+    <!-- global -->
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/global_costmap.yaml"/>
+
+    <!-- local -->
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/local_costmap.yaml"/>
+
+    <!-- TEB -->
+    <rosparam command="load"
+              file="$(find robot_navigation)/config/teb_local_planner.yaml"/>
+
+  </node>
+
+</launch>
