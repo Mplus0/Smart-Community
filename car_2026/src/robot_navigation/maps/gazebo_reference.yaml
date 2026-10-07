@@ -1,4 +1,4 @@
-image: localization_map.pgm
+image: gazebo_reference.png
 resolution: 0.020000
 origin: [-0.512972, -0.530262, 0.000000]
 negate: 0
