@@ -1,5 +1,4 @@
 # Smart-Community
-1111111
 
 ## 项目简介
 
