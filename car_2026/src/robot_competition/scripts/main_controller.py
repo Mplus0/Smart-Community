@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P1 mission state machine. All deadlines use monotonic wall time."""
+"""P1 navigation with bounded P2-B perception tasks and persistent results."""
 import math
 import os
 import sys
@@ -14,6 +14,9 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 # catkin devel-space relays execute this source with a different sys.path[0].
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from waypoint_manager import RouteError, load_route, positive_number, retry_count
+from perception_client import PerceptionClient, TOPICS
+from task_processor import TaskProcessor, task_settings
+from result_manager import ResultManager
 
 
 class MissionError(RuntimeError):
@@ -31,6 +34,9 @@ class Controller:
         self.lock = threading.RLock()
         self.done = threading.Event()
         self.result_status = None
+        self.results = None
+        self.perception = None
+        self.task_processor = None
         self.use_sim_time = rospy.get_param("/use_sim_time", False)
         self.last_clock = rospy.Time.now().to_sec()
         self.clock_changed = time.monotonic()
@@ -43,6 +49,8 @@ class Controller:
                       self.state, state, min(self.index + 1, len(self.points)), len(self.points), point.get("id", "-"),
                       point.get("x"), point.get("y"), point.get("yaw"), point.get("task"), reason)
         self.state = state
+        if self.results is not None:
+            self.results.event('STATE', {'state': state, 'waypoint_id': point.get('id'), 'reason': reason})
 
     def shutdown(self):
         with self.lock:
@@ -95,7 +103,14 @@ class Controller:
             self.done.set()
 
     def initialize(self):
+        self.results = ResultManager(rospy.get_param('~results_root', '/workspace/car_2026/results'))
         self.points = load_route(rospy.get_param("~waypoints_file"))["route"]["points"]
+        task_config = rospy.get_param('~task_config', {})
+        if not isinstance(task_config, dict) or set(task_config) - {'defaults', 'person', 'plate', 'counting'}:
+            raise ValueError('invalid task_config sections')
+        for kind in ('person', 'plate'):
+            task_settings(task_config, kind)
+        self.results.set_route(self.points, task_config.get('counting', {}))
         self.test_mode = rospy.get_param("~navigation_test_mode", False)
         if type(self.test_mode) is not bool:
             raise RouteError("navigation_test_mode must be a boolean")
@@ -124,6 +139,13 @@ class Controller:
         threading.Thread(target=connect, daemon=True).start()
         if not self.wait(ready.is_set, self.server_timeout):
             raise MissionError("move_base server timeout")
+        if any(p['task'] in ('person', 'plate') for p in self.points) and not self.test_mode:
+            self.perception = PerceptionClient(
+                topics={name: rospy.get_param('~' + name + '_topic', value) for name, value in TOPICS.items()},
+                max_cache_frames=rospy.get_param('~max_cache_frames', 24),
+                max_cache_age_sec=rospy.get_param('~max_cache_age_sec', 10.0),
+                max_cache_bytes=rospy.get_param('~max_cache_bytes', 67108864))
+            self.task_processor = TaskProcessor(self.perception, self.results, self.check_running, task_config)
         self.transition("NAVIGATE", "action server ready")
 
     def navigate(self, point):
@@ -165,8 +187,12 @@ class Controller:
             if not self.test_mode:
                 raise MissionError("TRAFFIC_LIGHT_NOT_IMPLEMENTED: stopped at confirmed safe point; mission halted, no crossing")
             rospy.logwarn("TEST ONLY: bypassing traffic-light task %s", point["id"])
+        elif self.test_mode:
+            result = self.results.begin_task(point, 1, {})
+            result.update(status='SKIPPED_NAVIGATION_TEST', reason='explicit pure-navigation test; no recognition performed')
+            self.results.record_task(result)
         else:
-            rospy.logwarn("NOT_IMPLEMENTED task=%s id=%s area=%s", point["task"], point["id"], point.get("area", ""))
+            self.task_processor.execute(point)
 
     def run(self):
         try:
@@ -175,24 +201,40 @@ class Controller:
                 self.check_running()
                 point = self.points[self.index]
                 if self.state == "NAVIGATE":
+                    self.results.begin_waypoint(point, self.index)
                     self.navigate(point)
+                    self.results.end_waypoint('SUCCEEDED')
                     self.transition("TASK" if point["type"] == "task" else "NEXT_POINT", "navigation SUCCEEDED")
                 elif self.state == "TASK":
                     self.task(point)
-                    self.transition("NEXT_POINT", "placeholder handled")
+                    self.transition("NEXT_POINT", "task result persisted; continue route")
                 elif self.state == "NEXT_POINT":
                     self.index += 1
                     self.transition("FINISH" if self.index == len(self.points) else "NAVIGATE", "advance route")
+            self.results.finish('FINISH')
             return 0
         except Exception as exc:
-            self.transition("ERROR", str(exc))
+            try:
+                self.transition("ERROR", str(exc))
+            except Exception as log_exc:
+                self.state = 'ERROR'
+                rospy.logerr('Cannot write mission log: %s', log_exc)
             with self.lock:
                 self.stopping = True
             try:
                 self.cancel()
             except Exception as cancel_exc:
                 rospy.logerr("Cancellation failed: %s. Check move_base/robot stop before restart.", cancel_exc)
+            if self.results is not None:
+                try:
+                    self.results.end_waypoint('FAILED', str(exc))
+                    self.results.finish('ERROR', str(exc))
+                except Exception as save_exc:
+                    rospy.logerr('Cannot persist ERROR; previous atomic result retained: %s', save_exc)
             return 1
+        finally:
+            if self.perception is not None:
+                self.perception.close()
 
 
 def main():

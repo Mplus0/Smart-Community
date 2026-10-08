@@ -1,0 +1,27 @@
+# System ROS Python consumes the two existing perception streams; no inference here.
+defaults:
+  task_timeout_sec: 12.0
+  settle_sec: 0.5
+  observation_sec: 2.0
+  min_valid_frames: 4
+  max_valid_frames: 24
+  min_support_frames: 3
+  max_source_age_sec: 2.0
+  image_match_timeout_sec: 1.5
+  task_retry_count: 1
+  min_confidence: 0.5
+  match_iou: 0.3
+  match_center_distance: 0.08
+  max_track_gap_frames: 2
+  vote_fraction: 0.67
+  max_evidence_images: 3
+person: {}
+plate:
+  # Set true ONLY after confirming existing plate_font_path produces full Chinese text.
+  # This is an operator assertion, not automatic image OCR verification.
+  plate_text_annotation_confirmed: false
+counting:
+  non_overlapping_partitions_confirmed: false
+  # Optional: {person_waypoint_id: globally_unique_physical_partition_id}
+  # Every person waypoint must have area + a unique assignment when confirmed=true.
+  assignments: {}

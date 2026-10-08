@@ -1,20 +1,26 @@
-# robot_competition P1
+# robot_competition P1 / P2-B
 
-仅实现路线管理、TF 航点录入、move_base 多航点状态机。视觉模型、灯色识别与控制、识别结果持久化未实现。现有视觉占位脚本不安装、不启动。
+已实现路线管理、TF 航点录入、move_base 多航点状态机，以及到点后的人员/车牌结果订阅、多帧融合和持久化。模型仍由 `robot_perception` 独立运行，主程序使用系统 ROS Python 3.8。灯色识别与放行未实现，旧视觉占位脚本不安装、不启动。
+
+**P2-B 的四终端启动、全部新增参数、消息/结果 schema、统计边界、字体配置和自动测试记录见 [P2B.md](P2B.md)。** 本文保留 P1 航点录入及导航操作说明；下方 2026-10-08 记录仅表示当时的 P1 验证范围。
 
 ## 文件职责与运行逻辑
 
 - `package.xml`、`CMakeLists.txt`：Noetic Python 3 依赖和节点/资源安装。
 - `scripts/waypoint_manager.py`：无 ROS 依赖的 YAML 加载、严格校验和命令行检查。
 - `scripts/waypoint_recorder.py`：交互录入 `map -> base_footprint` TF 位姿；显式追加、重复 ID 拒绝、文件锁与同目录原子替换。
-- `scripts/main_controller.py`：Action 通信、任务占位、状态转换和安全终止。
+- `scripts/main_controller.py`：Action 通信、任务调用、状态转换和安全终止。
+- `scripts/perception_client.py`：持续订阅 JSON/标注图，严格校验、时间窗口与有界缓存。
+- `scripts/task_processor.py`：有限重试、人员短时匹配、车牌全文投票、同源证据匹配。
+- `scripts/result_manager.py`：按点/区域/全局保守统计，原子 JSON、日志及有限标注图片。
+- `config/task_config.yaml`：默认采集、融合规则和计数分区约定。
 - `config/waypoints.yaml`：默认空路线，未提供任何猜测的比赛坐标。
 - `launch/competition.launch`：仅启动主程序。
 - `tests/test_p1.py`、`tests/run_docker_checks.sh`：隔离 ROS Master 下的 schema、保存、TF 和假 Action Server 测试；不证明实际 Gazebo 导航可用。
 
 状态：`INIT → NAVIGATE → TASK（仅任务点）→ NEXT_POINT → NAVIGATE / FINISH`，错误进入 `ERROR` 并取消本节点目标、停止后续发送。空路线直接 `FINISH`。只有 Action 的 `SUCCEEDED` 才算到点。失败和超时可有限重试；收到外部取消或 LOST 则终止。取消确认超时不会重发目标。服务器、导航、取消及仿真时钟 watchdog 均使用墙上时钟上限，不依赖 `/clock` 继续走动。
 
-人员/车牌点只记录 `NOT_IMPLEMENTED` 后继续，不产生识别结果。正式模式在 INIT 检查所有交通灯点的 `stop_before_line: true`；任一点未确认就拒绝整条路线。到达已确认交通灯点后，以 `ERROR / TRAFFIC_LIGHT_NOT_IMPLEMENTED` 明确结束，不发送后续目标。这里预留未来 `WAIT_TRAFFIC` 接口。`navigation_test_mode` 默认 false；显式 true 才绕过交通灯占位，仅可用于隔离的纯导航测试。
+人员/车牌点在导航成功并等待稳定时间后开启新帧采集窗口；每次识别结果立即保存，普通识别失败有限重试后继续路线。时钟失效、关闭、存储异常仍进入 ERROR。正式模式在 INIT 检查所有交通灯点的 `stop_before_line: true`；任一点未确认就拒绝整条路线。到达已确认交通灯点后，以 `ERROR / TRAFFIC_LIGHT_NOT_IMPLEMENTED` 明确结束，不发送后续目标。这里预留未来 `WAIT_TRAFFIC` 接口。`navigation_test_mode` 默认 false；显式 true 时跳过视觉并记录 `SKIPPED_NAVIGATION_TEST`，也绕过交通灯占位，仅用于隔离的纯导航测试。
 
 ## YAML 格式
 
@@ -61,7 +67,7 @@ rosrun robot_competition waypoint_manager.py src/robot_competition/config/waypoi
 
 测试脚本使用本机独立端口 11329，要求该端口未被占用；ROS 日志保存在容器 `/tmp/robot-competition-tests.*`。测试不发送到 `/move_base`。
 
-## 三终端启动与定位
+## 航点录入的三终端启动与定位
 
 三个容器终端先执行 `source /opt/ros/noetic/setup.bash`、`cd /workspace/car_2026`、`source devel/setup.bash`。
 
@@ -104,7 +110,7 @@ rosrun robot_competition waypoint_manager.py /workspace/car_2026/route_measured.
 
 不提供隐式覆盖或替换点操作；需改点时先备份 YAML，人工修改后重新验证。`.lock` 是协作录入锁文件，可保留；其他编辑器不遵守此锁，勿同时修改同一文件。
 
-完成录入后，终端 3 正式 P1 启动：
+完成录入后，主程序入口如下；人员/车牌正式联调还需先启动独立视觉终端，完整步骤见 [P2B.md](P2B.md)：
 
 ```bash
 roslaunch robot_competition competition.launch waypoints_file:=/workspace/car_2026/route_measured.yaml

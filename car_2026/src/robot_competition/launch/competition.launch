@@ -7,7 +7,25 @@
   <arg name="clock_timeout" default="5.0"/>
   <arg name="retries" default="1"/>
   <arg name="navigation_test_mode" default="false"/>
+  <arg name="task_config_file" default="$(find robot_competition)/config/task_config.yaml"/>
+  <arg name="results_root" default="/workspace/car_2026/results"/>
+  <arg name="person_json_topic" default="/perception/person_detections_json"/>
+  <arg name="person_image_topic" default="/perception/person_image"/>
+  <arg name="plate_json_topic" default="/perception/plates_json"/>
+  <arg name="plate_image_topic" default="/perception/plates_image"/>
+  <arg name="max_cache_frames" default="24"/>
+  <arg name="max_cache_age_sec" default="10.0"/>
+  <arg name="max_cache_bytes" default="67108864"/>
   <node pkg="robot_competition" type="main_controller.py" name="main_controller" output="screen" respawn="false">
+    <rosparam command="load" file="$(arg task_config_file)" ns="task_config"/>
+    <param name="results_root" value="$(arg results_root)"/>
+    <param name="person_json_topic" value="$(arg person_json_topic)"/>
+    <param name="person_image_topic" value="$(arg person_image_topic)"/>
+    <param name="plate_json_topic" value="$(arg plate_json_topic)"/>
+    <param name="plate_image_topic" value="$(arg plate_image_topic)"/>
+    <param name="max_cache_frames" value="$(arg max_cache_frames)" type="int"/>
+    <param name="max_cache_age_sec" value="$(arg max_cache_age_sec)" type="double"/>
+    <param name="max_cache_bytes" value="$(arg max_cache_bytes)" type="int"/>
     <param name="waypoints_file" value="$(arg waypoints_file)"/>
     <param name="move_base_action" value="$(arg move_base_action)"/>
     <param name="navigation_timeout" value="$(arg navigation_timeout)" type="double"/>

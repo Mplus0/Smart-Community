@@ -21,10 +21,11 @@ for attempt in {1..50}; do
 done
 kill -0 "$master_pid"
 rosparam list >/dev/null
-python3 -m py_compile src/robot_competition/scripts/{main_controller,waypoint_manager,waypoint_recorder}.py
+python3 -m py_compile src/robot_competition/scripts/{main_controller,waypoint_manager,waypoint_recorder,perception_client,task_processor,result_manager}.py
 python3 src/robot_competition/tests/test_p1.py
+python3 src/robot_competition/tests/test_p2b.py
 source devel/setup.bash
 rosrun robot_competition waypoint_manager.py src/robot_competition/config/waypoints.yaml
 rosrun robot_competition waypoint_recorder.py --help
-rosrun robot_competition main_controller.py _waypoints_file:=/workspace/car_2026/src/robot_competition/config/waypoints.yaml
+rosrun robot_competition main_controller.py _waypoints_file:=/workspace/car_2026/src/robot_competition/config/waypoints.yaml _results_root:="$ROS_HOME/results"
 roslaunch --nodes robot_competition competition.launch

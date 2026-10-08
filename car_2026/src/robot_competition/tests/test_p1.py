@@ -121,6 +121,11 @@ class RosTests(unittest.TestCase):
         type(self).behavior = []
         type(self).cancelled = 0
         rospy.set_param("/use_sim_time", False)
+        # Keep all original P1 assertions; perception has no publisher in this navigation regression.
+        rospy.set_param('~results_root', os.path.join(self.temp.name, 'results'))
+        rospy.set_param('~task_config', {'defaults': {
+            'task_timeout_sec': 0.12, 'observation_sec': 0.05,
+            'settle_sec': 0.0, 'task_retry_count': 0}})
         for name, value in dict(waypoints_file=self.path, move_base_action="/p1_fake_move_base",
                                 navigation_timeout=1.0, server_timeout=2.0, cancel_timeout=0.5,
                                 clock_timeout=0.3, retries=1, navigation_test_mode=False).items():
