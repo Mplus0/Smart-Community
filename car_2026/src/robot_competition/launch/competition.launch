@@ -1,0 +1,20 @@
+<launch>
+  <arg name="waypoints_file" default="$(find robot_competition)/config/waypoints.yaml"/>
+  <arg name="move_base_action" default="/move_base"/>
+  <arg name="navigation_timeout" default="90.0"/>
+  <arg name="server_timeout" default="15.0"/>
+  <arg name="cancel_timeout" default="3.0"/>
+  <arg name="clock_timeout" default="5.0"/>
+  <arg name="retries" default="1"/>
+  <arg name="navigation_test_mode" default="false"/>
+  <node pkg="robot_competition" type="main_controller.py" name="main_controller" output="screen" respawn="false">
+    <param name="waypoints_file" value="$(arg waypoints_file)"/>
+    <param name="move_base_action" value="$(arg move_base_action)"/>
+    <param name="navigation_timeout" value="$(arg navigation_timeout)" type="double"/>
+    <param name="server_timeout" value="$(arg server_timeout)" type="double"/>
+    <param name="cancel_timeout" value="$(arg cancel_timeout)" type="double"/>
+    <param name="clock_timeout" value="$(arg clock_timeout)" type="double"/>
+    <param name="retries" value="$(arg retries)" type="int"/>
+    <param name="navigation_test_mode" value="$(arg navigation_test_mode)" type="bool"/>
+  </node>
+</launch>

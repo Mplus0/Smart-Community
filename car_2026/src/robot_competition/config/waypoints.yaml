@@ -1,0 +1,5 @@
+# No measured route supplied. Record real map poses before running a mission.
+# An empty route exits safely without contacting move_base or sending goals.
+route:
+  frame_id: map
+  points: []
