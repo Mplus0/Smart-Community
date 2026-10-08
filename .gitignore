@@ -55,3 +55,6 @@ models/*.weights
 # ==================================================
 *.bag
 *.bag.active
+
+# Mission evidence is generated in the mounted workspace, never source control.
+car_2026/results/
