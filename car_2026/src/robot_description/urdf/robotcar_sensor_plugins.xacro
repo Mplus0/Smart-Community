@@ -59,7 +59,7 @@
 
   <gazebo reference="base_link">
     <sensor name="depth_camera_sensor" type="depth">
-      <pose>${camera_x} ${camera_y} ${camera_z} 0 0 0</pose>
+      <pose>${camera_x} ${camera_y} ${camera_z} 0 -0.0872665 0</pose>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>${camera_update_rate}</update_rate>
