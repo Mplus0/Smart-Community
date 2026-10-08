@@ -1,0 +1,281 @@
+{
+  "generated_at": "2026-10-08T23:12:21.368692+08:00",
+  "source_project": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception",
+  "sources": [
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/person_detection_node.py",
+      "bytes": 11952,
+      "sha256": "28f6a7afe505895c6a49cedee4b6c219b2d89975619aaf01302b2f8d3ce6a337"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/plate_recognition_node.py",
+      "bytes": 8170,
+      "sha256": "6c9a47dc39e5f2e455a444beed39f907de5a3dc83338032b8cf63fb91270fefa"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/traffic_light_node.py",
+      "bytes": 8221,
+      "sha256": "acbc3924ac8b1e6a0065eeafcfb47fad1517780fcbff8acab0ea32dda5b74029"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/traffic_light_detector.py",
+      "bytes": 7958,
+      "sha256": "dc0421dfcf4d4da5b6f2d9480109f08f598d13a201ddc75fc3ed1e0faf1b0695"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/person_detection.launch",
+      "bytes": 1332,
+      "sha256": "8969adac961480f38ceff55712bd97985d933cf35ff5bf453ed2b0c3c711e53a"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/plate_recognition.launch",
+      "bytes": 1099,
+      "sha256": "f140a889e9aac4cbac33397afc6eb515c00828ab0fb6ff41fc62b88e913001b7"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/traffic_light_recognition.launch",
+      "bytes": 1051,
+      "sha256": "452d50ba3ac32875dbb23dfb76020f29bc49cd06353aff920de0c1960451d3d1"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/perception_all.launch",
+      "bytes": 3308,
+      "sha256": "b2ff1b998d861bb3ee81d7a84a1a19bd251cdce8ad09569cc3bfd4e69fe078f3"
+    },
+    {
+      "path": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/config/traffic_light_hsv.yaml",
+      "bytes": 451,
+      "sha256": "4f1beaf6fe2283846c28f5fefe459549a3fa0e7f3e7242cf43e6dc2dd4ac92d6"
+    },
+    {
+      "path": "/home/lhy/vision_y26_demo/person_training/baseline_20261007/weights/best.pt",
+      "bytes": 5375301,
+      "sha256": "4d3076a9ca0afd9a35f9d393d0726d9e4207a45155348fb768fccd3d10e28806"
+    },
+    {
+      "path": "/mnt/d/ss/extracted/Smart-Community-main/docs/协作/方案/D-三种识别交接-20261008/prepare_hyperlpr_models.py",
+      "bytes": 2967,
+      "sha256": "3a4ac13c67af9fd02b4e57984f3495fa408534bc7e2b21e3fe59ff2b821ec328"
+    },
+    {
+      "path": "/home/lhy/miniconda3/envs/y13/lib/python3.10/site-packages/hyperlpr3/config/settings.py",
+      "bytes": 842,
+      "sha256": "059bad7ec39386472aa08ae3124e1fd3ed02b47537aaa1427349f02a61d4a581"
+    },
+    {
+      "path": "/home/lhy/miniconda3/envs/y13/lib/python3.10/site-packages/hyperlpr3/config/configuration.py",
+      "bytes": 2221,
+      "sha256": "7879da68df576bac1fc1a358a550fb8ca93b80b61c3260070640dce84adb70a3"
+    },
+    {
+      "path": "/home/lhy/miniconda3/envs/y13/lib/python3.10/site-packages/hyperlpr3/hyperlpr3.py",
+      "bytes": 1807,
+      "sha256": "b5c356c5af48cf089611c67bc1aa95479469ed7b90708623aad9e903ddd0bec1"
+    },
+    {
+      "path": "/home/lhy/.hyperlpr3/20230229/onnx/y5fu_320x_sim.onnx",
+      "bytes": 2343161,
+      "sha256": "2a985dc63a5cc947ec36d18503d6fc0fd54525b9dba17f2fe29a71e86b44456d"
+    },
+    {
+      "path": "/home/lhy/.hyperlpr3/20230229/onnx/y5fu_640x_sim.onnx",
+      "bytes": 3930791,
+      "sha256": "0306de937471b87f56eb3f5620815e7e7058f8ab7428e0734fc64627cc4d716c"
+    },
+    {
+      "path": "/home/lhy/.hyperlpr3/20230229/onnx/rpv3_mdict_160_r3.onnx",
+      "bytes": 10258843,
+      "sha256": "8fb08b5db2adeccf43b05006bbbf409e4659d08d72e46a62631c00ff751eaeb3"
+    },
+    {
+      "path": "/home/lhy/.hyperlpr3/20230229/onnx/litemodel_cls_96x_r1.onnx",
+      "bytes": 1604473,
+      "sha256": "fe123688d3bf08b9ef029fcd57f3ac4644ac2e5ef8b9e7a676aacd5fad152142"
+    }
+  ],
+  "files": [
+    {
+      "path": "robot_perception/scripts/person_detection_node.py",
+      "bytes": 11829,
+      "sha256": "525bbf457aaba92fda95c8ce91a571b185b5c9f24b5c94393b2ef6300631d789",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/person_detection_node.py",
+      "source_sha256": "28f6a7afe505895c6a49cedee4b6c219b2d89975619aaf01302b2f8d3ce6a337",
+      "transformations": [
+        "Use the caller Python environment for the shebang",
+        "Require explicit model parameter; launch uses bundled weights"
+      ]
+    },
+    {
+      "path": "robot_perception/scripts/plate_recognition_node.py",
+      "bytes": 8150,
+      "sha256": "6681507d337a0d3536a70a5460eae897702091ba04c98ff7604d7229d7c695fc",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/plate_recognition_node.py",
+      "source_sha256": "6c9a47dc39e5f2e455a444beed39f907de5a3dc83338032b8cf63fb91270fefa",
+      "transformations": [
+        "Use the caller Python environment for the shebang"
+      ]
+    },
+    {
+      "path": "robot_perception/scripts/traffic_light_node.py",
+      "bytes": 8201,
+      "sha256": "3f2f9c6eb3ed2b2ff9229ba013a2be73f3e90ac90056c47bfc0cce678602828c",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/traffic_light_node.py",
+      "source_sha256": "acbc3924ac8b1e6a0065eeafcfb47fad1517780fcbff8acab0ea32dda5b74029",
+      "transformations": [
+        "Use the caller Python environment for the shebang"
+      ]
+    },
+    {
+      "path": "robot_perception/scripts/traffic_light_detector.py",
+      "bytes": 7958,
+      "sha256": "dc0421dfcf4d4da5b6f2d9480109f08f598d13a201ddc75fc3ed1e0faf1b0695",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/scripts/traffic_light_detector.py",
+      "source_sha256": "dc0421dfcf4d4da5b6f2d9480109f08f598d13a201ddc75fc3ed1e0faf1b0695",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/scripts/prepare_hyperlpr_models.py",
+      "bytes": 2967,
+      "sha256": "3a4ac13c67af9fd02b4e57984f3495fa408534bc7e2b21e3fe59ff2b821ec328",
+      "source": "/mnt/d/ss/extracted/Smart-Community-main/docs/协作/方案/D-三种识别交接-20261008/prepare_hyperlpr_models.py",
+      "source_sha256": "3a4ac13c67af9fd02b4e57984f3495fa408534bc7e2b21e3fe59ff2b821ec328",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/models/person_best.pt",
+      "bytes": 5375301,
+      "sha256": "4d3076a9ca0afd9a35f9d393d0726d9e4207a45155348fb768fccd3d10e28806",
+      "source": "/home/lhy/vision_y26_demo/person_training/baseline_20261007/weights/best.pt",
+      "source_sha256": "4d3076a9ca0afd9a35f9d393d0726d9e4207a45155348fb768fccd3d10e28806",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/models/hyperlpr3/20230229/onnx/y5fu_320x_sim.onnx",
+      "bytes": 2343161,
+      "sha256": "2a985dc63a5cc947ec36d18503d6fc0fd54525b9dba17f2fe29a71e86b44456d",
+      "source": "/home/lhy/.hyperlpr3/20230229/onnx/y5fu_320x_sim.onnx",
+      "source_sha256": "2a985dc63a5cc947ec36d18503d6fc0fd54525b9dba17f2fe29a71e86b44456d",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/models/hyperlpr3/20230229/onnx/y5fu_640x_sim.onnx",
+      "bytes": 3930791,
+      "sha256": "0306de937471b87f56eb3f5620815e7e7058f8ab7428e0734fc64627cc4d716c",
+      "source": "/home/lhy/.hyperlpr3/20230229/onnx/y5fu_640x_sim.onnx",
+      "source_sha256": "0306de937471b87f56eb3f5620815e7e7058f8ab7428e0734fc64627cc4d716c",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/models/hyperlpr3/20230229/onnx/rpv3_mdict_160_r3.onnx",
+      "bytes": 10258843,
+      "sha256": "8fb08b5db2adeccf43b05006bbbf409e4659d08d72e46a62631c00ff751eaeb3",
+      "source": "/home/lhy/.hyperlpr3/20230229/onnx/rpv3_mdict_160_r3.onnx",
+      "source_sha256": "8fb08b5db2adeccf43b05006bbbf409e4659d08d72e46a62631c00ff751eaeb3",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/models/hyperlpr3/20230229/onnx/litemodel_cls_96x_r1.onnx",
+      "bytes": 1604473,
+      "sha256": "fe123688d3bf08b9ef029fcd57f3ac4644ac2e5ef8b9e7a676aacd5fad152142",
+      "source": "/home/lhy/.hyperlpr3/20230229/onnx/litemodel_cls_96x_r1.onnx",
+      "source_sha256": "fe123688d3bf08b9ef029fcd57f3ac4644ac2e5ef8b9e7a676aacd5fad152142",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/models/hyperlpr3/models_manifest.json",
+      "bytes": 720,
+      "sha256": "8ef12966875f08537dce4e959acc3151388f7101ed031f6c1679d62fcc79b9e3"
+    },
+    {
+      "path": "robot_perception/config/traffic_light_hsv.yaml",
+      "bytes": 451,
+      "sha256": "4f1beaf6fe2283846c28f5fefe459549a3fa0e7f3e7242cf43e6dc2dd4ac92d6",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/config/traffic_light_hsv.yaml",
+      "source_sha256": "4f1beaf6fe2283846c28f5fefe459549a3fa0e7f3e7242cf43e6dc2dd4ac92d6",
+      "transformations": []
+    },
+    {
+      "path": "robot_perception/launch/person_detection.launch",
+      "bytes": 1283,
+      "sha256": "8aedcd0797ebd3075926fee1343ee21d38e86c9640839081f9021d8f24d7e8ad",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/person_detection.launch",
+      "source_sha256": "8969adac961480f38ceff55712bd97985d933cf35ff5bf453ed2b0c3c711e53a",
+      "transformations": [
+        "Configurable interpreter defaults to python3",
+        "Use configurable ROS Python path plus inherited PYTHONPATH",
+        "Model default uses bundled person_best.pt"
+      ]
+    },
+    {
+      "path": "robot_perception/launch/plate_recognition.launch",
+      "bytes": 1075,
+      "sha256": "cfb1f4a7d96d21d12706cbb8d21a0a5916167447e63850492fb6c6bddedbc8d5",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/plate_recognition.launch",
+      "source_sha256": "f140a889e9aac4cbac33397afc6eb515c00828ab0fb6ff41fc62b88e913001b7",
+      "transformations": [
+        "Configurable interpreter defaults to python3",
+        "Use configurable ROS Python path plus inherited PYTHONPATH"
+      ]
+    },
+    {
+      "path": "robot_perception/launch/traffic_light_recognition.launch",
+      "bytes": 1025,
+      "sha256": "db83a311a80ab075930005bfc5dcfa2bc4ab32e47e75087395ec75df564157e9",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/traffic_light_recognition.launch",
+      "source_sha256": "452d50ba3ac32875dbb23dfb76020f29bc49cd06353aff920de0c1960451d3d1",
+      "transformations": [
+        "Configurable interpreter defaults to python3",
+        "Use configurable ROS Python path plus inherited PYTHONPATH"
+      ]
+    },
+    {
+      "path": "robot_perception/launch/perception_all.launch",
+      "bytes": 3503,
+      "sha256": "8ce2f2930d3446933f2238227cf6357e5ba9340f431fc67545e8aad2378bcfc8",
+      "source": "/home/lhy/ws/Smart-Community/car_2026/src/robot_perception/launch/perception_all.launch",
+      "source_sha256": "b2ff1b998d861bb3ee81d7a84a1a19bd251cdce8ad09569cc3bfd4e69fe078f3",
+      "transformations": [
+        "Configurable interpreter defaults to python3",
+        "Use configurable ROS Python path plus inherited PYTHONPATH",
+        "Model default uses bundled person_best.pt",
+        "Pass ROS path to all child launches",
+        "Expose plate_font_path for receiving machines"
+      ]
+    },
+    {
+      "path": "robot_perception/CMakeLists.txt",
+      "bytes": 648,
+      "sha256": "6a98f7f709844d6f09d3edb94304339ff9dbea5ebb218122d27d40e1728b0d53"
+    },
+    {
+      "path": "robot_perception/package.xml",
+      "bytes": 467,
+      "sha256": "5a8d94893345e30e117d7c7a65e74824011f0c766ee3f29c334a5fd0f08d7095"
+    },
+    {
+      "path": "environment_reference.json",
+      "bytes": 728,
+      "sha256": "7ba4a7001035e354ac0135d643a8dbaeee35f719f9adfd48f4ac7e9af5ed3e25"
+    },
+    {
+      "path": "robot_perception/docs/接口说明.md",
+      "bytes": 2847,
+      "sha256": "af30a9ed0d242477c550dfd3c2d5e9317e02a3afe5ff20cbac7b4326f90178a7"
+    },
+    {
+      "path": "README_交接说明.md",
+      "bytes": 8468,
+      "sha256": "065222f64002a4de08b290ff89253c61d7eda0b6b4ef6da28673d313af137c1b"
+    }
+  ],
+  "checked": {
+    "python_scripts": 5,
+    "launch_files": 4,
+    "xml": "parsed",
+    "launch_references_and_arguments": "present/declared",
+    "yaml": "parsed",
+    "model_files": "five identical to sources",
+    "source_files": "unchanged during collection"
+  },
+  "runtime": "not started; receiving environment, cache preparation and live test pending"
+}

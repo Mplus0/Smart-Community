@@ -1,0 +1,28 @@
+<launch>
+  <arg name="python" default="$(env HOME)/.venvs/robot-perception/bin/python"/>
+  <arg name="ros_python_path" default="/opt/ros/noetic/lib/python3/dist-packages"/>
+  <arg name="input_topic" default="/camera/color/image_raw"/>
+  <arg name="image_topic" default="/perception/plates_image"/>
+  <arg name="result_topic" default="/perception/plates_json"/>
+  <arg name="models_dir" default="$(find robot_perception)/models/hyperlpr3"/>
+  <arg name="max_rate" default="5.0"/>
+  <arg name="min_confidence" default="0.5"/>
+  <arg name="stale_seconds" default="2.0"/>
+  <arg name="font_path" default=""/>
+  <arg name="show_images" default="false"/>
+  <node pkg="robot_perception" type="plate_recognition_node.py" name="plate_recognition" output="screen" launch-prefix="$(arg python)" required="true">
+    <env name="PYTHONPATH" value="$(arg ros_python_path):$(optenv PYTHONPATH)"/>
+    <env name="PYTHONNOUSERSITE" value="1"/>
+    <param name="input_topic" value="$(arg input_topic)"/>
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="result_topic" value="$(arg result_topic)"/>
+    <param name="models_dir" value="$(arg models_dir)"/>
+    <param name="max_rate" value="$(arg max_rate)" type="double"/>
+    <param name="min_confidence" value="$(arg min_confidence)" type="double"/>
+    <param name="stale_seconds" value="$(arg stale_seconds)" type="double"/>
+    <param name="font_path" value="$(arg font_path)"/>
+  </node>
+  <node if="$(arg show_images)" pkg="image_view" type="image_view" name="plates_preview">
+    <remap from="image" to="$(arg image_topic)"/>
+  </node>
+</launch>

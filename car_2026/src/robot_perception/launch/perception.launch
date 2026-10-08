@@ -1,0 +1,42 @@
+<launch>
+  <arg name="enable_person" default="true"/>
+  <arg name="enable_plate" default="true"/>
+  <arg name="python" default="$(env HOME)/.venvs/robot-perception/bin/python"/>
+  <arg name="ros_python_path" default="/opt/ros/noetic/lib/python3/dist-packages"/>
+  <arg name="camera_topic" default="/camera/color/image_raw"/>
+  <arg name="show_images" default="false"/>
+  <arg name="person_model" default="$(find robot_perception)/models/person_best.pt"/>
+  <arg name="person_device" default="cpu"/>
+  <arg name="person_confidence" default="0.25"/>
+  <arg name="person_imgsz" default="640"/>
+  <arg name="person_max_rate" default="5.0"/>
+  <arg name="person_stale_seconds" default="1.5"/>
+  <arg name="plate_models_dir" default="$(find robot_perception)/models/hyperlpr3"/>
+  <arg name="plate_min_confidence" default="0.5"/>
+  <arg name="plate_max_rate" default="5.0"/>
+  <arg name="plate_stale_seconds" default="2.0"/>
+  <arg name="plate_font_path" default=""/>
+  <include if="$(arg enable_person)" file="$(find robot_perception)/launch/person_detection.launch">
+    <arg name="python" value="$(arg python)"/>
+    <arg name="ros_python_path" value="$(arg ros_python_path)"/>
+    <arg name="input_topic" value="$(arg camera_topic)"/>
+    <arg name="show_images" value="$(arg show_images)"/>
+    <arg name="model" value="$(arg person_model)"/>
+    <arg name="device" value="$(arg person_device)"/>
+    <arg name="confidence" value="$(arg person_confidence)"/>
+    <arg name="imgsz" value="$(arg person_imgsz)"/>
+    <arg name="max_rate" value="$(arg person_max_rate)"/>
+    <arg name="stale_seconds" value="$(arg person_stale_seconds)"/>
+  </include>
+  <include if="$(arg enable_plate)" file="$(find robot_perception)/launch/plate_recognition.launch">
+    <arg name="python" value="$(arg python)"/>
+    <arg name="ros_python_path" value="$(arg ros_python_path)"/>
+    <arg name="input_topic" value="$(arg camera_topic)"/>
+    <arg name="show_images" value="$(arg show_images)"/>
+    <arg name="models_dir" value="$(arg plate_models_dir)"/>
+    <arg name="min_confidence" value="$(arg plate_min_confidence)"/>
+    <arg name="max_rate" value="$(arg plate_max_rate)"/>
+    <arg name="stale_seconds" value="$(arg plate_stale_seconds)"/>
+    <arg name="font_path" value="$(arg plate_font_path)"/>
+  </include>
+</launch>

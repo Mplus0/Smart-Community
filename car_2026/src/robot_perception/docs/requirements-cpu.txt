@@ -1,0 +1,12 @@
+# Install torch/torchvision from the official CPU index first; see README.
+ultralytics==8.4.159
+torch==2.14.0+cpu
+torchvision==0.29.0+cpu
+numpy==2.2.6
+opencv-python==5.0.0.93
+Pillow==12.3.0
+PyYAML==6.0.3
+hyperlpr3==0.1.3
+onnxruntime==1.23.2
+rospkg==1.6.3
+catkin-pkg==1.1.1

@@ -1,0 +1,32 @@
+<launch>
+  <arg name="python" default="$(env HOME)/.venvs/robot-perception/bin/python"/>
+  <arg name="ros_python_path" default="/opt/ros/noetic/lib/python3/dist-packages"/>
+  <arg name="model" default="$(find robot_perception)/models/person_best.pt"/>
+  <arg name="device" default="cpu"/>
+  <arg name="input_topic" default="/camera/color/image_raw"/>
+  <arg name="image_topic" default="/perception/person_image"/>
+  <arg name="json_topic" default="/perception/person_detections_json"/>
+  <arg name="confidence" default="0.25"/>
+  <arg name="imgsz" default="640"/>
+  <arg name="max_rate" default="5.0"/>
+  <arg name="stale_seconds" default="1.5"/>
+  <arg name="show_images" default="false"/>
+  <node pkg="robot_perception" type="person_detection_node.py" name="person_detection" output="screen" launch-prefix="$(arg python)" required="true">
+    <env name="PYTHONPATH" value="$(arg ros_python_path):$(optenv PYTHONPATH)"/>
+    <env name="PYTHONNOUSERSITE" value="1"/>
+    <env name="YOLO_AUTOINSTALL" value="false"/>
+    <env name="YOLO_OFFLINE" value="true"/>
+    <param name="model" value="$(arg model)"/>
+    <param name="device" value="$(arg device)" type="str"/>
+    <param name="input_topic" value="$(arg input_topic)"/>
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="json_topic" value="$(arg json_topic)"/>
+    <param name="confidence" value="$(arg confidence)" type="double"/>
+    <param name="imgsz" value="$(arg imgsz)" type="int"/>
+    <param name="max_rate" value="$(arg max_rate)" type="double"/>
+    <param name="stale_seconds" value="$(arg stale_seconds)" type="double"/>
+  </node>
+  <node if="$(arg show_images)" pkg="image_view" type="image_view" name="person_preview">
+    <remap from="image" to="$(arg image_topic)"/>
+  </node>
+</launch>

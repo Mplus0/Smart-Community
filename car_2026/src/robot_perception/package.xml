@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>robot_perception</name>
+  <version>0.1.0</version>
+  <description>Standalone person and license plate perception from the 20261008 handoff.</description>
+  <maintainer email="553389390@qq.com">Mplus0</maintainer>
+  <!-- Handoff contained no license grant. See NOTICE.md before redistribution. -->
+  <license>LicenseRef-Handoff-Pending</license>
+  <url type="repository">https://github.com/Mplus0/Smart-Community</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <exec_depend>image_view</exec_depend>
+  <export/>
+</package>

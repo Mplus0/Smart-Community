@@ -1,0 +1,17 @@
+# Provisional dim-render thresholds from ROS logs (2026-10-06).
+# GREEN mean V ~87; other lamps ~56/68. Recheck a full cycle and backgrounds.
+min_saturation: 55
+candidate_value: 25
+bright_value: 85
+min_lamp_area: 10.0
+min_color_fraction: 0.20
+min_dark_fraction: 0.12
+min_bright_fraction: 0.10
+min_mean_value: 80.0
+min_activation_margin: 0.04
+max_candidates: 36
+max_groups: 4
+max_rate: 5.0
+stale_seconds: 1.0
+green_confirm_frames: 3
+track_max_gap: 0.6

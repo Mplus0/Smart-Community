@@ -1,0 +1,17 @@
+<launch>
+  <arg name="python" default="python3" />
+  <arg name="ros_python_path" default="/opt/ros/noetic/lib/python3/dist-packages" />
+  <arg name="input_topic" default="/camera/color/image_raw" />
+  <arg name="image_topic" default="/perception/traffic_light_image" />
+  <arg name="result_topic" default="/perception/traffic_light_json" />
+  <arg name="config_file" default="$(find robot_perception)/config/traffic_light_hsv.yaml" />
+  <arg name="max_rate" default="5.0" />
+  <node pkg="robot_perception" type="traffic_light_node.py" name="traffic_light_recognition" output="screen" launch-prefix="$(arg python)">
+    <env name="PYTHONPATH" value="$(arg ros_python_path):$(optenv PYTHONPATH)" />
+    <rosparam command="load" file="$(arg config_file)" />
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="image_topic" value="$(arg image_topic)" />
+    <param name="result_topic" value="$(arg result_topic)" />
+    <param name="max_rate" value="$(arg max_rate)" type="double" />
+  </node>
+</launch>
