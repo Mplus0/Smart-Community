@@ -1,8 +1,8 @@
 services:
   ros:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
       args:
         USERNAME: developer
         USER_UID: 1000

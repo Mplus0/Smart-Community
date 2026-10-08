@@ -1,0 +1,15 @@
+# Repository-root context. Only send the Dockerfile and canonical dependency lock.
+**
+!docker/
+docker/**
+!docker/Dockerfile
+!docker/Dockerfile.dockerignore
+!car_2026/
+car_2026/**
+!car_2026/src/
+car_2026/src/**
+!car_2026/src/robot_perception/
+car_2026/src/robot_perception/**
+!car_2026/src/robot_perception/docs/
+car_2026/src/robot_perception/docs/**
+!car_2026/src/robot_perception/docs/requirements-cpu.lock.txt

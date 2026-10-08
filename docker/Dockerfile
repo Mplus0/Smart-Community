@@ -126,6 +126,42 @@ RUN mkdir -p /workspace/car_2026/src \
 
 WORKDIR /workspace/car_2026
 
+# --------------------------------------------------
+# P2-A inference: isolated Python, never replace ROS Python or activate globally
+# Build context is the repository root; use docker/Dockerfile.dockerignore.
+# --------------------------------------------------
+COPY car_2026/src/robot_perception/docs/requirements-cpu.lock.txt /opt/robot-perception/requirements-cpu.lock.txt
+
+RUN python3 -m pip install --disable-pip-version-check --no-cache-dir \
+    --target /opt/robot-perception/bootstrap uv==0.8.22
+
 USER ${USERNAME}
+
+RUN export UV_PYTHON_INSTALL_DIR=/home/${USERNAME}/.local/share/uv/python \
+           UV_CACHE_DIR=/home/${USERNAME}/.cache/uv \
+    && /opt/robot-perception/bootstrap/bin/uv --native-tls venv \
+        --python 3.10.18 /home/${USERNAME}/.venvs/robot-perception \
+    && /opt/robot-perception/bootstrap/bin/uv --native-tls pip install \
+        --python /home/${USERNAME}/.venvs/robot-perception/bin/python \
+        --index-url https://download.pytorch.org/whl/cpu \
+        --constraint /opt/robot-perception/requirements-cpu.lock.txt \
+        torch==2.14.0+cpu torchvision==0.29.0+cpu \
+    && /opt/robot-perception/bootstrap/bin/uv --native-tls pip install \
+        --python /home/${USERNAME}/.venvs/robot-perception/bin/python \
+        --requirement /opt/robot-perception/requirements-cpu.lock.txt \
+    && /opt/robot-perception/bootstrap/bin/uv pip check \
+        --python /home/${USERNAME}/.venvs/robot-perception/bin/python \
+    && /opt/robot-perception/bootstrap/bin/uv cache clean
+
+# Import checks only: do not load weights or import HyperLPR before cache preparation.
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && \
+    PYTHONNOUSERSITE=1 YOLO_OFFLINE=true YOLO_AUTOINSTALL=false \
+    /home/${USERNAME}/.venvs/robot-perception/bin/python -c \
+    \"import rospy, sensor_msgs.msg, std_msgs.msg; \
+    import ultralytics, torch, torchvision, numpy, cv2, PIL, onnxruntime, yaml; \
+    import importlib.metadata; \
+    assert importlib.metadata.version('hyperlpr3') == '0.1.3'; \
+    assert torch.version.cuda is None; \
+    print('Isolated CPU inference dependencies and ROS messages import OK')\""
 
 CMD ["/bin/bash"]

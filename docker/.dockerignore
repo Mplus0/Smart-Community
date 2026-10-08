@@ -1,9 +1,0 @@
-.git
-.gitignore
-__pycache__
-*.pyc
-*.pyo
-*.log
-build
-devel
-install
