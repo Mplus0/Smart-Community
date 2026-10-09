@@ -1,6 +1,7 @@
-image: localization_map.pgm
+image: /workspace/car_2026/src/robot_navigation/maps/localization_map.pgm
 resolution: 0.020000
-origin: [-0.512972, -0.530262, 0.000000]
+origin: [-0.547105, -0.511340, 0.000000]
 negate: 0
 occupied_thresh: 0.65
 free_thresh: 0.196
+
