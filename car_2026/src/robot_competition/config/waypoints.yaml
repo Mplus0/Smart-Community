@@ -1,5 +1,85 @@
-# No measured route supplied. Record real map poses before running a mission.
-# An empty route exits safely without contacting move_base or sending goals.
 route:
   frame_id: map
-  points: []
+  points:
+  - id: light_01
+    type: task
+    task: traffic_light
+    stop_before_line: true
+    x: 1.1606758148417773
+    y: -0.02170533601136256
+    yaw: -0.0028997729923174115
+  - id: wp_01
+    type: waypoint
+    task: none
+    x: 2.7547532962923817
+    y: -0.02386787347001501
+    yaw: 0.035947203654818974
+  - id: person_01
+    type: task
+    task: person
+    area: block_01
+    x: 2.730678229831057
+    y: -0.03579562846034541
+    yaw: 1.562282361604739
+  - id: person_02
+    type: task
+    task: person
+    area: block_02
+    x: 3.419329928951205
+    y: 0.6107007738779002
+    yaw: -3.1308155871465804
+  - id: person_03
+    type: task
+    task: person
+    area: block_03
+    x: 2.731985275373197
+    y: 1.1961027483493938
+    yaw: -1.5924713930763799
+  - id: person_04
+    type: task
+    task: person
+    area: block_04
+    x: 2.578589912548372
+    y: 1.1693437696829012
+    yaw: 1.592123009139241
+  - id: person_05
+    type: task
+    task: person
+    area: block_05
+    x: 1.8218114828391183
+    y: 1.8603230949704053
+    yaw: 0.012022541624606599
+  - id: light_02
+    type: task
+    task: traffic_light
+    stop_before_line: true
+    x: 1.818008543571963
+    y: 1.8656699405042714
+    yaw: 1.6285131533588841
+  - id: plate_01
+    type: task
+    task: plate
+    area: parking
+    x: 0.6430177096285107
+    y: 3.3678009860093874
+    yaw: -3.1039643784595223
+  - id: plate_02
+    type: task
+    task: plate
+    area: parking
+    x: 0.6690765849638283
+    y: 2.737227135282714
+    yaw: 3.1403422065746565
+  - id: plate_03
+    type: task
+    task: plate
+    area: parking
+    x: 0.6485202406548226
+    y: 2.1710989111697225
+    yaw: 3.11822909009408
+  - id: wp_02
+    type: waypoint
+    task: none
+    x: 0.027509359638477723
+    y: 0.003703446916774541
+    yaw: -0.002682707762329413
