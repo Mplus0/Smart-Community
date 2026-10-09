@@ -1,6 +1,7 @@
 <launch>
   <arg name="enable_person" default="true"/>
   <arg name="enable_plate" default="true"/>
+  <arg name="enable_traffic_light" default="false"/>
   <arg name="python" default="$(env HOME)/.venvs/robot-perception/bin/python"/>
   <arg name="ros_python_path" default="/opt/ros/noetic/lib/python3/dist-packages"/>
   <arg name="camera_topic" default="/camera/color/image_raw"/>
@@ -16,6 +17,12 @@
   <arg name="plate_max_rate" default="5.0"/>
   <arg name="plate_stale_seconds" default="2.0"/>
   <arg name="plate_font_path" default=""/>
+  <arg name="traffic_light_model" default="$(find robot_perception)/models/traffic_light_best.pt"/>
+  <arg name="traffic_light_config" default="$(find robot_perception)/config/traffic_light_classification.yaml"/>
+  <arg name="traffic_light_device" default="cpu"/>
+  <arg name="traffic_light_confidence" default="0.8"/>
+  <arg name="traffic_light_max_rate" default="5.0"/>
+  <arg name="traffic_light_stale_seconds" default="1.5"/>
   <include if="$(arg enable_person)" file="$(find robot_perception)/launch/person_detection.launch">
     <arg name="python" value="$(arg python)"/>
     <arg name="ros_python_path" value="$(arg ros_python_path)"/>
@@ -38,5 +45,17 @@
     <arg name="max_rate" value="$(arg plate_max_rate)"/>
     <arg name="stale_seconds" value="$(arg plate_stale_seconds)"/>
     <arg name="font_path" value="$(arg plate_font_path)"/>
+  </include>
+  <include if="$(arg enable_traffic_light)" file="$(find robot_perception)/launch/traffic_light_classification.launch">
+    <arg name="python" value="$(arg python)"/>
+    <arg name="ros_python_path" value="$(arg ros_python_path)"/>
+    <arg name="input_topic" value="$(arg camera_topic)"/>
+    <arg name="show_images" value="$(arg show_images)"/>
+    <arg name="model" value="$(arg traffic_light_model)"/>
+    <arg name="config" value="$(arg traffic_light_config)"/>
+    <arg name="device" value="$(arg traffic_light_device)"/>
+    <arg name="confidence" value="$(arg traffic_light_confidence)"/>
+    <arg name="max_rate" value="$(arg traffic_light_max_rate)"/>
+    <arg name="stale_seconds" value="$(arg traffic_light_stale_seconds)"/>
   </include>
 </launch>

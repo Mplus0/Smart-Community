@@ -1,0 +1,3 @@
+# Relative [left, top, right, bottom]; right/bottom are exclusive after flooring.
+roi: [0.0, 0.0, 1.0, 0.5]
+imgsz: 224

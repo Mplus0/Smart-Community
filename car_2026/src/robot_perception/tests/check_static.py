@@ -12,7 +12,13 @@ for path in (root / 'scripts').glob('*.py'):
     assert path.stat().st_mode & 0o111, path
 for path in [root / 'package.xml', *sorted((root / 'launch').glob('*.launch'))]:
     tree = ET.parse(path)
-    assert not any('traffic_light' in str(node.attrib) for node in tree.iter()), path
+launch = ET.parse(root / 'launch/perception.launch').getroot()
+defaults = {node.attrib['name']: node.attrib.get('default') for node in launch.findall('arg')}
+assert defaults['enable_person'] == defaults['enable_plate'] == 'true'
+assert defaults['enable_traffic_light'] == 'false'
+includes = [node for node in launch.findall('include')
+            if 'traffic_light_classification.launch' in node.attrib.get('file', '')]
+assert len(includes) == 1 and includes[0].attrib['if'] == '$(arg enable_traffic_light)'
 manifest = json.loads((root / 'models/hyperlpr3/models_manifest.json').read_text())
 assert manifest['hyperlpr3_version'] == '0.1.3'
 assert manifest['model_version'] == '20230229'
@@ -25,4 +31,10 @@ for path, size, digest in models:
     assert path.stat().st_size == size, path
     assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, path
     print('MODEL OK', path.name, size, digest)
-print('PASS: Python syntax, executable flags, package/launch XML, five model hashes')
+traffic_model = root / 'models/traffic_light_best.pt'
+assert traffic_model.is_file() and traffic_model.stat().st_size > 0, traffic_model
+print('TRAFFIC MODEL SHA256', hashlib.sha256(traffic_model.read_bytes()).hexdigest())
+source_model = root.parents[2] / 'models/traffic_light/best.pt'
+if source_model.is_file():
+    assert traffic_model.read_bytes() == source_model.read_bytes(), 'Traffic model differs from source'
+print('PASS: syntax, executable flags, XML, default dual launch, five original hashes, traffic model presence')

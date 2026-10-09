@@ -6,7 +6,8 @@ catkin_package()
 install(PROGRAMS
   scripts/person_detection_node.py
   scripts/plate_recognition_node.py
+  scripts/traffic_light_classification_node.py
   scripts/prepare_hyperlpr_models.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-install(DIRECTORY launch models docs DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY launch models docs config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(FILES README.md NOTICE.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

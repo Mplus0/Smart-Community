@@ -43,6 +43,35 @@
 
 应按各自流的有效新帧关联任务窗口，不持续复用最后一条 JSON；航点/街区绑定、跨帧去重、车牌多帧融合、终端统计与结果落盘由 P2-B 处理。
 
-## 交通灯仅预留名称
+## 交通灯 ROI 分类（可选，schema_version=1）
 
-后续拟用 `/perception/traffic_light_json` 与 `/perception/traffic_light_image`。P2-A **没有这些话题的发布器或消息内容**，不发布 RED/GREEN/UNKNOWN，不移植 HSV，不改变 P1 默认禁止自动越线的保护。未来 YOLO 接口字段另行确认。
+`traffic_light_classification_node.py` 订阅同一原图，只在自身副本中裁剪；人物和车牌节点仍接收完整原图。
+默认使用 Python 3.10 隔离环境、CPU、`imgsz=224`，模型为包内 `models/traffic_light_best.pt`。
+启动时从 checkpoint 读取任务类型，必须为 `classify`；名称必须恰好是 `red/yellow/green`，通过 `model.names` 映射 ID，不固定 ID 顺序。模型不存在或不匹配时直接拒绝启动，不下载替代权重。
+
+| 话题 | 类型 | 内容 |
+|---|---|---|
+| `/perception/traffic_light_json` | `std_msgs/String` | 下述分类 JSON |
+| `/perception/traffic_light_image` | `sensor_msgs/Image` | 原始分辨率 BGR 图、ROI 框、标签和置信度 |
+
+- `schema_version: 1`，`engine: yolo11n_traffic_light_classifier`。
+- `header`：源图的 seq/stamp/frame_id；启动后从未收到图像时为 null。标注图复制 Header，保持源 stamp/frame_id，图像 seq 允许 ROS 序列化重新分配。
+- `roi_xyxy`：原图像素整数 `[left, top, right, bottom]`，right/bottom 为排他边界；未解码/未计算 ROI 或断流通知时为 null。它是人工配置的分类区域，**不是模型检测框**。
+- `label`：`RED/YELLOW/GREEN/UNKNOWN`。
+- `confidence`：模型在三类中最大概率，低置信度拒绝时仍保留该概率；非推理结果的异常/过期通知为 0。不是经过校准的交通灯存在概率。
+- `frame_valid`：仅当帧新鲜、推理完成且概率达到阈值时为 true；表示分类结果通过上述检查，**不证明场景存在交通灯**。
+- `reason`：成功为 `ok`；拒绝为 `low_confidence/decode_error/inference_error/camera_stale/invalid_stamp/future_stamp/non_increasing_stamp`。拒绝时固定 `frame_valid=false, label=UNKNOWN`。
+- `processing_ms`：从开始处理到分类后检查结束的墙钟耗时，不含发布与标注；未执行处理的拒绝/断流通知为 0。
+- `score_kind: conditional_class_probability`、`presence_verified: false`：明确声明分类器不能判断无灯背景。
+
+配置 `config/traffic_light_classification.yaml` 的 `roi` 默认为 `[0.0, 0.0, 1.0, 0.5]`。
+坐标乘以原图宽高后向下取整，默认恰好为 `image[0:height//2, 0:width]`；零面积、越界或非法配置拒绝。
+ROI 副本交给 Ultralytics 官方分类预处理，最终 `imgsz=224`。官方预处理仍可能在该 ROI 内做中心裁剪；ROI 框展示的是传入区域，并不表示模型保留了框内所有边缘像素。应结合实际训练图构图与场景验收，不擅自改变训练时的归一化或模型结构。
+
+私有参数：`model/device/input_topic/image_topic/json_topic/confidence/max_rate/stale_seconds`，默认置信度阈值 0.8、最多 5 Hz、过期时间 1.5 秒。`imgsz` 固定 224；修改 ROI 可通过单路 `config:=...` 或统一入口 `traffic_light_config:=...` 传入自用 YAML。
+
+回调仅保存最新帧（订阅 queue_size=1）；单工作循环限频，不建立待推理队列。推理前后均检查源 ROS 时间年龄与接收后的 monotonic 墙钟年龄。零时间戳、未来时间戳、重复或倒退源时间戳均拒绝；/clock 暂停时墙钟仍可判过期。仿真重置导致源时间回退后，需要重启该节点以重置时间戳水位。
+
+断流发布一次 UNKNOWN 通知，不重复发布旧图。解码失败没有可用标注图；可解码的低置信度或推理失败仍发布原尺寸 UNKNOWN 标注图。消费者必须自行实施消息接收超时，不能依赖节点退出后继续发通知。
+
+无灯画面也可能高置信度输出 GREEN。所有颜色仅供视觉测试；当前 `robot_competition` **不消费这个新话题**，原交通灯安全拦截保持不变，不实现停车、放行或自动越线。

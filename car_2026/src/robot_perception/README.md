@@ -1,8 +1,8 @@
-# robot_perception P2-A：人物 / 车牌独立识别
+# robot_perception：人物 / 车牌 / 可选交通灯分类
 
-本次按用户最终要求完成代码、构建及环境检查；尚未启动识别节点或执行模型推理。实际识别效果由用户后续自行测试。
+新增交通灯分类代码和联合回归准备；本轮按用户要求不在宿主机运行代码或 Docker。新增代码、模型推理、容器构建和 Gazebo 三路性能尚未执行验证，历史 P2-A 检查记录不能视为本轮通过。
 
-从 `人物车牌交通灯识别交接_20261008_231221` 选择性迁移两路识别。本包不控制运动、不启动导航或比赛主程序，不做任务统计或结果持久化；未接入交通灯 YOLO，也不移植 HSV 方案。接口见 [docs/interface.md](docs/interface.md)，验证结果见 [docs/validation.md](docs/validation.md)，授权状态见 [NOTICE.md](NOTICE.md)。
+人物与车牌保留交接版识别逻辑，新增 YOLO11n 交通灯 ROI 分类。本包不控制运动、不启动导航或比赛主程序，不做任务统计，不移植 HSV 方案。默认仍只启动原两路；显式启用第三路后才加载交通灯模型。接口见 [docs/interface.md](docs/interface.md)，验证记录见 [docs/validation.md](docs/validation.md)，本轮准备与验收见 [docs/traffic_light_validation.md](docs/traffic_light_validation.md)，授权状态见 [NOTICE.md](NOTICE.md)。
 
 ## 选择性合并与差异
 
@@ -13,10 +13,11 @@
 | `scripts/prepare_hyperlpr_models.py` | 来自交接包；提取可复用的只读校验函数，新增 `--verify-only`。保留四模型大小/SHA256 校验、当前用户缓存、冲突拒绝和独占写入。 |
 | `models/person_best.pt`、四个 ONNX、`models_manifest.json` | 原样复制，不修改、不重新训练。 |
 | `launch/person_detection.launch`、`plate_recognition.launch` | 基于交接接口重建：显式解释器、CPU 默认、缓存目录、stale 参数和可选预览。 |
-| `launch/perception.launch` | 新建；只组合人物/车牌，默认无 GUI，单独关闭一路也关闭其预览。节点启动失败会结束该视觉 launch，不静默留下半套结果。 |
+| `launch/perception.launch` | 默认组合人物/车牌，可选 `enable_traffic_light:=true` 增加交通灯；默认无 GUI。关闭一路也关闭其预览；节点启动失败结束该视觉 launch。 |
+| `scripts/traffic_light_classification_node.py`、`config/traffic_light_classification.yaml`、`launch/traffic_light_classification.launch` | 新增 YOLO11n 三分类、相对 ROI、源帧新鲜度检查、UNKNOWN 拒绝及单路启动。 |
 | `package.xml`、`CMakeLists.txt`、README、NOTICE、docs、tests | 本项目新建，安装范围明确；测试仅辅助验证，不是任务结果保存功能。 |
 
-没有复制 `traffic_light_detector.py`、`traffic_light_node.py`、`traffic_light_hsv.yaml`、`traffic_light_recognition.launch` 或原三路 `perception_all.launch`。P1 状态机、航点、导航、地图和仿真场景均不修改。
+没有复制旧 HSV 节点或原三路 `perception_all.launch`；新交通灯分类器使用本仓库训练权重。P1 状态机、航点、导航、地图和仿真场景均不修改。
 
 ## Docker 隔离环境
 
@@ -113,7 +114,18 @@ roslaunch robot_perception person_detection.launch device:=cpu confidence:=0.25
 roslaunch robot_perception plate_recognition.launch min_confidence:=0.5
 ```
 
-统一入口参数：`enable_person`、`enable_plate`、`camera_topic`、`python`、`ros_python_path`、`show_images`；人物 `person_model/person_device/person_confidence/person_imgsz/person_max_rate/person_stale_seconds`；车牌 `plate_models_dir/plate_min_confidence/plate_max_rate/plate_stale_seconds/plate_font_path`。单路对应参数见 launch；单路输入参数名为 `input_topic`。
+统一入口参数：`enable_person`、`enable_plate`、`enable_traffic_light`（默认 false）、`camera_topic`、`python`、`ros_python_path`、`show_images`；人物 `person_model/person_device/person_confidence/person_imgsz/person_max_rate/person_stale_seconds`；车牌 `plate_models_dir/plate_min_confidence/plate_max_rate/plate_stale_seconds/plate_font_path`；交通灯 `traffic_light_model/traffic_light_config/traffic_light_device/traffic_light_confidence/traffic_light_max_rate/traffic_light_stale_seconds`。单路输入参数名为 `input_topic`。
+
+交通灯权重需先按 [准备步骤](docs/traffic_light_validation.md) 复制到包内。之后在已有容器中选择一种启动方式，不重复启动同名节点：
+
+```bash
+# 三路联合；人物和车牌仍使用完整原图
+roslaunch robot_perception perception.launch enable_traffic_light:=true
+# 或仅交通灯
+roslaunch robot_perception traffic_light_classification.launch device:=cpu
+```
+
+交通灯输入为原图上半部分，默认相对 ROI `[0.0, 0.0, 1.0, 0.5]`，`imgsz=224`。输出颜色是分类结果，不能证明存在交通灯，不授权机器人越线。
 
 统一/单路人物阈值均默认 0.25，采用交接单路默认值；交接原三路入口的 0.8 未沿用，可显式 `person_confidence:=0.8` 对比。高阈值可能漏检，不能保证消除灯具误检。默认相机 `/camera/color/image_raw`，默认每路上限 5 Hz。
 
@@ -143,4 +155,4 @@ bash src/robot_perception/tests/run_live_check.sh
 
 运行证据放容器 `/tmp/p2a-*`，不纳入 Git。`observe_topics.py` 只读订阅并校验 JSON、记录源时间戳、实际接收频率、处理耗时和进程资源，不操控机器人；测试图像/报告只用于验收。
 
-人物 C/NC 泛化及灯具误检、车牌不同距离/角度/光照、长期资源占用仍需场景验证。车牌没有 frame_valid，断流/异常会沉默；下游必须同时检查源时间戳与墙上时钟超时。P2-B 去重/统计/任务窗口和持久化尚未实现，交通灯 YOLO 尚未交付，P1 的禁止自动越线保护保持不变。
+人物 C/NC 泛化及灯具误检、车牌不同距离/角度/光照、长期资源占用仍需场景验证。车牌没有 frame_valid，断流/异常会沉默；下游必须同时检查源时间戳与墙上时钟超时。P2-B 任务窗口和持久化见 robot_competition/P2B.md；本轮不修改该包，也不让它消费交通灯分类结果，P1 禁止自动越线保护保持不变。

@@ -1,0 +1,33 @@
+<launch>
+  <arg name="python" default="/home/developer/.venvs/robot-perception/bin/python"/>
+  <arg name="ros_python_path" default="/opt/ros/noetic/lib/python3/dist-packages"/>
+  <arg name="config" default="$(find robot_perception)/config/traffic_light_classification.yaml"/>
+  <arg name="model" default="$(find robot_perception)/models/traffic_light_best.pt"/>
+  <arg name="device" default="cpu"/>
+  <arg name="confidence" default="0.8"/>
+  <arg name="max_rate" default="5.0"/>
+  <arg name="stale_seconds" default="1.5"/>
+  <arg name="input_topic" default="/camera/color/image_raw"/>
+  <arg name="image_topic" default="/perception/traffic_light_image"/>
+  <arg name="json_topic" default="/perception/traffic_light_json"/>
+  <arg name="show_images" default="false"/>
+  <node pkg="robot_perception" type="traffic_light_classification_node.py"
+        name="traffic_light_classification" output="screen" required="true" launch-prefix="$(arg python)">
+    <env name="PYTHONPATH" value="$(arg ros_python_path):$(optenv PYTHONPATH)"/>
+    <env name="PYTHONNOUSERSITE" value="1"/>
+    <env name="YOLO_AUTOINSTALL" value="false"/>
+    <env name="YOLO_OFFLINE" value="true"/>
+    <rosparam command="load" file="$(arg config)"/>
+    <param name="model" value="$(arg model)"/>
+    <param name="device" value="$(arg device)" type="str"/>
+    <param name="confidence" value="$(arg confidence)" type="double"/>
+    <param name="max_rate" value="$(arg max_rate)" type="double"/>
+    <param name="stale_seconds" value="$(arg stale_seconds)" type="double"/>
+    <param name="input_topic" value="$(arg input_topic)"/>
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="json_topic" value="$(arg json_topic)"/>
+  </node>
+  <node if="$(arg show_images)" pkg="image_view" type="image_view" name="traffic_light_preview">
+    <remap from="image" to="$(arg image_topic)"/>
+  </node>
+</launch>

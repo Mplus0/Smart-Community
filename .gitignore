@@ -46,3 +46,6 @@ Thumbs.db
 
 # Mission evidence is generated in the mounted workspace, never source control.
 car_2026/results/
+
+# Locally copied traffic-light classifier; deploy separately (or explicitly use Git LFS).
+car_2026/src/robot_perception/models/traffic_light_best.pt
