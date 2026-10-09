@@ -72,14 +72,14 @@
     <include>
       <uri>model://traffic_light</uri>
       <name>traffic_light_1</name>
-      <pose>1.689 0.037 0 0 0 -3.14</pose>
+      <pose>1.689 0.408 0 0 0 -3.14</pose>
     </include>
 
     <!-- 红绿灯 2 -->
     <include>
       <uri>model://traffic_light</uri>
       <name>traffic_light_2</name>
-      <pose>-0.846 0.102 0 0 0 -1.57</pose>
+      <pose>-1.27 0.102 0 0 0 -1.57</pose>
     </include>
 
 
