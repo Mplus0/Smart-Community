@@ -1,8 +1,8 @@
-# robot_competition P1 / P2-B / P2-C
+# robot_competition
 
-已实现路线管理、TF 航点录入、move_base 多航点状态机，以及到点后的人员/车牌结果订阅、多帧融合和持久化。P2-C 直接订阅现有红绿灯分类节点，完成停车等待和连续绿灯放行。模型仍由 `robot_perception` 独立运行，主程序使用系统 ROS Python 3.8。完整分终端启动命令见 [工作空间说明](../../README.md)。
+负责路线管理、TF 航点录入、move_base 多航点任务执行，以及到点后的人员/车牌结果采集、融合和保存；在交通灯点停车等待连续有效绿灯后放行。视觉模型由 `robot_perception` 独立运行，任务主程序使用系统 ROS Python 3.8。完整分终端启动命令见 [工作空间说明](../../README.md)。
 
-**P2-B 的四终端启动、全部新增参数、消息/结果 schema、统计边界和字体配置见 [P2B.md](P2B.md)。** 本文保留 P1 航点录入及导航操作说明。
+人物/车牌参数、消息与结果格式、统计口径和字体配置见 [任务接口说明](P2B.md)。
 
 ## 文件职责与运行逻辑
 
@@ -15,22 +15,22 @@
 - `scripts/traffic_wait.py`：红绿灯任务窗口、连续绿灯判断、墙钟超时及异常停止。
 - `scripts/result_manager.py`：按点/区域/全局保守统计，原子 JSON、日志及有限标注图片。
 - `config/task_config.yaml`：默认采集、融合规则和计数分区约定。
-- `config/waypoints.yaml`：现有录入路线，P2-C 保留坐标及 `light_01`、`light_02`。
+- `config/waypoints.yaml`：默认路线，包含交通灯点 `light_01`、`light_02`。
 - `launch/competition.launch`：仅启动主程序。
 
 状态：`INIT → NAVIGATE → TASK（人物/车牌）或 WAIT_TRAFFIC（交通灯）→ NEXT_POINT → NAVIGATE / FINISH`；普通航点直接进入 NEXT_POINT。错误进入 `ERROR` 并取消本节点目标、停止后续发送。空路线直接 `FINISH`。只有 Action 的 `SUCCEEDED` 才算到点。失败和超时可有限重试；收到外部取消或 LOST 则终止。取消确认超时不会重发目标。服务器、导航、取消及仿真时钟 watchdog 均使用墙上时钟上限，不依赖 `/clock` 继续走动。
 
-人员/车牌点在导航成功并等待稳定时间后开启新帧采集窗口；每次识别结果立即保存，普通识别失败有限重试后继续路线。时钟失效、关闭、存储异常仍进入 ERROR。正式模式在 INIT 检查所有交通灯点的 `stop_before_line: true`；任一点未确认就拒绝整条路线。到达交通灯点后进入 `WAIT_TRAFFIC`，持续发布零速度；放行后才进入 `NEXT_POINT`。`navigation_test_mode` 默认 false；显式 true 时跳过视觉及红绿灯等待，仅用于隔离的纯导航测试。
+人员/车牌点在导航成功并等待稳定时间后开启新帧采集窗口；每次识别结果立即保存，普通识别失败有限重试后继续路线。时钟失效、关闭、存储异常仍进入 ERROR。正式模式在 INIT 检查所有交通灯点的 `stop_before_line: true`；任一点未确认就拒绝整条路线。到达交通灯点后进入 `WAIT_TRAFFIC`，持续发布零速度；放行后才进入 `NEXT_POINT`。`navigation_test_mode` 默认 false；显式 true 时跳过视觉及红绿灯等待，不可用于正式比赛。
 
-## P2-C 红绿灯等待
+## 红绿灯等待
 
-保留 `waypoints.yaml` 中的 `light_01`、`light_02`。先在 Docker 中启动现有 `robot_perception/traffic_light_classification.launch`，再启动 `competition.launch`；后者只启动任务控制器。默认订阅 `/perception/traffic_light_json`，可通过 launch 的 `traffic_light_json_topic` 修改；零速度话题默认 `/cmd_vel`，可用 `cmd_vel_topic` 匹配现有底盘配置。
+交通灯点由 `waypoints.yaml` 配置。比赛视觉终端需启用交通灯分类节点，再启动 `competition.launch`；后者只启动任务控制器。默认订阅 `/perception/traffic_light_json`，可通过 launch 的 `traffic_light_json_topic` 修改；零速度话题默认 `/cmd_vel`，可用 `cmd_vel_topic` 匹配底盘配置。
 
 `config/task_config.yaml` 的独立 `traffic_light` 段使用 `traffic_timeout_sec=35`、`green_confirm_frames=3`、`min_confidence=0.8`、`max_source_age_sec=1.5`、`settle_sec=0.5`，不继承人物/车牌参数。超时采用单调墙钟，包含稳定期。稳定期结束后清空接收队列，只接受源时间严格晚于当前窗口起点的数据；延迟到达的窗口前数据丢弃并重置绿灯计数。有效 RED、YELLOW、低置信度 GREEN 和分类器的低置信度 UNKNOWN 均等待并重置计数。必须连续 3 帧有效且置信度至少 0.8 的 GREEN 才放行，源或接收时间间隔超过 1.5 秒也打断连续性。
 
-当前窗口内的重复、倒序、过期、未来时间戳、损坏 JSON、摄像头/推理故障、源或 ROI 改变、缓冲溢出均进入 ERROR，禁止后续导航；无数据或始终未确认绿灯在 35 秒后 ERROR。仍使用现有分类结果，不增加灯体检测或视觉模型。
+当前窗口内的重复、倒序、过期、未来时间戳、损坏 JSON、摄像头/推理故障、源或 ROI 改变、缓冲溢出均进入 ERROR，禁止后续导航；无数据或始终未确认绿灯在 35 秒后 ERROR。分类节点不验证灯体存在，任务依赖航点位置和相机 ROI 对应实际交通灯。
 
-现有 `mission_results.json` 的 `tasks` 中记录 `last_recognition`、`last_label`、`green_streak`、`wait_duration_sec`、`released`、`rejected_frames`、最终状态和最近 128 条观测；`mission.log` 写入所有 `TRAFFIC_OBSERVATION`、拒绝原因及同一份 `TASK_RESULT`。
+`mission_results.json` 的 `tasks` 中记录 `last_recognition`、`last_label`、`green_streak`、`wait_duration_sec`、`released`、`rejected_frames`、最终状态和最近 128 条观测；`mission.log` 写入所有 `TRAFFIC_OBSERVATION`、拒绝原因及同一份 `TASK_RESULT`。
 
 ## YAML 格式
 
@@ -68,16 +68,17 @@ docker exec -it --user developer smart-community-dev bash
 
 ```bash
 source /opt/ros/noetic/setup.bash
+source /opt/cartographer_ws/install_isolated/setup.bash
 cd /workspace/car_2026
-catkin_make
-source devel/setup.bash
+catkin_make -j2
+source devel/setup.bash --extend
 rosrun robot_competition waypoint_manager.py src/robot_competition/config/waypoints.yaml
 ```
 
 
 ## 航点录入的三终端启动与定位
 
-三个容器终端先执行 `source /opt/ros/noetic/setup.bash`、`cd /workspace/car_2026`、`source devel/setup.bash`。
+三个容器终端均按 [工作空间说明](../../README.md) 加载 ROS、Cartographer 和工作空间环境。
 
 终端 1：
 
@@ -118,7 +119,7 @@ rosrun robot_competition waypoint_manager.py /workspace/car_2026/route_measured.
 
 不提供隐式覆盖或替换点操作；需改点时先备份 YAML，人工修改后重新验证。`.lock` 是协作录入锁文件，可保留；其他编辑器不遵守此锁，勿同时修改同一文件。
 
-完成录入后，主程序入口如下；人员/车牌正式联调还需先启动独立视觉终端，完整步骤见 [P2B.md](P2B.md)：
+完成录入后，主程序入口如下；需先启动独立视觉终端，完整步骤见 [工作空间说明](../../README.md)：
 
 ```bash
 roslaunch robot_competition competition.launch waypoints_file:=/workspace/car_2026/route_measured.yaml
@@ -137,11 +138,11 @@ roslaunch robot_competition competition.launch waypoints_file:=/workspace/car_20
 ```bash
 rosnode list
 rostopic echo -n 1 /clock
-rosrun tf2_ros tf2_echo map base_footprint
+rosrun tf tf_echo map base_footprint
 rostopic echo -n 1 /amcl_pose
 rostopic echo -n 1 /move_base/status
 rosparam get /move_base/global_costmap/robot_base_frame
 rosparam get /main_controller
 ```
 
-若 TF 不可用，先检查 AMCL 初始位姿、激光、EKF 与 `/clock`；若目标超时，检查地图、costmap、TEB 和实际通道宽度。主程序只取消自己发送的目标，不接管其他客户端或直接输出速度。Action 通信丢失时取消不能保证已被导航端接收，应先检查底盘已停止再恢复任务。
+若 TF 不可用，先检查 AMCL 初始位姿、激光、EKF 与 `/clock`；若目标超时，检查地图、costmap、TEB 和实际通道宽度。主程序取消自己发送的导航目标，并在红绿灯等待及错误处理时向配置的速度话题发布零速度。Action 通信丢失时取消不能保证已被导航端接收，应先检查底盘已停止再恢复任务。

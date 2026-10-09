@@ -1,34 +1,42 @@
-# 随机车牌文件替换说明
+# 随机车牌生成
 
-以下命令仅在 Docker 容器中执行，会覆盖现有车牌纹理和生成记录；保持当前场景时直接使用 `roslaunch robot_gazebo simulation.launch`。`start_simulation.sh` 还会终止容器中已有 Gazebo 进程，不要在运行中的场景上重复调用。日常分终端启动见 [工作空间说明](../../README.md)。
+`generate_random_plates.py` 为 Gazebo 场景中的 `car_plate2` 和 `car_plate3` 生成随机车牌纹理，`car_plate1` 使用固定车牌。车牌在 Gazebo 启动前生成，一轮运行中保持不变。
 
-## 本次新增/替换
+## 生成纹理
 
-- `scripts/generate_random_plates.py`
-- `scripts/start_simulation.sh`
-- `models/car_plate2/materials/scripts/car_plate2.material`
-- `models/car_plate2/materials/textures/car_plate2.jpg`
-- `models/car_plate3/materials/scripts/car_plate3.material`
-- `models/car_plate3/materials/textures/car_plate3.jpg`
-
-`car_plate1` 不修改，继续作为固定车牌。
-
-## 单独测试随机车牌
+在 Docker 容器内执行：
 
 ```bash
 cd /workspace/car_2026
+source /opt/ros/noetic/setup.bash
+source devel/setup.bash
 python3 src/robot_gazebo/scripts/generate_random_plates.py
 ```
 
-生成结果会记录到：
+命令覆盖以下纹理和生成记录：
 
-`src/robot_gazebo/results/generated_plates.json`
+- `models/car_plate2/materials/textures/car_plate2.jpg`
+- `models/car_plate3/materials/textures/car_plate3.jpg`
+- `results/generated_plates.json`
 
-## 一键生成并启动 Gazebo
+以上路径均相对于 `robot_gazebo` 包。可选参数通过以下命令查看：
 
 ```bash
-chmod +x src/robot_gazebo/scripts/start_simulation.sh
-./src/robot_gazebo/scripts/start_simulation.sh
+python3 src/robot_gazebo/scripts/generate_random_plates.py --help
 ```
 
-随机车牌在 Gazebo 启动前生成，一轮仿真中保持不变。
+## 生成后启动仿真
+
+关闭正在运行的 Gazebo，再执行：
+
+```bash
+bash src/robot_gazebo/scripts/start_simulation.sh
+```
+
+该脚本先生成纹理，再终止容器内已有的 Gazebo 进程，最后启动 `simulation.launch`。需要继续使用当前纹理时直接运行：
+
+```bash
+roslaunch robot_gazebo simulation.launch
+```
+
+导航、视觉与任务控制器在其他终端启动，参见 [工作空间说明](../../README.md)。

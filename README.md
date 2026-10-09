@@ -1,44 +1,55 @@
 # Smart-Community
 
-面向智慧社区比赛的 ROS 1 / Gazebo 机器人项目。主要运行代码位于 `car_2026/`，开发环境为 Docker 中的 Ubuntu 20.04、ROS Noetic 和 Gazebo 11。
+基于 ROS 1 和 Gazebo 的智慧社区机器人系统，提供麦克纳姆底盘仿真、建图定位、多航点导航、人物与车牌识别、交通灯等待放行及任务结果保存。
 
-## 主要模块
+## 功能组成
 
-- **仿真与底盘**：机器人 Xacro/传感器模型、比赛场景、麦克纳姆控制、轮式里程计与 IMU 的 EKF 融合。
-- **建图与导航**：Cartographer 建图、AMCL 定位、定位/规划双地图、move_base 与 TEB 多航点导航。
-- **视觉识别**：人物 YOLO、HyperLPR3 车牌和 YOLO 交通灯 ROI 分类，发布 JSON 与标注图；推理使用独立 Python 环境。
-- **比赛任务**：P1 航点导航，P2 人物/车牌任务窗口与结果保存，以及红绿灯停车等待、连续绿灯确认和异常停止。任务控制器与视觉节点分别启动。
+- **仿真与底盘**：机器人 Xacro、传感器和比赛场景，麦轮控制、轮式里程计与 IMU 的 EKF 融合。
+- **建图与导航**：Cartographer 建图、AMCL 定位、定位/规划双地图、move_base 与 TEB 路径规划。
+- **视觉识别**：人物 YOLO、HyperLPR3 车牌识别和 YOLO 交通灯 ROI 分类，输出 JSON 与标注图。
+- **任务执行**：按航点顺序导航，到点采集人物/车牌结果；交通灯点停车等待连续有效绿灯；保存任务状态、统计和图像证据。
 
-## 目录
+## 运行环境
+
+ROS 与 Python 程序在 Docker 容器中运行：Ubuntu 20.04、ROS Noetic、Gazebo 11。任务控制器使用系统 Python 3.8，视觉推理使用独立 Python 3.10 环境。宿主机需要 Docker Compose；默认容器配置使用 NVIDIA GPU 和 X11 图形显示，视觉推理默认使用 CPU。
+
+## 目录结构
 
 ```text
-car_2026/       ROS catkin 工作空间、功能包及工作空间使用说明
+car_2026/       ROS catkin 工作空间
   src/         六个 robot_* 功能包
-  results/     本地任务结果（忽略提交）
-docker/        Dockerfile、Compose 与容器环境说明
-datasets/      交通灯采集数据及训练/验证/测试集
-models/        训练权重与导出模型
+  results/     任务结果目录，运行时创建
+docker/        镜像、Compose 配置与部署说明
+datasets/      交通灯数据集
+models/        模型权重与导出模型
 scripts/       交通灯数据准备、训练、评估及导出工具
-results/       保留训练权重；新增运行产物忽略提交
-docs/          历史参考方案及技术资料
-复赛资料/       比赛资料、交接代码和素材
+results/       训练权重及训练输出位置
+复赛资料/       比赛资料与素材
 ```
 
-根目录 PDF 和实现流程文档属于参考资料；当前启动方式以工作空间文档及实际 launch 为准。
+根目录 PDF 和实现流程文件供资料查阅；运行和部署以本 README 及下列使用说明为准。
 
-## 使用入口
+## 部署与使用
 
-进入已有容器（宿主机执行）：
+1. 按 [Docker 部署说明](docker/README.md) 构建镜像、创建容器。
+2. 按 [视觉包说明](car_2026/src/robot_perception/README.md) 准备模型与 HyperLPR 缓存。
+3. 按 [工作空间说明](car_2026/README.md) 编译，在四个容器终端分别启动仿真、导航、视觉及比赛主程序。
+
+已有容器的终端入口（宿主机执行）：
 
 ```bash
 docker exec -it --user developer smart-community-dev bash
 ```
 
-编译、仿真、导航、建图、三路视觉和最终比赛主程序的**分终端命令**见 [car_2026/README.md](car_2026/README.md)。容器创建与依赖部署见 [docker/README.md](docker/README.md)。
+比赛主入口为 `robot_competition/launch/competition.launch`。默认路线为 `car_2026/src/robot_competition/config/waypoints.yaml`；使用前应确认地图、定位、路线和停车位置与运行场地一致。
 
-- [比赛任务、航点及结果说明](car_2026/src/robot_competition/README.md)
-- [人物/车牌任务细节](car_2026/src/robot_competition/P2B.md)
-- [视觉环境、模型与接口说明](car_2026/src/robot_perception/README.md)
-- [机器人模型说明](car_2026/src/robot_description/README.md)
+## 使用文档
 
-构建与运行检查在 Docker 中执行。正式模型、地图、场景、航点和训练资源保留；开发验收脚本、临时路线及验收产物不再保留，缓存、编译产物、日志及本地任务结果不提交。
+- [工作空间、启动流程、建图与结果查看](car_2026/README.md)
+- [比赛任务、航点录入与故障处理](car_2026/src/robot_competition/README.md)
+- [人物/车牌参数、统计口径与结果格式](car_2026/src/robot_competition/P2B.md)
+- [视觉模型、输入输出与配置](car_2026/src/robot_perception/README.md)
+- [机器人模型与传感器](car_2026/src/robot_description/README.md)
+- [随机车牌生成](car_2026/src/robot_gazebo/README_RANDOM_PLATE.md)
+
+任务结果保存在 `car_2026/results/<run_id>/`。缓存、编译产物、日志和运行结果不提交到版本控制。项目许可证见 [LICENSE](LICENSE)，视觉模型及依赖的授权说明见 [NOTICE.md](car_2026/src/robot_perception/NOTICE.md)。
