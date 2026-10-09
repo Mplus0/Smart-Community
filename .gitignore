@@ -39,18 +39,6 @@ Thumbs.db
 *~
 
 # ==================================================
-# Large training / model files
-# ==================================================
-datasets/*
-!datasets/.gitkeep
-
-models/*.pt
-models/*.pth
-models/*.onnx
-models/*.engine
-models/*.weights
-
-# ==================================================
 # ROS runtime generated files
 # ==================================================
 *.bag
