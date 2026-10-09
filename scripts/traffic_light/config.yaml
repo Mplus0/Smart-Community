@@ -1,0 +1,29 @@
+model: yolo11n-cls.pt  # Alternatively: yolo26n-cls.pt
+data:
+  source: datasets/traffic_light
+  root: datasets/traffic_light
+  ratios: [0.70, 0.15, 0.15]
+train:
+  # Official transforms use random crops in training and center crops in inference.
+  # Use images with a centered, tightly framed traffic light so crops retain the signal.
+  epochs: 100
+  imgsz: 224
+  batch: 32
+  patience: 20
+  seed: 57
+  workers: 4
+  optimizer: auto
+  auto_augment: null
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.1
+  erasing: 0.0
+  scale: 0.1
+  fliplr: 0.0
+output:
+  project: results/traffic_light
+  name: yolo11n_baseline
+  best: models/traffic_light/best.pt
+export:
+  path: models/traffic_light/best.onnx
+  opset: 17
