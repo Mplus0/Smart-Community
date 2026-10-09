@@ -26,7 +26,8 @@
 
   <!-- RViz -->
   <arg name="rviz" default="false"/>
-
+  <arg name="rviz_config"
+       default="$(find robot_gazebo)/rviz/simulation.rviz"/>
 
   <!-- ================================================== -->
   <!-- Gazebo environment -->
@@ -134,6 +135,7 @@
         pkg="rviz"
         type="rviz"
         name="rviz"
+        args="-d $(arg rviz_config)"
         output="screen"/>
 
 </launch>
