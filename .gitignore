@@ -62,7 +62,7 @@ car_2026/datasets/
 datasets/**/*.cache
 /runs/
 /results/
-# Existing tracked training evidence and weights remain versioned.
+# Existing tracked training weights remain versioned.
 
 # Locally copied traffic-light classifier; deploy separately (or explicitly use Git LFS).
 car_2026/src/robot_perception/models/traffic_light_best.pt

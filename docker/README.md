@@ -200,7 +200,6 @@ docker compose exec ros bash
 ```bash
 source /opt/ros/noetic/setup.bash
 cd /workspace/car_2026
-"$HOME/.venvs/robot-perception/bin/python" src/robot_perception/tests/check_environment.py
 "$HOME/.venvs/robot-perception/bin/python" src/robot_perception/scripts/prepare_hyperlpr_models.py \
   --source /workspace/car_2026/src/robot_perception/models/hyperlpr3
 "$HOME/.venvs/robot-perception/bin/python" src/robot_perception/scripts/prepare_hyperlpr_models.py \

@@ -2,7 +2,7 @@
 
 已实现路线管理、TF 航点录入、move_base 多航点状态机，以及到点后的人员/车牌结果订阅、多帧融合和持久化。P2-C 直接订阅现有红绿灯分类节点，完成停车等待和连续绿灯放行。模型仍由 `robot_perception` 独立运行，主程序使用系统 ROS Python 3.8。完整分终端启动命令见 [工作空间说明](../../README.md)。
 
-**P2-B 的四终端启动、全部新增参数、消息/结果 schema、统计边界、字体配置和自动测试记录见 [P2B.md](P2B.md)。** 本文保留 P1 航点录入及导航操作说明；下方 2026-10-08 记录仅表示当时的 P1 验证范围。
+**P2-B 的四终端启动、全部新增参数、消息/结果 schema、统计边界和字体配置见 [P2B.md](P2B.md)。** 本文保留 P1 航点录入及导航操作说明。
 
 ## 文件职责与运行逻辑
 
@@ -17,7 +17,6 @@
 - `config/task_config.yaml`：默认采集、融合规则和计数分区约定。
 - `config/waypoints.yaml`：现有录入路线，P2-C 保留坐标及 `light_01`、`light_02`。
 - `launch/competition.launch`：仅启动主程序。
-- `tests/test_p1.py`、`tests/run_docker_checks.sh`：隔离 ROS Master 下的 schema、保存、TF 和假 Action Server 测试；不证明实际 Gazebo 导航可用。
 
 状态：`INIT → NAVIGATE → TASK（人物/车牌）或 WAIT_TRAFFIC（交通灯）→ NEXT_POINT → NAVIGATE / FINISH`；普通航点直接进入 NEXT_POINT。错误进入 `ERROR` 并取消本节点目标、停止后续发送。空路线直接 `FINISH`。只有 Action 的 `SUCCEEDED` 才算到点。失败和超时可有限重试；收到外部取消或 LOST 则终止。取消确认超时不会重发目标。服务器、导航、取消及仿真时钟 watchdog 均使用墙上时钟上限，不依赖 `/clock` 继续走动。
 
@@ -31,7 +30,7 @@
 
 当前窗口内的重复、倒序、过期、未来时间戳、损坏 JSON、摄像头/推理故障、源或 ROI 改变、缓冲溢出均进入 ERROR，禁止后续导航；无数据或始终未确认绿灯在 35 秒后 ERROR。仍使用现有分类结果，不增加灯体检测或视觉模型。
 
-现有 `mission_results.json` 的 `tasks` 中记录 `last_recognition`、`last_label`、`green_streak`、`wait_duration_sec`、`released`、`rejected_frames`、最终状态和最近 128 条观测；`mission.log` 写入所有 `TRAFFIC_OBSERVATION`、拒绝原因及同一份 `TASK_RESULT`。测试入口为容器内 `bash src/robot_competition/tests/run_docker_checks.sh`，包含隔离假 move_base、P1/P2-B 回归和 P2-C 可控时钟测试；不运行实际路线。
+现有 `mission_results.json` 的 `tasks` 中记录 `last_recognition`、`last_label`、`green_streak`、`wait_duration_sec`、`released`、`rejected_frames`、最终状态和最近 128 条观测；`mission.log` 写入所有 `TRAFFIC_OBSERVATION`、拒绝原因及同一份 `TASK_RESULT`。
 
 ## YAML 格式
 
@@ -72,11 +71,9 @@ source /opt/ros/noetic/setup.bash
 cd /workspace/car_2026
 catkin_make
 source devel/setup.bash
-bash src/robot_competition/tests/run_docker_checks.sh
 rosrun robot_competition waypoint_manager.py src/robot_competition/config/waypoints.yaml
 ```
 
-测试脚本使用本机独立端口 11329，要求该端口未被占用；ROS 日志保存在容器 `/tmp/robot-competition-tests.*`。测试不发送到 `/move_base`。
 
 ## 航点录入的三终端启动与定位
 
@@ -148,38 +145,3 @@ rosparam get /main_controller
 ```
 
 若 TF 不可用，先检查 AMCL 初始位姿、激光、EKF 与 `/clock`；若目标超时，检查地图、costmap、TEB 和实际通道宽度。主程序只取消自己发送的目标，不接管其他客户端或直接输出速度。Action 通信丢失时取消不能保证已被导航端接收，应先检查底盘已停止再恢复任务。
-
-## 验收边界
-
-自动测试覆盖配置异常、录入保存往返、写入故障保护、TF 位姿转换/陈旧拒绝、Action 成功/失败/超时/取消、重试、关闭回调、交通灯默认拦截与显式测试模式，以及墙上时钟 watchdog。假 Action Server 仅用于测试；其中合成坐标不作为正式路线。
-
-真实 Gazebo 多航点、完整指定路线合规、AMCL 精度、窄转角与全车停止线前余量仍须使用实测路线验证。上述三终端启动命令是操作步骤，不能仅凭构建和自动测试成功声称已通过真实仿真验收。
-
-## 本次实际验证记录（2026-10-08）
-
-运行环境：已有 `smart-community-dev` 容器，`developer` 用户，ROS Noetic / Python 3.8。宿主机仅进行文件编辑、Git 检查和 Docker 操作，未运行项目 Python、ROS 或 catkin。
-
-已执行：
-
-```bash
-# 以下是宿主机调用 Docker 的入口，实际命令全部在容器内执行。
-docker exec --user developer smart-community-dev bash -lc 'source /opt/ros/noetic/setup.bash; cd /workspace/car_2026; catkin_make -j2'
-docker exec --user developer smart-community-dev bash /workspace/car_2026/src/robot_competition/tests/run_docker_checks.sh
-```
-
-结果：
-
-- `catkin_make -j2`：整工作空间 5 个包构建成功，退出码 0。
-- `python3 -m py_compile`：三个实现脚本语法通过。
-- `test_p1.py`：最终 21 项测试通过，退出码 0；真实 ROS Action 消息通信连接隔离假服务器，模拟时钟停滞使用固定时钟注入。
-- `rosrun ... waypoint_manager.py`：默认空路线校验通过，明确输出 `EMPTY_ROUTE`。
-- `rosrun ... waypoint_recorder.py --help`：入口及共享模块导入通过。
-- `rosrun ... main_controller.py _waypoints_file:=...`：默认空路线 `INIT → FINISH`，不发送目标。
-- `roslaunch --nodes robot_competition competition.launch`：解析通过，仅列出 `/main_controller`。
-- `git diff --check`：通过。
-
-最终容器测试日志：`/tmp/p1-checks.log`（容器临时文件，不纳入仓库）。初轮测试发现重复取消已完成目标及测试服务器退出清理问题，已修正后重跑；最终测试没有 Action 通信状态错误。ROS 自身可能输出 XML-RPC socket 的 ResourceWarning，不影响测试结论。
-
-尚未运行：Gazebo + AMCL + 真实 `/move_base` 多航点巡检，以及真实 TF 交互录入。检查环境时没有运行 ROS Master，且本次未提供已实测路线，因此没有启动仿真自动行车。P1 的真实路线验收仍未完成。
-
-构建中观察到既有 `robot_mecanum_control/CMakeLists.txt:10` 和 `robot_gazebo/CMakeLists.txt:23` 的 `catkin_package(DEPENDS gazebo)` 导出警告：对应 `gazebo_INCLUDE_DIRS / gazebo_LIBRARIES` 未定义。当前不阻塞构建，未修改这些包；后续可独立核对 Gazebo 的 CMake 变量及导出声明。既有 Gazebo Classic 依赖还会输出弃用提示，本次未变更基础环境。

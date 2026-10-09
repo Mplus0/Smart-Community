@@ -1,8 +1,8 @@
 # robot_perception：人物 / 车牌 / 可选交通灯分类
 
-人物、车牌和交通灯分类节点均已接入。当前分终端启动和容器内回归入口见 [工作空间说明](../../README.md)；历史验证记录保留在 docs 中，不等同于完整 Gazebo 三路性能验收。
+人物、车牌和交通灯分类节点均已接入。当前分终端启动见 [工作空间说明](../../README.md)。
 
-人物与车牌保留交接版识别逻辑，新增 YOLO11n 交通灯 ROI 分类。本包不控制运动、不启动导航或比赛主程序，不做任务统计，不移植 HSV 方案。默认仍只启动原两路；显式启用第三路后才加载交通灯模型。接口见 [docs/interface.md](docs/interface.md)，验证记录见 [docs/validation.md](docs/validation.md)，本轮准备与验收见 [docs/traffic_light_validation.md](docs/traffic_light_validation.md)，授权状态见 [NOTICE.md](NOTICE.md)。
+人物与车牌保留交接版识别逻辑，新增 YOLO11n 交通灯 ROI 分类。本包不控制运动、不启动导航或比赛主程序，不做任务统计，不移植 HSV 方案。默认仍只启动原两路；显式启用第三路后才加载交通灯模型。接口见 [docs/interface.md](docs/interface.md)，授权状态见 [NOTICE.md](NOTICE.md)。
 
 ## 选择性合并与差异
 
@@ -15,7 +15,7 @@
 | `launch/person_detection.launch`、`plate_recognition.launch` | 基于交接接口重建：显式解释器、CPU 默认、缓存目录、stale 参数和可选预览。 |
 | `launch/perception.launch` | 默认组合人物/车牌，可选 `enable_traffic_light:=true` 增加交通灯；默认无 GUI。关闭一路也关闭其预览；节点启动失败结束该视觉 launch。 |
 | `scripts/traffic_light_classification_node.py`、`config/traffic_light_classification.yaml`、`launch/traffic_light_classification.launch` | 新增 YOLO11n 三分类、相对 ROI、源帧新鲜度检查、UNKNOWN 拒绝及单路启动。 |
-| `package.xml`、`CMakeLists.txt`、README、NOTICE、docs、tests | 本项目新建，安装范围明确；测试仅辅助验证，不是任务结果保存功能。 |
+| `package.xml`、`CMakeLists.txt`、README、NOTICE、docs | 本项目运行与接口资料。 |
 
 没有复制旧 HSV 节点或原三路 `perception_all.launch`；新交通灯分类器使用本仓库训练权重。P1 状态机、航点、导航、地图和仿真场景均不修改。
 
@@ -29,7 +29,7 @@ docker exec -it --user developer smart-community-dev bash
 
 后续命令全部在容器内执行。构建使用系统 Python 3.8；推理使用独立 Python 3.10 环境，默认 `$HOME/.venvs/robot-perception/bin/python`。不激活推理环境来重建 ROS 工作空间，不全局升级 pip/NumPy/OpenCV/Torch。
 
-本次环境方案用 Python 3.10 满足交接版 Torch 2.14 与 ONNX Runtime 1.23.2 的最低 Python 要求；Ultralytics 8.4.159 的元数据仍允许 Python >=3.8，不能因此推断整套交接依赖适配系统 Python 3.8。参考：[Ultralytics 安装文档](https://docs.ultralytics.com/quickstart/)。实际版本及导入结果以 validation.md 为准。
+本次环境方案用 Python 3.10 满足交接版 Torch 2.14 与 ONNX Runtime 1.23.2 的最低 Python 要求；Ultralytics 8.4.159 的元数据仍允许 Python >=3.8，不能因此推断整套交接依赖适配系统 Python 3.8。参考：[Ultralytics 安装文档](https://docs.ultralytics.com/quickstart/)。依赖版本以 docs/requirements-cpu.lock.txt 为准。
 
 受控安装步骤（需要网络下载解释器与依赖，不下载模型；约需数百 MB 下载与额外磁盘空间）：
 
@@ -47,16 +47,6 @@ python3 -m pip install --disable-pip-version-check --target /tmp/p2a-uv-bootstra
 ```
 
 已有同名环境时先检查，不覆盖其他用途的环境。现已将隔离环境安装加入仓库 Dockerfile，按新配置构建镜像后，新容器会自带 Python 3.10 和视觉依赖；旧镜像仍需按上文手工部署。重建步骤见 [Docker 说明](../../../docker/README.md)。用户目录没有持久挂载，HyperLPR 模型缓存仍需在新容器内离线准备。CPU 包不使用 CUDA；即使 `nvidia-smi` 可见显卡，本配置仍默认 CPU。GPU 环境若后续另建，通过 `python:=... person_device:=0` 显式选择，不能只修改 device 而继续使用 CPU Torch。
-
-加载 ROS 后检查完整导入链：
-
-```bash
-source /opt/ros/noetic/setup.bash
-cd /workspace/car_2026
-"$HOME/.venvs/robot-perception/bin/python" src/robot_perception/tests/check_environment.py
-```
-
-检查同时覆盖 `rospy`、`sensor_msgs.msg`、`std_msgs.msg`，不仅是 torch。两节点手动解码 `sensor_msgs/Image`，不加载跨 Python ABI 的 `cv_bridge`。不要将系统 `/usr/lib/python3/dist-packages` 整体注入推理环境；launch 仅添加可配置 `ros_python_path`（默认 Noetic Python 路径）并继承已加载的工作空间 PYTHONPATH。
 
 ## 离线准备车牌模型
 
@@ -116,7 +106,7 @@ roslaunch robot_perception plate_recognition.launch min_confidence:=0.5
 
 统一入口参数：`enable_person`、`enable_plate`、`enable_traffic_light`（默认 false）、`camera_topic`、`python`、`ros_python_path`、`show_images`；人物 `person_model/person_device/person_confidence/person_imgsz/person_max_rate/person_stale_seconds`；车牌 `plate_models_dir/plate_min_confidence/plate_max_rate/plate_stale_seconds/plate_font_path`；交通灯 `traffic_light_model/traffic_light_config/traffic_light_device/traffic_light_confidence/traffic_light_max_rate/traffic_light_stale_seconds`。单路输入参数名为 `input_topic`。
 
-交通灯权重需先按 [准备步骤](docs/traffic_light_validation.md) 复制到包内。之后在已有容器中选择一种启动方式，不重复启动同名节点：
+首次部署时，将仓库 `models/traffic_light/best.pt` 复制到 `car_2026/src/robot_perception/models/traffic_light_best.pt`，保留源文件；已有文件无需覆盖。Compose 仅挂载 `car_2026`，仓库根目录的 `models/` 不在容器挂载范围内。之后在已有容器中选择一种启动方式，不重复启动同名节点：
 
 ```bash
 # 三路联合；人物和车牌仍使用完整原图
@@ -143,16 +133,6 @@ rosrun image_view image_view image:=/perception/plates_image
 
 `show_images:=true` 也可启动已启用节点的预览，需容器 X11 可用。中文字体缺失时图像只显示 `plate#编号`；JSON 保留完整号码。若已有 Noto CJK，可指定 `plate_font_path:=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`。本轮不捆绑字体、不修改系统字体。
 
-## 复现检查与限制
-
-```bash
-cd /workspace/car_2026
-python3 src/robot_perception/tests/check_static.py
-"$HOME/.venvs/robot-perception/bin/python" src/robot_perception/tests/test_adapters.py
-# 已有 Gazebo、尚未启动视觉节点时；启动两路并观察 30 秒，结束只清理该测试启动的视觉 launch。
-bash src/robot_perception/tests/run_live_check.sh
-```
-
-运行证据放容器 `/tmp/p2a-*`，不纳入 Git。`observe_topics.py` 只读订阅并校验 JSON、记录源时间戳、实际接收频率、处理耗时和进程资源，不操控机器人；测试图像/报告只用于验收。
+## 运行限制
 
 人物 C/NC 泛化及灯具误检、车牌不同距离/角度/光照、长期资源占用仍需场景验证。车牌没有 frame_valid，断流/异常会沉默；下游同时检查源时间戳与墙上时钟超时。P2-B 任务窗口和持久化见 [P2B.md](../robot_competition/P2B.md)，P2-C 交通灯订阅、等待与放行见 [比赛包说明](../robot_competition/README.md)。

@@ -19,7 +19,7 @@ docker/        Dockerfile、Compose 与容器环境说明
 datasets/      交通灯采集数据及训练/验证/测试集
 models/        训练权重与导出模型
 scripts/       交通灯数据准备、训练、评估及导出工具
-results/       已有训练评估记录；新增运行产物忽略提交
+results/       保留训练权重；新增运行产物忽略提交
 docs/          历史参考方案及技术资料
 复赛资料/       比赛资料、交接代码和素材
 ```
@@ -41,4 +41,4 @@ docker exec -it --user developer smart-community-dev bash
 - [视觉环境、模型与接口说明](car_2026/src/robot_perception/README.md)
 - [机器人模型说明](car_2026/src/robot_description/README.md)
 
-构建及自动化回归在 Docker 中执行。自动化测试覆盖代码和合成数据流程，不代表完整 Gazebo/实车比赛效果验收。模型、地图、场景、航点和历史测试资料应保留；缓存、编译产物、日志及本地任务结果不提交。
+构建与运行检查在 Docker 中执行。正式模型、地图、场景、航点和训练资源保留；开发验收脚本、临时路线及验收产物不再保留，缓存、编译产物、日志及本地任务结果不提交。

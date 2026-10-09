@@ -1,6 +1,6 @@
 # P2-B：任务感知集成与结果保存
 
-主程序在系统 ROS Noetic Python 3.8 中运行，只订阅既有 `robot_perception` 的 JSON 与标注图，使用系统 NumPy/OpenCV 保存 JPEG；不导入 torch、ultralytics、hyperlpr3，不加载权重，不改变 Python 3.10 推理隔离环境。本文描述 P2-B 人物/车牌任务，保留当时的测试记录；当前已接入 P2-C 红绿灯等待与放行，见 [README](README.md)。
+主程序在系统 ROS Noetic Python 3.8 中运行，只订阅既有 `robot_perception` 的 JSON 与标注图，使用系统 NumPy/OpenCV 保存 JPEG；不导入 torch、ultralytics、hyperlpr3，不加载权重，不改变 Python 3.10 推理隔离环境。本文描述 P2-B 人物/车牌任务；当前已接入 P2-C 红绿灯等待与放行，见 [README](README.md)。
 
 ## 文件与控制流程
 
@@ -13,8 +13,6 @@
 | `config/task_config.yaml` | 默认任务参数、分类覆盖参数及非重叠计数约定 |
 | `launch/competition.launch` | 只启动主控制器，加载配置与话题/缓存/输出路径参数 |
 | `CMakeLists.txt`、`package.xml` | 安装新增脚本/文档，补充 sensor_msgs、std_msgs、系统 NumPy/OpenCV 依赖 |
-| `tests/test_p2b.py`、`tests/run_docker_checks.sh` | 合成 JSON/Image、独立 ROS Master 与假 Action Server；不加载模型 |
-| `tests/test_p1.py` | 仅增加临时结果目录和短任务超时；原 21 项测试断言保留 |
 | 项目 `.gitignore` | 忽略 `car_2026/results/` |
 
 普通 waypoint 只导航。person/plate 点必须先收到 `move_base SUCCEEDED`，等待 `settle_sec`，然后创建独立窗口。到点稳定仅依赖 move_base 成功及等待时间，没有新增轮速静止检测；运行时不要同时发送遥控/RViz Goal。
@@ -151,118 +149,4 @@ SUCCESS/EMPTY_VALID 不重试；FAILED_IMAGE_ANNOTATION 需修正字体/确认�
 
 任务开始即保存 pending_task，结束立即原子保存整个 JSON；采用同目录临时文件、flush/fsync、os.replace，失败保留上一版。JPEG 同样原子写入，每次尝试最多 max_evidence_images 张，不逐帧落图。FINISH/ERROR 再保存汇总；文件系统故障只能尽力保存，不能承诺磁盘不可写或断电时最后一个事件一定落盘。
 
-## Docker 构建和可重复自动检查
-
-宿主机只执行 Docker 入口；以下 ROS/Python/catkin 都在容器内运行。本次不要求重建镜像，现有系统依赖和隔离环境可用。
-
-```bash
-docker exec -it --user developer smart-community-dev bash
-```
-
-进入后：
-
-```bash
-source /opt/ros/noetic/setup.bash
-cd /workspace/car_2026
-catkin_make -j2
-source devel/setup.bash
-bash src/robot_competition/tests/run_docker_checks.sh
-PYTHONPATH=/opt/ros/noetic/lib/python3/dist-packages \
-  /home/developer/.venvs/robot-perception/bin/python src/robot_perception/tests/test_adapters.py
-```
-
-脚本拒绝使用已经占用的 11329 端口，创建独立 ROS Master，假导航 `/p1_fake_move_base`，临时结果置于容器 /tmp。合成图片只用于接口测试，不代表实际模型的标注效果。测试不连接真实 `/move_base`，不更改真实 Master 参数，不需要模型或相机。
-
-## 四终端正式联调（用户后续执行）
-
-每个终端先各自进入容器并加载环境：
-
-```bash
-docker exec -it --user developer smart-community-dev bash
-source /opt/ros/noetic/setup.bash
-cd /workspace/car_2026
-source devel/setup.bash
-```
-
-终端 1：`roslaunch robot_gazebo simulation.launch rviz:=true`
-
-终端 2：`roslaunch robot_navigation navigation.launch`
-
-先在 RViz 完成 AMCL 初始定位，确认激光对齐。按 [README 航点录入](README.md) 准备已有安全路线的复制文件，至少两个普通点、一个 person 点、一个 plate 点；相机在任务点应能看清目标。此阶段选择**无交通灯任务且路径不需灯控放行**的实测路线，不能把示例坐标用于自动行车。
-
-终端 3（使用 P2-A 既有参数）：
-
-```bash
-roslaunch robot_perception perception.launch person_device:=cpu show_images:=false
-```
-
-中文标注：当前容器检查未发现 P2-A 默认候选 WQY/Noto CJK 字体。准备有使用授权的中文字体到挂载目录，例如 `/workspace/car_2026/fonts/Chinese.ttf`（这里是用户提供文件的示例位置，仓库不捆绑字体），将终端 3 命令改为：
-
-```bash
-roslaunch robot_perception perception.launch person_device:=cpu show_images:=false \
-  plate_font_path:=/workspace/car_2026/fonts/Chinese.ttf
-```
-
-确认 `/perception/plates_image` 中实际绘出完整中文号码和置信度后，在自用 task_config YAML 的 plate 部分设置 `plate_text_annotation_confirmed: true`。这是持久配置确认，不是任务中人工触发推理；主程序不会 OCR 检查字体。未确认保持 false，会保存候选但返回 FAILED_IMAGE_ANNOTATION，不能把 plate# 当满足主办方要求。
-
-例如先复制配置（容器内），再编辑自己的副本：
-
-```bash
-cp src/robot_competition/config/task_config.yaml /workspace/car_2026/task_config_local.yaml
-```
-
-终端 4（将路线文件替换为自己已实测的文件）：
-
-```bash
-rosrun robot_competition waypoint_manager.py /workspace/car_2026/route_measured.yaml
-roslaunch robot_competition competition.launch \
-  waypoints_file:=/workspace/car_2026/route_measured.yaml \
-  task_config_file:=/workspace/car_2026/task_config_local.yaml \
-  results_root:=/workspace/car_2026/results \
-  navigation_test_mode:=false
-```
-
-`competition.launch` 不启动第二套仿真、导航或视觉节点。现有节点已运行时不要重复启动对应终端。任何时刻只运行一个主控制器；此时不发送 RViz Goal/遥控。无人为逐点触发识别步骤。
-
-## 查看结果与手动故障验收
-
-任务终端输出 TASK_RESULT 和 MISSION_FINISH/ERROR，并打印本轮结果目录。可在 RViz 添加两个 Image 显示，分别选 `/perception/person_image`、`/perception/plates_image`；或额外容器终端分别运行：
-
-```bash
-rosrun image_view image_view image:=/perception/person_image
-rosrun image_view image_view image:=/perception/plates_image
-```
-
-第二条应在另一个终端运行。将日志打印的真实目录赋给 `RUN_DIR`，查看结果：
-
-```bash
-RUN_DIR=/workspace/car_2026/results/替换为本轮目录名
-python3 -m json.tool "$RUN_DIR/mission_results.json"
-tail -f "$RUN_DIR/mission.log"
-```
-
-人数查 person_summary.by_waypoint/by_area/total；车牌查顶层 plates 与 tasks。核对图片时从目标 evidence_image_path 找文件，确认 evidence.frame_index 对应 raw_frames 的 header.stamp/frame_id；代表框、代表置信度从该帧 support_observations 核对。JPEG 自身不存 ROS Header，以结果 JSON 作为关联凭据，seq 不参与匹配。
-
-手动失联分支：在已确认安全的联调中停止终端 3，下一观察窗口应 FAILED_TIMEOUT（人物先前可能发无效通知则 FAILED_INVALID），有限重试后继续后续普通点，旧图不能计入。空场景测试需视觉节点继续运行并真实发布足量新空数组及对应图，才可 EMPTY_VALID；人物 frame_valid=false 不能计零。暂停仿真超过 clock_timeout 应 ERROR，不发后续目标。以上步骤是待用户执行的验收方法，不表示已进行真实 Gazebo 验收。
-
-## 自动验证记录与下一阶段边界
-
-2026-10-09，在既有 smart-community-dev 容器、developer 用户下完成：
-
-| 检查 | 结果 |
-|---|---|
-| `catkin_make -j2` | 成功，退出码 0 |
-| P1 `test_p1.py` | 21 项通过 |
-| P2-B `test_p2b.py` | 32 项通过 |
-| P2-A `test_adapters.py` | 5 项通过 |
-| 六个主程序/辅助脚本语法、rosrun 入口、默认空路线、launch 解析 | 通过；默认 launch 仅列出 main_controller |
-| 系统环境 | Python 3.8.10 / OpenCV 4.2.0 / NumPy 1.17.4 可用 |
-| `git diff --check`、results 忽略规则 | 通过 |
-
-构建仍有既有 Gazebo 导出变量 CMake 警告，未阻塞构建。容器测试日志为 `/tmp/p2b-build.log`、`/tmp/p2b-checks.log`、`/tmp/p2b-adapters.log`，不纳入仓库。
-
-覆盖新帧纳秒边界、重复/倒序/未来/上一窗口、无效消息和图像、缓存边界、异步配图与 seq 差异、代表图片回退、稳定人数、区域重复风险、车牌 Unicode/冲突/多车、空帧/断流/低置信度、超时重试、编码失败保留旧结果、原子写入故障、TASK 时钟重置/暂停/关闭、识别失败继续导航、导航失败停止、P1 红绿灯正式拦截及显式测试模式。原有 P1 21 项、P2-A 适配器 5 项均需通过。
-
-**未进行真实 Gazebo 验收**，未运行真实模型识别效果测试、未测完整实景街区覆盖或全局唯一人数，也未确认实际中文车牌图片效果。没有把合成结果标成实测结果。
-
-上述记录属于 P2-B 阶段。当前 P2-C 在交通灯点导航成功后进入 WAIT_TRAFFIC，消费现有分类 JSON 并执行连续绿灯确认；stop_before_line 检查保留。navigation_test_mode 默认 false，只能用于隔离纯导航测试。最新启动流程见 [工作空间说明](../../README.md)。
+编译、分终端启动及结果查看见 [工作空间说明](../../README.md)。

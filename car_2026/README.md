@@ -13,7 +13,7 @@
 | `robot_perception` | 人物、车牌、交通灯分类节点，JSON 与标注图输出 |
 | `robot_competition` | 航点录入与校验、P1/P2 状态机、任务结果及证据保存 |
 
-`build/`、`devel/`、`install/` 为生成目录。`route_p1_test.yaml` 是现有测试路线，正式默认路线为 `src/robot_competition/config/waypoints.yaml`。
+`build/`、`devel/`、`install/` 为生成目录。正式默认路线为 `src/robot_competition/config/waypoints.yaml`。
 
 ## 环境与编译
 
@@ -73,7 +73,7 @@ roslaunch robot_navigation navigation.launch
   --source /workspace/car_2026/src/robot_perception/models/hyperlpr3 --verify-only
 ```
 
-确认包内 `models/person_best.pt`、HyperLPR ONNX 以及 `models/traffic_light_best.pt` 已部署。交通灯权重的部署来源为仓库 `models/traffic_light/best.pt`；默认容器只挂载工作空间，准备方法见 [交通灯部署说明](src/robot_perception/docs/traffic_light_validation.md)。不重新训练或覆盖已有权重。
+确认包内 `models/person_best.pt`、HyperLPR ONNX 以及 `models/traffic_light_best.pt` 已部署。交通灯权重的部署来源为仓库 `models/traffic_light/best.pt`；默认容器只挂载工作空间，准备方法见 [视觉包说明](src/robot_perception/README.md)。不重新训练或覆盖已有权重。
 
 ```bash
 roslaunch robot_perception perception.launch \
@@ -97,15 +97,7 @@ roslaunch robot_perception traffic_light_classification.launch
 roslaunch robot_competition competition.launch
 ```
 
-默认读取现有 `config/waypoints.yaml` 与 `config/task_config.yaml`，不会启动或重设导航、视觉节点。默认 `navigation_test_mode=false`。参数可在调用时指定，例如使用自备路线：
-
-```bash
-roslaunch robot_competition competition.launch \
-  waypoints_file:=/workspace/car_2026/route_p1_test.yaml \
-  results_root:=/workspace/car_2026/results
-```
-
-替换路线前先校验并确认坐标适合当前地图。`navigation_test_mode:=true` 会跳过视觉与红绿灯控制，仅用于隔离的纯导航测试。
+默认读取现有 `config/waypoints.yaml` 与 `config/task_config.yaml`，不会启动或重设导航、视觉节点。默认 `navigation_test_mode=false`。更换路线时通过 `waypoints_file` 指向自备文件，先校验并确认坐标适合当前地图。`navigation_test_mode:=true` 会跳过视觉与红绿灯控制，仅用于隔离的纯导航测试。
 
 交通灯点必须有 `stop_before_line: true`，到点后进入 `WAIT_TRAFFIC`；默认连续 3 帧有效 GREEN、置信度 ≥ 0.8 才放行，等待上限 35 秒。人物/车牌观察与融合参数独立配置。车牌中文证据需要可用字体，并在实际确认标注完整后设置 `plate_text_annotation_confirmed`；默认 false 时有识别号码也可能记为 `FAILED_IMAGE_ANNOTATION`，详见 [P2-B](src/robot_competition/P2B.md)。
 
@@ -154,17 +146,6 @@ rosrun robot_competition waypoint_recorder.py --help
 
 任务结果默认保存为 `/workspace/car_2026/results/<run_id>/`：`mission_results.json`、`mission.log` 和 `images/`。红绿灯任务包含识别结果、等待时间、连续绿灯数及 `released`。ROS 日志默认在当前用户 `~/.ros/log/`。随机车牌生成记录在 `src/robot_gazebo/results/generated_plates.json`，它与现有场景素材有关，保留。
 
-## 容器内检查
+## 文件维护
 
-```bash
-# 现有总回归：构建、视觉静态/适配器/分类测试、P1/P2-B/P2-C、launch 解析
-bash src/robot_perception/tests/run_regression_checks.sh
-# 只检查比赛任务；使用独立 ROS Master 11329 和假 move_base
-bash src/robot_competition/tests/run_docker_checks.sh
-# 底盘运动学检查
-python3 src/robot_mecanum_control/scripts/validate_mecanum_kinematics.py
-```
-
-测试使用合成数据和隔离 Action Server，不执行真实路线。launch 解析与模型单元测试不能替代 Gazebo/实车完整验收。
-
-缓存、编译产物、日志、航点 `.yaml.lock` 和运行结果不提交；锁文件会自动生成，不要在录点时删除。保留现有训练数据、权重、历史测试脚本及技术资料。`robot_description/preview/`、备用网格 `base_link.STL1`、参考 URDF 的后续用途尚未完全确定，继续保留。
+正式配置、模型、地图、训练资源及参数推导资料保留。开发验收用的临时路线、测试脚本、测试 launch、预览模型、验收记录和旧运行结果已清理。缓存、编译产物、日志、航点 `.yaml.lock` 和新运行结果不提交；锁文件会自动生成，不要在录点时删除。运行所需的 `build/`、`devel/` 与正式配置保持可用。
