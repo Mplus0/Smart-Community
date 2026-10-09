@@ -1,5 +1,0 @@
-string folder
-string filename
----
-bool success
-string message
