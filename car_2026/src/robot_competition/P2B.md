@@ -1,6 +1,6 @@
 # P2-B：任务感知集成与结果保存
 
-主程序在系统 ROS Noetic Python 3.8 中运行，只订阅既有 `robot_perception` 的 JSON 与标注图，使用系统 NumPy/OpenCV 保存 JPEG；不导入 torch、ultralytics、hyperlpr3，不加载权重，不改变 Python 3.10 推理隔离环境。本阶段未改检测模型、导航参数、路线 schema、地图或场景，也未实现红绿灯放行。
+主程序在系统 ROS Noetic Python 3.8 中运行，只订阅既有 `robot_perception` 的 JSON 与标注图，使用系统 NumPy/OpenCV 保存 JPEG；不导入 torch、ultralytics、hyperlpr3，不加载权重，不改变 Python 3.10 推理隔离环境。本文描述 P2-B 人物/车牌任务，保留当时的测试记录；当前已接入 P2-C 红绿灯等待与放行，见 [README](README.md)。
 
 ## 文件与控制流程
 
@@ -75,7 +75,7 @@ JSON 必须为对象，`schema_version` 为整数 1；`header` 包含整数 seq�
 
 活动任务另外保留最多 max_valid_frames 条 JSON 和最多 max_evidence_images 张候选图；结果中保存的历史任务数据随任务数增长。缓存不足/图像太大只会明确失败，不会偷偷替换图片。
 
-P1 参数不变：`waypoints_file` 默认空路线、`move_base_action=/move_base`、`navigation_timeout=90`、`server_timeout=15`、`cancel_timeout=3`、`clock_timeout=5`、`retries=1`、`navigation_test_mode=false`。点级 navigation_timeout/retries 仍优先。
+P1 参数：`waypoints_file` 默认指向包内现有 `config/waypoints.yaml`、`move_base_action=/move_base`、`navigation_timeout=90`、`server_timeout=15`、`cancel_timeout=3`、`clock_timeout=5`、`retries=1`、`navigation_test_mode=false`。点级 navigation_timeout/retries 仍优先。
 
 ## 融合与统计口径
 
@@ -265,4 +265,4 @@ tail -f "$RUN_DIR/mission.log"
 
 **未进行真实 Gazebo 验收**，未运行真实模型识别效果测试、未测完整实景街区覆盖或全局唯一人数，也未确认实际中文车牌图片效果。没有把合成结果标成实测结果。
 
-下一阶段可在原 traffic_light TASK 分支接入 WAIT_TRAFFIC/YOLO 处理器；当前正式模式仍先检查 stop_before_line，未确认拒绝整条路线，确认的交通灯点到达后 ERROR/TRAFFIC_LIGHT_NOT_IMPLEMENTED，不发送后续目标。没有订阅 HSV 灯态、固定等待后放行或新增灯控接口。navigation_test_mode 默认 false，只能用于隔离纯导航测试，不能用于通过未验证路口。
+上述记录属于 P2-B 阶段。当前 P2-C 在交通灯点导航成功后进入 WAIT_TRAFFIC，消费现有分类 JSON 并执行连续绿灯确认；stop_before_line 检查保留。navigation_test_mode 默认 false，只能用于隔离纯导航测试。最新启动流程见 [工作空间说明](../../README.md)。

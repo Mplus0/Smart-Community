@@ -89,8 +89,10 @@ smart-community/car_2026
 
 ``` bash
 cd /workspace/car_2026
+source /opt/ros/noetic/setup.bash
+source /opt/cartographer_ws/install_isolated/setup.bash
 catkin_make
-source devel/setup.bash
+source devel/setup.bash --extend
 ```
 
 启动 ROS Master：

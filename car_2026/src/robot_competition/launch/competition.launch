@@ -1,4 +1,7 @@
 <launch>
+  <!-- Final competition task controller (P1 navigation + P2 person/plate/traffic).
+       Start simulation/chassis, navigation and perception in separate terminals.
+       This launch does not start those dependencies or alter navigation settings. -->
   <arg name="waypoints_file" default="$(find robot_competition)/config/waypoints.yaml"/>
   <arg name="move_base_action" default="/move_base"/>
   <arg name="navigation_timeout" default="90.0"/>

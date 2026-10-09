@@ -1,5 +1,7 @@
 # 随机车牌文件替换说明
 
+以下命令仅在 Docker 容器中执行，会覆盖现有车牌纹理和生成记录；保持当前场景时直接使用 `roslaunch robot_gazebo simulation.launch`。`start_simulation.sh` 还会终止容器中已有 Gazebo 进程，不要在运行中的场景上重复调用。日常分终端启动见 [工作空间说明](../../README.md)。
+
 ## 本次新增/替换
 
 - `scripts/generate_random_plates.py`

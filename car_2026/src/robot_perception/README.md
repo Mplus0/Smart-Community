@@ -1,6 +1,6 @@
 # robot_perception：人物 / 车牌 / 可选交通灯分类
 
-新增交通灯分类代码和联合回归准备；本轮按用户要求不在宿主机运行代码或 Docker。新增代码、模型推理、容器构建和 Gazebo 三路性能尚未执行验证，历史 P2-A 检查记录不能视为本轮通过。
+人物、车牌和交通灯分类节点均已接入。当前分终端启动和容器内回归入口见 [工作空间说明](../../README.md)；历史验证记录保留在 docs 中，不等同于完整 Gazebo 三路性能验收。
 
 人物与车牌保留交接版识别逻辑，新增 YOLO11n 交通灯 ROI 分类。本包不控制运动、不启动导航或比赛主程序，不做任务统计，不移植 HSV 方案。默认仍只启动原两路；显式启用第三路后才加载交通灯模型。接口见 [docs/interface.md](docs/interface.md)，验证记录见 [docs/validation.md](docs/validation.md)，本轮准备与验收见 [docs/traffic_light_validation.md](docs/traffic_light_validation.md)，授权状态见 [NOTICE.md](NOTICE.md)。
 
@@ -125,7 +125,7 @@ roslaunch robot_perception perception.launch enable_traffic_light:=true
 roslaunch robot_perception traffic_light_classification.launch device:=cpu
 ```
 
-交通灯输入为原图上半部分，默认相对 ROI `[0.0, 0.0, 1.0, 0.5]`，`imgsz=224`。输出颜色是分类结果，不能证明存在交通灯，不授权机器人越线。
+交通灯输入为原图上半部分，默认相对 ROI `[0.0, 0.0, 1.0, 0.5]`，`imgsz=224`。输出颜色是分类结果，不能证明存在交通灯；本节点不控制运动，等待和放行由 `robot_competition` 的 P2-C 状态机处理。
 
 统一/单路人物阈值均默认 0.25，采用交接单路默认值；交接原三路入口的 0.8 未沿用，可显式 `person_confidence:=0.8` 对比。高阈值可能漏检，不能保证消除灯具误检。默认相机 `/camera/color/image_raw`，默认每路上限 5 Hz。
 
@@ -155,4 +155,4 @@ bash src/robot_perception/tests/run_live_check.sh
 
 运行证据放容器 `/tmp/p2a-*`，不纳入 Git。`observe_topics.py` 只读订阅并校验 JSON、记录源时间戳、实际接收频率、处理耗时和进程资源，不操控机器人；测试图像/报告只用于验收。
 
-人物 C/NC 泛化及灯具误检、车牌不同距离/角度/光照、长期资源占用仍需场景验证。车牌没有 frame_valid，断流/异常会沉默；下游必须同时检查源时间戳与墙上时钟超时。P2-B 任务窗口和持久化见 robot_competition/P2B.md；本轮不修改该包，也不让它消费交通灯分类结果，P1 禁止自动越线保护保持不变。
+人物 C/NC 泛化及灯具误检、车牌不同距离/角度/光照、长期资源占用仍需场景验证。车牌没有 frame_valid，断流/异常会沉默；下游同时检查源时间戳与墙上时钟超时。P2-B 任务窗口和持久化见 [P2B.md](../robot_competition/P2B.md)，P2-C 交通灯订阅、等待与放行见 [比赛包说明](../robot_competition/README.md)。

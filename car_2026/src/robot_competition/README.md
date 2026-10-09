@@ -1,6 +1,6 @@
 # robot_competition P1 / P2-B / P2-C
 
-已实现路线管理、TF 航点录入、move_base 多航点状态机，以及到点后的人员/车牌结果订阅、多帧融合和持久化。P2-C 直接订阅现有红绿灯分类节点，完成停车等待和连续绿灯放行。模型仍由 `robot_perception` 独立运行，主程序使用系统 ROS Python 3.8；旧视觉占位脚本不安装、不启动。
+已实现路线管理、TF 航点录入、move_base 多航点状态机，以及到点后的人员/车牌结果订阅、多帧融合和持久化。P2-C 直接订阅现有红绿灯分类节点，完成停车等待和连续绿灯放行。模型仍由 `robot_perception` 独立运行，主程序使用系统 ROS Python 3.8。完整分终端启动命令见 [工作空间说明](../../README.md)。
 
 **P2-B 的四终端启动、全部新增参数、消息/结果 schema、统计边界、字体配置和自动测试记录见 [P2B.md](P2B.md)。** 本文保留 P1 航点录入及导航操作说明；下方 2026-10-08 记录仅表示当时的 P1 验证范围。
 
@@ -19,7 +19,7 @@
 - `launch/competition.launch`：仅启动主程序。
 - `tests/test_p1.py`、`tests/run_docker_checks.sh`：隔离 ROS Master 下的 schema、保存、TF 和假 Action Server 测试；不证明实际 Gazebo 导航可用。
 
-状态：`INIT → NAVIGATE → TASK（仅任务点）→ NEXT_POINT → NAVIGATE / FINISH`，错误进入 `ERROR` 并取消本节点目标、停止后续发送。空路线直接 `FINISH`。只有 Action 的 `SUCCEEDED` 才算到点。失败和超时可有限重试；收到外部取消或 LOST 则终止。取消确认超时不会重发目标。服务器、导航、取消及仿真时钟 watchdog 均使用墙上时钟上限，不依赖 `/clock` 继续走动。
+状态：`INIT → NAVIGATE → TASK（人物/车牌）或 WAIT_TRAFFIC（交通灯）→ NEXT_POINT → NAVIGATE / FINISH`；普通航点直接进入 NEXT_POINT。错误进入 `ERROR` 并取消本节点目标、停止后续发送。空路线直接 `FINISH`。只有 Action 的 `SUCCEEDED` 才算到点。失败和超时可有限重试；收到外部取消或 LOST 则终止。取消确认超时不会重发目标。服务器、导航、取消及仿真时钟 watchdog 均使用墙上时钟上限，不依赖 `/clock` 继续走动。
 
 人员/车牌点在导航成功并等待稳定时间后开启新帧采集窗口；每次识别结果立即保存，普通识别失败有限重试后继续路线。时钟失效、关闭、存储异常仍进入 ERROR。正式模式在 INIT 检查所有交通灯点的 `stop_before_line: true`；任一点未确认就拒绝整条路线。到达交通灯点后进入 `WAIT_TRAFFIC`，持续发布零速度；放行后才进入 `NEXT_POINT`。`navigation_test_mode` 默认 false；显式 true 时跳过视觉及红绿灯等待，仅用于隔离的纯导航测试。
 

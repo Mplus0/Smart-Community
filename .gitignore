@@ -6,6 +6,10 @@ car_2026/devel/
 car_2026/install/
 car_2026/logs/
 car_2026/.catkin_tools/
+car_2026/build_isolated/
+car_2026/devel_isolated/
+car_2026/install_isolated/
+car_2026/.ros/
 
 # ==================================================
 # Python
@@ -15,6 +19,9 @@ __pycache__/
 *.pyo
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 
 # ==================================================
 # IDE / Editor
@@ -46,6 +53,16 @@ Thumbs.db
 
 # Mission evidence is generated in the mounted workspace, never source control.
 car_2026/results/
+car_2026/src/robot_gazebo/results/
+# The existing tracked generated_plates.json remains with its scene textures.
+# Recorder advisory locks are created on demand; do not ignore dependency lockfiles.
+car_2026/**/*.yaml.lock
+# Local camera captures, training caches and new training runs.
+car_2026/datasets/
+datasets/**/*.cache
+/runs/
+/results/
+# Existing tracked training evidence and weights remain versioned.
 
 # Locally copied traffic-light classifier; deploy separately (or explicitly use Git LFS).
 car_2026/src/robot_perception/models/traffic_light_best.pt
