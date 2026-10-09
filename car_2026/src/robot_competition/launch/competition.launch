@@ -14,11 +14,15 @@
   <arg name="plate_json_topic" default="/perception/plates_json"/>
   <arg name="plate_image_topic" default="/perception/plates_image"/>
   <arg name="max_cache_frames" default="24"/>
+  <arg name="traffic_light_json_topic" default="/perception/traffic_light_json"/>
+  <arg name="cmd_vel_topic" default="/cmd_vel"/>
   <arg name="max_cache_age_sec" default="10.0"/>
   <arg name="max_cache_bytes" default="67108864"/>
   <node pkg="robot_competition" type="main_controller.py" name="main_controller" output="screen" respawn="false">
     <rosparam command="load" file="$(arg task_config_file)" ns="task_config"/>
     <param name="results_root" value="$(arg results_root)"/>
+    <param name="traffic_light_json_topic" value="$(arg traffic_light_json_topic)"/>
+    <param name="cmd_vel_topic" value="$(arg cmd_vel_topic)"/>
     <param name="person_json_topic" value="$(arg person_json_topic)"/>
     <param name="person_image_topic" value="$(arg person_image_topic)"/>
     <param name="plate_json_topic" value="$(arg plate_json_topic)"/>

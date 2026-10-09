@@ -10,6 +10,7 @@ catkin_install_python(PROGRAMS
   scripts/perception_client.py
   scripts/task_processor.py
   scripts/result_manager.py
+  scripts/traffic_wait.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(DIRECTORY launch config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 install(FILES README.md P2B.md DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

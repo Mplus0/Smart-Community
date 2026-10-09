@@ -16,6 +16,12 @@ defaults:
   vote_fraction: 0.67
   max_evidence_images: 3
 person: {}
+traffic_light:
+  traffic_timeout_sec: 35.0
+  green_confirm_frames: 3
+  min_confidence: 0.8
+  max_source_age_sec: 1.5
+  settle_sec: 0.5
 plate:
   # Set true ONLY after confirming existing plate_font_path produces full Chinese text.
   # This is an operator assertion, not automatic image OCR verification.

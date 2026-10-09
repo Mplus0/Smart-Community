@@ -18,6 +18,8 @@ from geometry_msgs.msg import TransformStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseResult
 import tf2_ros
 import yaml
+from std_msgs.msg import String
+from test_p2c import frame
 
 from main_controller import Controller
 from waypoint_manager import RouteError, load_route, validate_route
@@ -125,7 +127,10 @@ class RosTests(unittest.TestCase):
         rospy.set_param('~results_root', os.path.join(self.temp.name, 'results'))
         rospy.set_param('~task_config', {'defaults': {
             'task_timeout_sec': 0.12, 'observation_sec': 0.05,
-            'settle_sec': 0.0, 'task_retry_count': 0}})
+            'settle_sec': 0.0, 'task_retry_count': 0},
+            'traffic_light': {'traffic_timeout_sec': 0.2, 'settle_sec': 0.0}})
+        rospy.set_param('~traffic_light_json_topic', '/p1_test_traffic_json')
+        rospy.set_param('~cmd_vel_topic', '/p1_test_cmd_vel')
         for name, value in dict(waypoints_file=self.path, move_base_action="/p1_fake_move_base",
                                 navigation_timeout=1.0, server_timeout=2.0, cancel_timeout=0.5,
                                 clock_timeout=0.3, retries=1, navigation_test_mode=False).items():
@@ -162,6 +167,37 @@ class RosTests(unittest.TestCase):
         rospy.set_param("~navigation_test_mode", True)
         self.assertEqual(self.run_route([point("light", "traffic_light"), point("after")]), 0)
         self.assertEqual(len(self.goals), 2)
+
+    def test_traffic_green_release_and_invalid_data_stop_navigation(self):
+        for invalid in (False, True):
+            with self.subTest(invalid=invalid):
+                type(self).goals = []
+                rospy.set_param('~task_config', {'traffic_light': {
+                    'traffic_timeout_sec': 2.5, 'settle_sec': 0.05}})
+                publisher = rospy.Publisher('/p1_test_traffic_json', String, queue_size=10)
+                Path(self.path).write_text(yaml.safe_dump(route([
+                    point('light_01', 'traffic_light', stop_before_line=True), point('after')])))
+                self.controller = Controller()
+                finished = threading.Event()
+                observed_states = []
+                def publish():
+                    while not finished.wait(0.08):
+                        if self.controller.state == 'WAIT_TRAFFIC':
+                            observed_states.append(self.controller.state)
+                            publisher.publish(String(data='{' if invalid else frame(rospy.Time.now().to_sec())))
+                worker = threading.Thread(target=publish)
+                worker.start()
+                try:
+                    self.assertEqual(self.controller.run(), int(invalid))
+                finally:
+                    finished.set()
+                    worker.join()
+                    publisher.unregister()
+                self.assertTrue(observed_states)
+                self.assertEqual(len(self.goals), 1 if invalid else 2)
+                result = self.controller.results.data['tasks'][-1]
+                self.assertEqual(result['released'], not invalid)
+                self.assertEqual(self.controller.state, 'ERROR' if invalid else 'FINISH')
 
     def test_failure_retry(self):
         type(self).behavior = ["abort", "success"]

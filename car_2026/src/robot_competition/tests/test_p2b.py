@@ -428,7 +428,8 @@ class MissionIntegrationTests(unittest.TestCase):
         self.assertEqual(self.controller.results.data['status'], 'ERROR')
         self.assertFalse(self.controller.results.data['tasks'])
         self.assertEqual(self.run_route([point('light', 'traffic_light', stop_before_line=True), point('after')]), 1)
-        self.assertIn('TRAFFIC_LIGHT_NOT_IMPLEMENTED', self.controller.results.data['error'])
+        self.assertIn('TRAFFIC_TIMEOUT', self.controller.results.data['error'])
+        self.assertFalse(self.controller.results.data['tasks'][-1]['released'])
 
     def test_task_paused_clock_stops_next_navigation(self):
         rospy.set_param('~task_config', {'defaults': {'task_timeout_sec': 3.0, 'observation_sec': 0.1,

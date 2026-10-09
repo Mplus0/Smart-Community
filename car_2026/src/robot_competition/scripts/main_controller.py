@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""P1 navigation with bounded P2-B perception tasks and persistent results."""
+"""P1 navigation, P2-B perception and P2-C traffic waiting with persistent results."""
 import math
 import os
 import sys
@@ -10,6 +10,7 @@ import actionlib
 import rospy
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from geometry_msgs.msg import Twist
 
 # catkin devel-space relays execute this source with a different sys.path[0].
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -17,6 +18,7 @@ from waypoint_manager import RouteError, load_route, positive_number, retry_coun
 from perception_client import PerceptionClient, TOPICS
 from task_processor import TaskProcessor, task_settings
 from result_manager import ResultManager
+from traffic_wait import TrafficWait, traffic_settings
 
 
 class MissionError(RuntimeError):
@@ -37,6 +39,8 @@ class Controller:
         self.results = None
         self.perception = None
         self.task_processor = None
+        self.traffic = None
+        self.stop_pub = None
         self.use_sim_time = rospy.get_param("/use_sim_time", False)
         self.last_clock = rospy.Time.now().to_sec()
         self.clock_changed = time.monotonic()
@@ -106,8 +110,9 @@ class Controller:
         self.results = ResultManager(rospy.get_param('~results_root', '/workspace/car_2026/results'))
         self.points = load_route(rospy.get_param("~waypoints_file"))["route"]["points"]
         task_config = rospy.get_param('~task_config', {})
-        if not isinstance(task_config, dict) or set(task_config) - {'defaults', 'person', 'plate', 'counting'}:
+        if not isinstance(task_config, dict) or set(task_config) - {'defaults', 'person', 'plate', 'counting', 'traffic_light'}:
             raise ValueError('invalid task_config sections')
+        traffic_config = traffic_settings(task_config.get('traffic_light', {}))
         for kind in ('person', 'plate'):
             task_settings(task_config, kind)
         self.results.set_route(self.points, task_config.get('counting', {}))
@@ -146,7 +151,15 @@ class Controller:
                 max_cache_age_sec=rospy.get_param('~max_cache_age_sec', 10.0),
                 max_cache_bytes=rospy.get_param('~max_cache_bytes', 67108864))
             self.task_processor = TaskProcessor(self.perception, self.results, self.check_running, task_config)
+        if any(p['task'] == 'traffic_light' for p in self.points) and not self.test_mode:
+            self.stop_pub = rospy.Publisher(rospy.get_param('~cmd_vel_topic', '/cmd_vel'), Twist, queue_size=1)
+            self.traffic = TrafficWait(traffic_config, self.results, self.check_running, self.stop_robot,
+                                      topic=rospy.get_param('~traffic_light_json_topic', '/perception/traffic_light_json'))
         self.transition("NAVIGATE", "action server ready")
+
+    def stop_robot(self):
+        if self.stop_pub is not None:
+            self.stop_pub.publish(Twist())
 
     def navigate(self, point):
         timeout = point.get("navigation_timeout", self.nav_timeout)
@@ -183,9 +196,8 @@ class Controller:
 
     def task(self, point):
         if point["task"] == "traffic_light":
-            # Future WAIT_TRAFFIC belongs here. P1 intentionally has no release condition.
             if not self.test_mode:
-                raise MissionError("TRAFFIC_LIGHT_NOT_IMPLEMENTED: stopped at confirmed safe point; mission halted, no crossing")
+                raise MissionError('traffic task must execute in WAIT_TRAFFIC')
             rospy.logwarn("TEST ONLY: bypassing traffic-light task %s", point["id"])
         elif self.test_mode:
             result = self.results.begin_task(point, 1, {})
@@ -204,7 +216,14 @@ class Controller:
                     self.results.begin_waypoint(point, self.index)
                     self.navigate(point)
                     self.results.end_waypoint('SUCCEEDED')
-                    self.transition("TASK" if point["type"] == "task" else "NEXT_POINT", "navigation SUCCEEDED")
+                    if point['task'] == 'traffic_light' and not self.test_mode:
+                        self.stop_robot()
+                        self.transition('WAIT_TRAFFIC', 'navigation SUCCEEDED; stopped before line')
+                    else:
+                        self.transition("TASK" if point["type"] == "task" else "NEXT_POINT", "navigation SUCCEEDED")
+                elif self.state == 'WAIT_TRAFFIC':
+                    self.traffic.execute(point)
+                    self.transition('NEXT_POINT', 'traffic GREEN confirmed; release persisted')
                 elif self.state == "TASK":
                     self.task(point)
                     self.transition("NEXT_POINT", "task result persisted; continue route")
@@ -214,6 +233,7 @@ class Controller:
             self.results.finish('FINISH')
             return 0
         except Exception as exc:
+            self.stop_robot()
             try:
                 self.transition("ERROR", str(exc))
             except Exception as log_exc:
@@ -235,6 +255,8 @@ class Controller:
         finally:
             if self.perception is not None:
                 self.perception.close()
+            if self.traffic is not None:
+                self.traffic.close()
 
 
 def main():
