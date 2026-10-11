@@ -14,11 +14,11 @@ TebLocalPlannerROS:
 
   teb_autosize: true
 
-  dt_ref: 0.30
+  dt_ref: 0.25
   dt_hysteresis: 0.10
 
   global_plan_overwrite_orientation: true
-  allow_init_with_backwards_motion: false
+  allow_init_with_backwards_motion: true
 
   max_global_plan_lookahead_dist: 1.0
 
@@ -32,9 +32,9 @@ TebLocalPlannerROS:
   max_vel_x: 0.25
   max_vel_x_backwards: 0.08
 
-  max_vel_y: 0.0
+  max_vel_y: 0.05
 
-  max_vel_theta: 0.30
+  max_vel_theta: 0.45
 
 
   # =======================================================
@@ -42,8 +42,8 @@ TebLocalPlannerROS:
   # =======================================================
 
   acc_lim_x: 0.25
-  acc_lim_y: 0.0
-  acc_lim_theta: 0.35
+  acc_lim_y: 0.10
+  acc_lim_theta: 0.55
 
 
   # =======================================================
@@ -66,7 +66,7 @@ TebLocalPlannerROS:
   # =======================================================
 
   xy_goal_tolerance: 0.08
-  yaw_goal_tolerance: 0.12
+  yaw_goal_tolerance: 0.05
 
   free_goal_vel: false
   complete_global_plan: true
@@ -106,7 +106,7 @@ TebLocalPlannerROS:
   weight_acc_lim_y: 1.0
   weight_acc_lim_theta: 1.0
 
-  weight_kinematics_nh: 1000.0
+  weight_kinematics_nh: 100.0
   weight_kinematics_forward_drive: 10.0
 
   weight_optimaltime: 1.0

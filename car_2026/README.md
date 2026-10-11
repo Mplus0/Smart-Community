@@ -62,6 +62,8 @@ roslaunch robot_navigation navigation.launch
 
 该入口包含 AMCL、定位地图 `/map`、规划地图 `/planning_map` 和 `move_base`，无需额外启动 `localization.launch`。在 RViz 使用 **2D Pose Estimate** 设置初始位姿并确认激光与地图对齐，再启动比赛。默认 TEB 配置禁止横移；底层麦轮支持横移。
 
+导航参数的当前值、作用、调试顺序与验收命令见 [导航参数调试指南](src/robot_navigation/config/README.md)。
+
 ### 终端 3：视觉
 
 首次使用或容器重建后，先准备并检查当前用户的 HyperLPR 缓存：

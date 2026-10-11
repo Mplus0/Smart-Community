@@ -22,7 +22,7 @@
   <arg name="traffic_light_device" default="cpu"/>
   <arg name="traffic_light_confidence" default="0.8"/>
   <arg name="traffic_light_max_rate" default="5.0"/>
-  <arg name="traffic_light_stale_seconds" default="1.5"/>
+  <arg name="traffic_light_stale_seconds" default="3.0"/>
   <include if="$(arg enable_person)" file="$(find robot_perception)/launch/person_detection.launch">
     <arg name="python" value="$(arg python)"/>
     <arg name="ros_python_path" value="$(arg ros_python_path)"/>
