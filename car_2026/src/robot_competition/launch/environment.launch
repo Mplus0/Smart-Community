@@ -1,0 +1,16 @@
+<launch>
+    <!-- Gazebo 仿真 -->
+    <include file="$(find robot_gazebo)/launch/simulation.launch">
+        <arg name="rviz" value="true"/>
+    </include>
+
+    <!-- AMCL + move_base -->
+    <include file="$(find robot_navigation)/launch/navigation.launch"/>
+
+    <!-- 人员、车牌、红绿灯视觉 -->
+    <include file="$(find robot_perception)/launch/perception.launch">
+        <arg name="plate_font_path" value="/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"/>
+        <arg name="enable_traffic_light" value="true"/>
+        <arg name="python" value="/home/developer/.venvs/robot-perception/bin/python"/>
+    </include>
+</launch>

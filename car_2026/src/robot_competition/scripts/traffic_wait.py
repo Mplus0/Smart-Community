@@ -95,6 +95,7 @@ class TrafficWait:
         source = None
         last_ros = self.ros_ns()
         latest_stamp, latest_arrival = 0, 0
+        displayed_label = None
         try:
             # Timeout includes the settling interval. No pre-settle frames are cached.
             while self.wall() - started < self.settings['settle_sec']:
@@ -165,6 +166,11 @@ class TrafficWait:
                     result['green_streak'] = result['green_streak'] + 1 if green else 0
                     result['valid_frames'] += int(payload['frame_valid'])
                     result['last_label'] = payload['label']
+                    if payload['label'] != displayed_label:
+                        displayed_label = payload['label']
+                        rospy.loginfo('[红绿灯] 当前状态：%s',
+                                      {'RED': '红灯', 'YELLOW': '黄灯', 'GREEN': '绿灯',
+                                       'UNKNOWN': '未知'}[displayed_label])
                     result['last_recognition'] = payload
                     observation = dict(payload=payload, wait_duration_sec=now-started,
                                        green_streak=result['green_streak'], released=False)

@@ -25,9 +25,12 @@ traffic_light:
 plate:
   # Set true ONLY after confirming existing plate_font_path produces full Chinese text.
   # This is an operator assertion, not automatic image OCR verification.
-  plate_text_annotation_confirmed: false
+  plate_text_annotation_confirmed: true
 counting:
-  non_overlapping_partitions_confirmed: false
-  # Optional: {person_waypoint_id: globally_unique_physical_partition_id}
-  # Every person waypoint must have area + a unique assignment when confirmed=true.
-  assignments: {}
+  non_overlapping_partitions_confirmed: true
+  assignments:
+    person_01: block_01
+    person_02: block_02
+    person_03: block_03
+    person_04: block_04
+    person_05: block_05

@@ -106,7 +106,6 @@ class ResultManager:
                      'error': None}
         self.save()
         self.event('RUN_STARTED', {'run_id': run_id, 'results_directory': str(self.path)})
-        rospy.loginfo('Mission result directory: %s', self.path)
 
     def set_route(self, route, counting):
         validate_counting(counting, route)
@@ -179,19 +178,73 @@ class ResultManager:
                                    'contains_all_raw_frame_detections': True})
 
     def record_task(self, result):
-        # JSON and both logs share this one decision object; no second recognition judgement.
+        # Persist the complete decision before rendering a concise terminal summary.
         self.data['tasks'].append(copy.deepcopy(result))
         self.data['pending_task'] = None
         self.save()
         self.event('TASK_RESULT', result)
-        logger = rospy.loginfo if result['status'] in COMPLETE else rospy.logwarn
-        logger('TASK_RESULT %s', json.dumps(result, ensure_ascii=False, allow_nan=False))
+        # The controller renders the returned final recognition decision after retries.
+        # Interruptions raise instead of returning; traffic and test tasks finish here.
+        if (result['task_type'] == 'traffic_light' or
+                result['status'] in ('FAILED_INTERRUPTED', 'SKIPPED_NAVIGATION_TEST')):
+            self.report_task(result)
+
+    def report_task(self, result):
+        kind, status = result['task_type'], result['status']
+        module = {'person': '人员', 'plate': '车牌', 'traffic_light': '红绿灯'}.get(kind, '任务')
+        if status == 'SKIPPED_NAVIGATION_TEST':
+            rospy.logwarn('[%s] %s：纯导航测试，已跳过', module, result['waypoint_id'])
+        elif status not in COMPLETE:
+            reasons = {
+                'FAILED_TIMEOUT': '等待超时，有效识别帧不足',
+                'FAILED_INVALID': '识别数据无效，有效帧不足',
+                'FAILED_UNSTABLE': '识别结果不稳定，可信帧不足',
+                'AMBIGUOUS': '存在多个车牌候选或车牌文字不一致',
+                'FAILED_IMAGE_MISSING': '匹配的标注图像缺失或超出证据数量限制',
+                'FAILED_IMAGE_ANNOTATION': '尚未确认图像包含完整中文车牌标注',
+                'FAILED_INTERRUPTED': '任务被中断',
+            }
+            reason = reasons.get(status, '任务异常')
+            # Keep unexpected exception details actionable without dumping raw frames.
+            if status in ('FAILED_INTERRUPTED', 'ERROR'):
+                detail = result.get('reason', '')
+                reason += '：' + ('等待红绿灯超时' if detail == 'TRAFFIC_TIMEOUT' else detail)
+            rospy.logwarn('[%s] %s：任务失败，%s', module, result['waypoint_id'], reason)
+        elif kind == 'person':
+            counts = counts_for(result)
+            rospy.loginfo('[人员] %s：社区人员：%d，非社区人员：%d', result['waypoint_id'],
+                          counts['community_count'], counts['non_community_count'])
+        elif kind == 'plate':
+            plates = '、'.join(plate['text'] for plate in result['plates'])
+            rospy.loginfo('[车牌] %s：%s', result['waypoint_id'],
+                          plates + '，识别成功' if plates else '未发现车牌（有效空结果）')
+        elif kind == 'traffic_light' and result.get('released'):
+            rospy.loginfo('[红绿灯] 绿灯确认，允许通行')
 
     def finish(self, status, error=None):
         self.data.update(status=status, error=error)
         self.save()
         self.event('MISSION_' + status, {'error': error, 'person_summary': self.data['person_summary'],
                                         'plates': self.data['plates']})
-        rospy.loginfo('MISSION_%s person_summary=%s plates=%s', status,
-                      json.dumps(self.data['person_summary'], ensure_ascii=False),
-                      json.dumps(self.data['plates'], ensure_ascii=False))
+        rospy.loginfo('========== 比赛结束 ==========')
+        rospy.loginfo('[状态] %s', ('全部航点执行完成' if self.route else '航线为空，未执行航点')
+                      if status == 'FINISH' else '比赛异常终止：' + str(error))
+        latest = {task['waypoint_id']: task for task in self.data['tasks']}
+        task_points = [point for point in self.route if point['task'] in ('person', 'plate', 'traffic_light')]
+        states = [latest[point['id']]['status'] if point['id'] in latest else 'NOT_EXECUTED'
+                  for point in task_points]
+        rospy.loginfo('[状态] 任务成功：%d，失败：%d，跳过：%d，未执行：%d',
+                      sum(s in COMPLETE for s in states),
+                      sum(s not in COMPLETE + ('SKIPPED_NAVIGATION_TEST', 'NOT_EXECUTED') for s in states),
+                      states.count('SKIPPED_NAVIGATION_TEST'), states.count('NOT_EXECUTED'))
+        rospy.loginfo('[耗时] %.1f 秒', self.data['mission_duration_sec'])
+        counts = self.data['person_summary']['total']['counts']
+        if counts is not None:
+            rospy.loginfo('[人员] 社区人员：%d，非社区人员：%d',
+                          counts['community_count'], counts['non_community_count'])
+        else:
+            rospy.loginfo('[人员] 暂无有效总数，各区域统计见结果文件')
+        plates = list(dict.fromkeys(plate['text'] for entry in self.data['plates']
+                                   if entry['status'] in COMPLETE for plate in entry['recognized_plates']))
+        rospy.loginfo('[车牌] %s', '、'.join(plates) if plates else '无有效识别结果')
+        rospy.loginfo('[结果] 已保存至 %s', self.path / 'mission_results.json')

@@ -48,10 +48,8 @@ class Controller:
 
     def transition(self, state, reason):
         point = self.points[self.index] if self.index < len(self.points) else {}
-        log = rospy.logerr if state == "ERROR" else rospy.loginfo
-        log("%s -> %s [%d/%d id=%s x=%s y=%s yaw=%s task=%s] %s",
-                      self.state, state, min(self.index + 1, len(self.points)), len(self.points), point.get("id", "-"),
-                      point.get("x"), point.get("y"), point.get("yaw"), point.get("task"), reason)
+        if state == "ERROR":
+            rospy.logerr("[比赛] 执行异常：%s", reason)
         self.state = state
         if self.results is not None:
             self.results.event('STATE', {'state': state, 'waypoint_id': point.get('id'), 'reason': reason})
@@ -61,7 +59,7 @@ class Controller:
             self.stopping = True
             if self.active and self.client and not self.done.is_set():
                 self.client.cancel_goal()
-                rospy.logwarn("Shutdown: cancellation requested for active goal")
+                rospy.logwarn("[导航] 正在停止，已请求取消当前目标")
 
     def check_running(self):
         if self.stopping or rospy.is_shutdown():
@@ -125,7 +123,7 @@ class Controller:
         self.clock_timeout = positive_number(rospy.get_param("~clock_timeout", 5.0), "clock_timeout")
         self.retries = retry_count(rospy.get_param("~retries", 1))
         if self.test_mode:
-            rospy.logwarn("NAVIGATION TEST MODE: no traffic-light control; not competition capable!")
+            rospy.logwarn("[比赛] 纯导航测试模式：跳过识别和红绿灯控制，不用于正式比赛")
         else:
             for point in self.points:
                 if point["task"] == "traffic_light" and point.get("stop_before_line") is not True:
@@ -180,33 +178,39 @@ class Controller:
                 self.active = True
                 self.client.send_goal(goal)
                 threading.Thread(target=self.await_result, daemon=True).start()
-            rospy.loginfo("Goal %s attempt %d/%d", point["id"], attempt + 1, retries + 1)
+            rospy.loginfo("[导航] 前往 %s", point["id"])
             completed = self.wait(self.done.is_set, timeout)
             status = self.result_status if completed else None
-            rospy.loginfo("Goal %s result=%s", point["id"], "TIMEOUT" if status is None else GoalStatus.to_string(status))
             if status == GoalStatus.SUCCEEDED:
+                rospy.loginfo("[导航] 已到达 %s", point["id"])
                 self.active = False
                 return
+            reason = {None: '等待超时', GoalStatus.PREEMPTED: '目标被取消',
+                      GoalStatus.ABORTED: '导航中止', GoalStatus.REJECTED: '目标被拒绝',
+                      GoalStatus.RECALLED: '目标被撤回', GoalStatus.LOST: '目标状态丢失'}.get(status, '未成功完成')
+            rospy.logwarn("[导航] 未到达 %s：%s", point["id"], reason)
             self.cancel()
             if status in (GoalStatus.PREEMPTED, GoalStatus.RECALLED, GoalStatus.LOST):
                 raise MissionError("goal cancelled externally or LOST; will not override cancellation")
             if attempt == retries:
                 raise MissionError("navigation failed after {} attempts".format(attempt + 1))
-            rospy.logwarn("Retrying %s after confirmed termination", point["id"])
 
     def task(self, point):
         if point["task"] == "traffic_light":
             if not self.test_mode:
                 raise MissionError('traffic task must execute in WAIT_TRAFFIC')
-            rospy.logwarn("TEST ONLY: bypassing traffic-light task %s", point["id"])
+            rospy.logwarn("[红绿灯] %s：纯导航测试，已跳过", point["id"])
         elif self.test_mode:
             result = self.results.begin_task(point, 1, {})
             result.update(status='SKIPPED_NAVIGATION_TEST', reason='explicit pure-navigation test; no recognition performed')
             self.results.record_task(result)
         else:
-            self.task_processor.execute(point)
+            result = self.task_processor.execute(point)
+            self.results.report_task(result)
 
     def run(self):
+        rospy.loginfo("========== 智慧社区比赛系统 ==========")
+        rospy.loginfo("[比赛] 开始执行巡检任务")
         try:
             self.initialize()
             while self.state not in ("FINISH", "ERROR"):
@@ -238,19 +242,19 @@ class Controller:
                 self.transition("ERROR", str(exc))
             except Exception as log_exc:
                 self.state = 'ERROR'
-                rospy.logerr('Cannot write mission log: %s', log_exc)
+                rospy.logerr('[结果] 比赛日志写入失败：%s', log_exc)
             with self.lock:
                 self.stopping = True
             try:
                 self.cancel()
             except Exception as cancel_exc:
-                rospy.logerr("Cancellation failed: %s. Check move_base/robot stop before restart.", cancel_exc)
+                rospy.logerr("[导航] 取消失败：%s；重启前请确认 move_base 和车辆已停止", cancel_exc)
             if self.results is not None:
                 try:
                     self.results.end_waypoint('FAILED', str(exc))
                     self.results.finish('ERROR', str(exc))
                 except Exception as save_exc:
-                    rospy.logerr('Cannot persist ERROR; previous atomic result retained: %s', save_exc)
+                    rospy.logerr('[结果] 异常结果保存失败，保留上次原子保存的结果：%s', save_exc)
             return 1
         finally:
             if self.perception is not None:
