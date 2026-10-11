@@ -86,36 +86,36 @@ private:
         case RED:
             if (elapsed >= red_duration_)
             {
-                state_ = YELLOW;
+                state_ = GREEN;
                 last_switch_time_ = now;
 
                 ApplyState();
 
-                gzmsg << "[TrafficLightPlugin] RED -> YELLOW\n";
+                gzmsg << "[TrafficLightPlugin] RED -> GREEN\n";
             }
             break;
 
         case YELLOW:
             if (elapsed >= yellow_duration_)
             {
-                state_ = GREEN;
+                state_ = RED;
                 last_switch_time_ = now;
 
                 ApplyState();
 
-                gzmsg << "[TrafficLightPlugin] YELLOW -> GREEN\n";
+                gzmsg << "[TrafficLightPlugin] YELLOW -> RED\n";
             }
             break;
 
         case GREEN:
             if (elapsed >= green_duration_)
             {
-                state_ = RED;
+                state_ = YELLOW;
                 last_switch_time_ = now;
 
                 ApplyState();
 
-                gzmsg << "[TrafficLightPlugin] GREEN -> RED\n";
+                gzmsg << "[TrafficLightPlugin] GREEN -> YELLOW\n";
             }
             break;
         }
