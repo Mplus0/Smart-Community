@@ -53,7 +53,23 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-cv-bridge \
     ros-noetic-image-transport \
     ros-noetic-image-view \
+    python3-pyqt5 \
+    fonts-wqy-zenhei \
     && rm -rf /var/lib/apt/lists/*
+
+# GUI uses system Python/Qt directly; no pip Qt or OpenCV is needed here.
+# Offscreen applies only to this build check, leaving runtime X11 unchanged.
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && \
+    QT_QPA_PLATFORM=offscreen /usr/bin/python3 -c \
+    \"import sys, rospy; from sensor_msgs.msg import Image; \
+    from PyQt5.QtWidgets import QApplication; \
+    from PyQt5.QtGui import QImage, QPixmap, QImageReader; \
+    assert sys.version_info[:2] == (3, 8); \
+    app = QApplication([]); image = QImage(2, 2, QImage.Format_RGB888); \
+    assert not QPixmap.fromImage(image).isNull(); \
+    assert b'jpeg' in QImageReader.supportedImageFormats(); \
+    print('System Python 3.8, Qt images and ROS messages import OK')\"" \
+    && test -r /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc
 
 # --------------------------------------------------
 # Cartographer / Cartographer ROS
@@ -159,6 +175,8 @@ RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && \
     /home/${USERNAME}/.venvs/robot-perception/bin/python -c \
     \"import rospy, sensor_msgs.msg, std_msgs.msg; \
     import ultralytics, torch, torchvision, numpy, cv2, PIL, onnxruntime, yaml; \
+    from PIL import ImageFont; \
+    ImageFont.truetype('/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc', 24); \
     import importlib.metadata; \
     assert importlib.metadata.version('hyperlpr3') == '0.1.3'; \
     assert torch.version.cuda is None; \

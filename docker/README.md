@@ -52,21 +52,24 @@ source devel/setup.bash --extend
 
 ## GUI 与中文证据依赖
 
-当前 Dockerfile 未显式安装 PyQt5 和中文字体。运行 GUI 前可在容器中检查系统 Python 依赖：
+Dockerfile 通过 apt 安装 `python3-pyqt5` 和 `fonts-wqy-zenhei`，复用已有 ROS 依赖。GUI 直接使用 Qt 处理相机数据和结果图片，不额外依赖 OpenCV、NumPy 或 cv_bridge。构建时检查系统 Python 3.8、离屏 Qt 图像/JPEG 支持、ROS 消息导入，以及视觉 Python 3.10 的 Pillow 字体加载。
+
+重新构建并创建容器后，在容器内验证：
 
 ```bash
-python3 -c 'import PyQt5, cv2, numpy, rospy'
+source /opt/ros/noetic/setup.bash
+/usr/bin/python3 -c 'import sys, rospy; from sensor_msgs.msg import Image; from PyQt5.QtWidgets import QApplication; from PyQt5.QtGui import QImage, QPixmap; assert sys.version_info[:2] == (3, 8); print("GUI / ROS imports OK")'
 test -f /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc
+"$HOME/.venvs/robot-perception/bin/python" -c 'from PIL import ImageFont; ImageFont.truetype("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc", 24); print("Chinese font OK")'
 ```
 
-缺失时在容器内安装：
+确认 X11 可创建窗口（需要宿主机已设置 DISPLAY 和授权）：
 
 ```bash
-sudo apt-get update
-sudo apt-get install -y python3-pyqt5 python3-opencv python3-numpy fonts-wqy-zenhei
+/usr/bin/python3 -c 'from PyQt5.QtWidgets import QApplication, QLabel; from PyQt5.QtCore import QTimer; app = QApplication([]); label = QLabel("智慧社区 GUI 显示验证"); label.show(); QTimer.singleShot(3000, app.quit); app.exec_()'
 ```
 
-`environment.launch` 固定使用上述字体；分终端视觉入口需显式传入 `plate_font_path`。手工安装属于当前容器状态，重建后需重新准备，或由部署者将依赖固化到镜像。GUI 使用系统 Python，视觉 venv 不用于 GUI。
+`environment.launch` 固定使用上述字体；分终端视觉入口需显式传入 `plate_font_path`。GUI 使用系统 Python，视觉 venv 不用于 GUI。Compose 保留 X11 套接字和 `QT_X11_NO_MITSHM=1`；构建检查中的 `QT_QPA_PLATFORM=offscreen` 不会写入运行环境。无需全局设置 Qt 插件路径，也不要将视觉 venv 的 Qt 插件路径注入系统 GUI。
 
 ## 模型与 Python 环境
 

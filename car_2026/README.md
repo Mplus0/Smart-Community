@@ -71,7 +71,7 @@ bash /workspace/car_2026/src/tools/start_competition.sh
 python3 src/tools/gui.py
 ```
 
-GUI 使用系统 Python、PyQt5、OpenCV 和 NumPy，提供“启动环境 / 开始比赛 / 停止全部 / 刷新结果”。开始比赛前弹窗确认定位；关闭前需停止运行中的任务与环境。实时相机来自 `/camera/color/image_raw`，人员和车牌快照来自结果文件中已完成任务的 `tasks[].evidence`，不会把实时画面当成任务证据。结果区读取结果目录中的最新运行，查看时核对 `run_id`。GUI 使用 Linux PTY 和固定容器路径，不应直接在 Windows Python 中运行。
+GUI 使用系统 Python、PyQt5 和 rospy，通过 Qt 直接处理图像，提供“启动环境 / 开始比赛 / 停止全部 / 刷新结果”。开始比赛前弹窗确认定位；关闭前需停止运行中的任务与环境。实时相机来自 `/camera/color/image_raw`，人员和车牌快照来自结果文件中已完成任务的 `tasks[].evidence`，不会把实时画面当成任务证据。结果区读取结果目录中的最新运行，查看时核对 `run_id`。GUI 使用 Linux PTY 和固定容器路径，不应直接在 Windows Python 中运行。
 
 ## 比赛分终端启动（调试方式）
 
