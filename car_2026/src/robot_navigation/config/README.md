@@ -1,6 +1,6 @@
 # 导航参数调试指南
 
-本文按 2026-10-11 仓库中的配置整理，表中的值是文件当前值，不是上游默认值；运行时以 `rosparam get` 和动态参数界面为准。距离单位为 m，时间为 s，角度为 rad，线速度为 m/s，角速度为 rad/s。
+本文按 2026-10-12 仓库中的配置整理，表中的值是文件当前值，不是上游默认值；运行时以 `rosparam get` 和动态参数界面为准。距离单位为 m，时间为 s，角度为 rad，线速度为 m/s，角速度为 rad/s。部分 YAML 注释仍写着禁止横移或差速式导航，应以实际参数值为准。
 
 ## 1. 配置入口与调试顺序
 
@@ -27,13 +27,13 @@
 | --- | --- | --- |
 | `max_vel_x` | `0.25` | 前进速度上限。先低速验证路径，再逐步增加；同时观察实际里程计速度和制动距离。 |
 | `max_vel_x_backwards` | `0.08` | 倒车速度上限。倒车过慢时检查此项。 |
-| `max_vel_y` / `acc_lim_y` | `0.0` / `0.0` | 当前禁用横移，虽然底盘是麦轮。启用横移时需要一起检查侧向加速度、运动学约束和底层控制。 |
-| `max_vel_theta` | `0.30` | 转向角速度上限，约 17.2°/s。 |
-| `acc_lim_x` / `acc_lim_theta` | `0.25` / `0.35` | 纵向/角加速度上限，单位 m/s²、rad/s²。关注起停冲击、转向跟随。 |
+| `max_vel_y` / `acc_lim_y` | `0.05` / `0.10` | 当前允许小幅横移；同时检查侧向加速度、运动学约束和底层控制。 |
+| `max_vel_theta` | `0.45` | 转向角速度上限，约 25.8°/s。 |
+| `acc_lim_x` / `acc_lim_theta` | `0.25` / `0.55` | 纵向/角加速度上限，单位 m/s²、rad/s²。关注起停冲击、转向跟随。 |
 | `min_turning_radius` | `0.0` | 当前允许原地转向。 |
-| `allow_init_with_backwards_motion` | `false` | 不用倒车运动初始化轨迹；不等于完全禁止倒车。 |
+| `allow_init_with_backwards_motion` | `true` | 允许使用倒车运动初始化轨迹。 |
 | `xy_goal_tolerance` | `0.08` | 到点位置容差为 8 cm；缩小前先确认定位和控制精度。 |
-| `yaw_goal_tolerance` | `0.12` | 到点朝向容差约 6.9°；太小时可能反复转向。 |
+| `yaw_goal_tolerance` | `0.05` | 到点朝向容差约 2.9°；太小时可能反复转向。 |
 | `free_goal_vel` | `false` | 规划要求终点停车。 |
 | `complete_global_plan` | `true` | 完成全局路径的要求；调试中先保持。 |
 | `odom_topic` | `/odometry/filtered` | 读取 EKF 里程计；先确认话题持续更新。 |
@@ -44,7 +44,7 @@
 
 | 参数 | 当前值 | 调试关注点 |
 | --- | --- | --- |
-| `dt_ref` / `dt_hysteresis` | `0.30` / `0.10` | 轨迹时间离散及自动调整滞回，单位 s；更细的离散通常增加计算量。 |
+| `dt_ref` / `dt_hysteresis` | `0.25` / `0.10` | 轨迹时间离散及自动调整滞回，单位 s；更细的离散通常增加计算量。 |
 | `max_global_plan_lookahead_dist` | `1.0` | 参与局部优化的全局路径前瞻长度，也受局部地图大小限制。 |
 | `global_plan_overwrite_orientation` | `true` | 根据路径方向处理局部子目标朝向。 |
 | `feasibility_check_no_poses` | `5` | 前部轨迹可行性检查的位姿数量。 |
@@ -54,7 +54,7 @@
 | `costmap_obstacles_behind_robot_dist` | `1.0` | 纳入规划的车后方代价地图障碍距离。 |
 | `weight_obstacle` / `weight_inflation` | `50.0` / `0.20` | 障碍距离及缓冲区惩罚权重。 |
 | `weight_optimaltime` | `1.0` | 对时间最优的重视程度。 |
-| `weight_kinematics_nh` | `1000.0` | 非完整运动学约束权重；与当前禁止横移的设定一起检查。 |
+| `weight_kinematics_nh` | `100.0` | 非完整运动学约束权重；与当前允许小幅横移的设定一起检查。 |
 | `weight_kinematics_forward_drive` | `10.0` | 前进行驶偏好。 |
 | `no_inner_iterations` / `no_outer_iterations` | `5` / `4` | 优化迭代数；增加时同步检查 CPU 和控制周期。 |
 | `enable_homotopy_class_planning` | `false` | 当前关闭多拓扑候选路径规划，先固定此项减少变量。 |
@@ -150,6 +150,8 @@ python3 src/robot_navigation/scripts/generate_planning_map.py
 ## 8. 修改、生效和验收命令
 
 以下在 ROS Noetic 容器内执行。Gazebo 已运行时直接复用，不要重复启动仿真。修改本目录 YAML/Lua 通常无需重新编译；文件保存不会自动刷新已运行节点。
+
+若通过 `src/tools/start.sh` 或 GUI 启动，导航已包含在 `environment.launch` 中，不要再独立启动同名导航节点。需要单独调参时，先停止集中环境，再按 [工作空间 README](../../../README.md) 使用分终端流程。当前 `navigation.launch` 只暴露 `use_sim_time`；更换地图需检查其规划地图路径以及所包含 `localization.launch` 的定位地图路径，不能直接向导航入口传入不存在的 `map_file` 参数。
 
 ```bash
 cd /workspace/car_2026

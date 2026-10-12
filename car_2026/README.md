@@ -1,6 +1,6 @@
 # car_2026 ROS 工作空间
 
-本工作空间使用 ROS Noetic / catkin，容器路径为 `/workspace/car_2026`。比赛按“仿真、导航、视觉、任务控制器”分终端启动，任务入口为 `robot_competition/launch/competition.launch`。
+本工作空间使用 ROS Noetic / catkin，容器路径为 `/workspace/car_2026`。可通过脚本、GUI 或分终端方式启动；任务入口为 `robot_competition/launch/competition.launch`，基础环境入口为 `robot_competition/launch/environment.launch`。
 
 ## 功能包
 
@@ -44,7 +44,38 @@ source devel/setup.bash --extend
 
 Cartographer 单独安装在 `/opt/cartographer_ws/install_isolated`；`--extend` 保留该环境，避免主工作空间覆盖其包搜索路径。catkin 和任务主程序使用系统 Python 3.8；视觉节点使用 `/home/developer/.venvs/robot-perception/bin/python`（Python 3.10）。不要激活视觉 venv 后编译 ROS。模型和缓存部署细节见 [视觉包 README](src/robot_perception/README.md)。
 
-## 比赛分终端启动
+## 集中启动与 GUI
+
+先完成下文视觉模型部署和 HyperLPR 缓存准备。`environment.launch` 固定使用 `/home/developer/.venvs/robot-perception/bin/python` 和中文字体 `/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc`；字体及 GUI 依赖安装见 [Docker 说明](../docker/README.md)。
+
+容器终端 1：
+
+```bash
+cd /workspace/car_2026
+bash src/tools/start.sh
+```
+
+脚本自动加载环境，生成两张随机车牌，然后集中启动 Gazebo、RViz、AMCL、move_base 和三路视觉；不会自动开始比赛。随机车牌生成需要访问在线接口，失败时有旧纹理则保留，详见 [随机车牌说明](src/robot_gazebo/README_RANDOM_PLATE.md)。如需保留当前纹理，在已加载环境的终端直接执行 `roslaunch robot_competition environment.launch`。
+
+确认 RViz 定位、朝向与路线后，在容器终端 2 执行：
+
+```bash
+bash /workspace/car_2026/src/tools/start_competition.sh
+```
+
+输入 `yes` 开始正式比赛。需要停止时，在另一容器终端执行 `bash /workspace/car_2026/src/tools/stop.sh`：先向当前用户的比赛 launch 发送 SIGINT，再停止环境 launch，每阶段最多等待 20 秒；超时会报错并保留现场供检查。它不负责停止下面分终端启动的独立 launch，独立启动时应逐个 Ctrl+C。
+
+也可在加载 ROS 和工作空间环境后启动图形控制台：
+
+```bash
+python3 src/tools/gui.py
+```
+
+GUI 使用系统 Python、PyQt5、OpenCV 和 NumPy，提供“启动环境 / 开始比赛 / 停止全部 / 刷新结果”。开始比赛前弹窗确认定位；关闭前需停止运行中的任务与环境。实时相机来自 `/camera/color/image_raw`，人员和车牌快照来自结果文件中已完成任务的 `tasks[].evidence`，不会把实时画面当成任务证据。结果区读取结果目录中的最新运行，查看时核对 `run_id`。GUI 使用 Linux PTY 和固定容器路径，不应直接在 Windows Python 中运行。
+
+## 比赛分终端启动（调试方式）
+
+以下方式与集中启动二选一，避免重复启动同名节点。
 
 ### 终端 1：Gazebo
 
@@ -60,7 +91,7 @@ roslaunch robot_gazebo simulation.launch rviz:=true
 roslaunch robot_navigation navigation.launch
 ```
 
-该入口包含 AMCL、定位地图 `/map`、规划地图 `/planning_map` 和 `move_base`，无需额外启动 `localization.launch`。在 RViz 使用 **2D Pose Estimate** 设置初始位姿并确认激光与地图对齐，再启动比赛。默认 TEB 配置禁止横移；底层麦轮支持横移。
+该入口包含 AMCL、定位地图 `/map`、规划地图 `/planning_map` 和 `move_base`，无需额外启动 `localization.launch`。在 RViz 使用 **2D Pose Estimate** 设置初始位姿并确认激光与地图对齐，再启动比赛。当前 TEB 配置允许小幅横移（`max_vel_y=0.05`、`acc_lim_y=0.10`），允许倒车初始化，位置/朝向容差为 0.08 m / 0.05 rad；以 YAML 数值为准，部分源码注释仍保留旧描述。
 
 导航参数的当前值、作用、调试顺序与验收命令见 [导航参数调试指南](src/robot_navigation/config/README.md)。
 
@@ -80,7 +111,8 @@ roslaunch robot_navigation navigation.launch
 ```bash
 roslaunch robot_perception perception.launch \
   python:="$HOME/.venvs/robot-perception/bin/python" \
-  enable_traffic_light:=true show_images:=false
+  enable_traffic_light:=true show_images:=false \
+  plate_font_path:=/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc
 ```
 
 必须显式启用交通灯，`perception.launch` 默认仅启用人物和车牌。仅调试单路时可选以下一个入口，不与同名节点重复启动：
@@ -101,7 +133,7 @@ roslaunch robot_competition competition.launch
 
 默认读取比赛包内的 `config/waypoints.yaml` 与 `config/task_config.yaml`，导航和视觉节点需独立启动。默认 `navigation_test_mode=false`。更换路线时通过 `waypoints_file` 指向自备文件，先校验并确认坐标适合当前地图。`navigation_test_mode:=true` 会跳过视觉与红绿灯控制，不可用于正式比赛。
 
-交通灯点必须有 `stop_before_line: true`，到点后进入 `WAIT_TRAFFIC`；默认连续 3 帧有效 GREEN、置信度 ≥ 0.8 才放行，等待上限 35 秒。人物/车牌观察与融合参数独立配置。车牌中文证据需要可用字体，并在实际确认标注完整后设置 `plate_text_annotation_confirmed`；默认 false 时有识别号码也可能记为 `FAILED_IMAGE_ANNOTATION`，详见 [P2-B](src/robot_competition/P2B.md)。
+交通灯点必须有 `stop_before_line: true`，到点后进入 `WAIT_TRAFFIC`；默认连续 3 帧有效 GREEN、置信度 ≥ 0.8 才放行，等待上限 35 秒，任务端源数据时效上限为 3 秒。人物/车牌观察与融合参数独立配置。当前任务 YAML 已将 `plate_text_annotation_confirmed` 和 `non_overlapping_partitions_confirmed` 设为 true，分别声明中文证据已核对、人员观察分区不重叠；更换字体、路线或场景后须重新确认，不能将这些配置视为程序自动验证。详见 [任务与统计说明](src/robot_competition/README.md)。
 
 ## 建图（与导航模式分开）
 
@@ -145,6 +177,12 @@ rosrun robot_competition waypoint_recorder.py --help
 ```
 
 航点录入方法见 [比赛包 README](src/robot_competition/README.md)。采集工具 `scripts/camera_capture.py` 位于比赛包内，可在容器中直接用系统 Python 运行；默认数据写入 `/workspace/car_2026/datasets/traffic_light`，不参与比赛主程序。
+
+```bash
+python3 src/robot_competition/scripts/camera_capture.py
+```
+
+按 `1/2/3` 选择红/黄/绿，`S` 保存原始图像，`Q` 退出；也可点击颜色按钮选类、点击画面保存。可用 `--image-topic` 和 `--output-dir` 修改输入和目录。采集数据不会自动合并到仓库 `yolo_train/`，训练前需自行整理，参见 [训练说明](../README.md)。
 
 任务结果默认保存为 `/workspace/car_2026/results/<run_id>/`：`mission_results.json`、`mission.log` 和 `images/`。红绿灯任务包含识别结果、等待时间、连续绿灯数及 `released`。ROS 日志默认在当前用户 `~/.ros/log/`。随机车牌生成记录在 `src/robot_gazebo/results/generated_plates.json`，与生成的场景纹理对应。
 

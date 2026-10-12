@@ -10,7 +10,7 @@
 | `plate_recognition` | HyperLPR3 | `/perception/plates_json`、`/perception/plates_image` |
 | `traffic_light_classification` | YOLO11n ROI 三分类 | `/perception/traffic_light_json`、`/perception/traffic_light_image` |
 
-默认输入为 `/camera/color/image_raw`。JSON 与标注图保留源图像 Header，供任务窗口判断新鲜度和关联图像证据。字段定义见 [接口说明](docs/interface.md)，模型和依赖授权见 [NOTICE.md](NOTICE.md)。
+默认输入为 `/camera/color/image_raw`，JSON 类型为 `std_msgs/String`，标注图为 `sensor_msgs/Image`。JSON 保留源 Header，图像保留源 stamp/frame_id（seq 可能被 ROS 重新分配），供任务窗口判断新鲜度和关联证据。字段定义见 [接口说明](docs/interface.md)，但该文件末尾“消费者未实现 / 不消费交通灯”的阶段性描述已过时：当前比赛包已接入三路识别并实现停车放行。实际任务行为见 [比赛包 README](../robot_competition/README.md)。模型和依赖授权见 [NOTICE.md](NOTICE.md)。
 
 ## 环境
 
@@ -60,6 +60,8 @@ roslaunch robot_perception perception.launch \
 
 `perception.launch` 默认启用人物和车牌，交通灯需要显式 `enable_traffic_light:=true`。节点启动失败会结束该视觉 launch。比赛主程序在另一终端启动，参见 [比赛任务说明](../robot_competition/README.md)。
 
+工作空间的 `start.sh` / GUI 使用 `environment.launch`，其中已启用交通灯并指定文泉驿字体，无需再运行上述 launch。独立启动需完整中文证据时，在上述命令后追加 `plate_font_path:=/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc`，并确保字体已安装。
+
 需要单路运行时选择对应入口，不与组合入口重复启动同名节点：
 
 ```bash
@@ -83,7 +85,7 @@ roslaunch robot_perception traffic_light_classification.launch device:=cpu
 | `person_device`、`traffic_light_device` | `cpu` |
 | `person_confidence`、`plate_min_confidence`、`traffic_light_confidence` | `0.25`、`0.5`、`0.8` |
 | `person_max_rate`、`plate_max_rate`、`traffic_light_max_rate` | 每路 `5.0` Hz 上限 |
-| `person_stale_seconds`、`plate_stale_seconds`、`traffic_light_stale_seconds` | `1.5`、`2.0`、`1.5` 秒 |
+| `person_stale_seconds`、`plate_stale_seconds`、`traffic_light_stale_seconds` | `1.5`、`2.0`、`3.0` 秒 |
 | `person_imgsz` | `640` |
 | `person_model`、`plate_models_dir`、`traffic_light_model` | 上述包内模型路径 |
 | `traffic_light_config` | `config/traffic_light_classification.yaml` |
@@ -91,7 +93,9 @@ roslaunch robot_perception traffic_light_classification.launch device:=cpu
 
 交通灯默认裁剪原图上半部分，相对 ROI 为 `[0.0, 0.0, 1.0, 0.5]`，分类尺寸为 224。输出 RED、YELLOW、GREEN 或 UNKNOWN；分类置信度不能证明灯体存在，停车和放行由任务控制器判断。
 
-需要完整中文车牌标注时，配置容器中实际存在的字体，例如 `plate_font_path:=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc`。字体不可用时图像可能显示 `plate#编号`，JSON 中仍保留完整号码。任务端的 `plate_text_annotation_confirmed` 应在确认标注完整后配置，见 [人物/车牌任务参数](../robot_competition/P2B.md)。
+组合入口将交通灯过期时间覆盖为 3 秒；单路 `traffic_light_classification.launch` 的 `stale_seconds` 仍为 1.5 秒。与正式任务保持一致时可显式传入 `stale_seconds:=3.0`。任务端 `traffic_light.max_source_age_sec` 当前也是 3 秒。
+
+需要完整中文车牌标注时，配置容器中实际存在的字体，例如 `plate_font_path:=/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc`。字体不可用时图像可能显示 `plate#编号`，JSON 中仍保留完整号码。当前任务 YAML 的 `plate_text_annotation_confirmed` 已为 true，部署时仍须实际确认，见 [人物/车牌任务参数](../robot_competition/README.md)。
 
 ## 查看输出与故障处理
 
@@ -105,4 +109,6 @@ rosrun image_view image_view image:=/perception/person_image
 
 图像窗口需要容器 X11 可用。无输出时依次检查相机话题、解释器路径、权重和 HyperLPR 缓存；节点日志会报告加载或推理错误。
 
-车牌消息没有 `frame_valid` 字段，断流或异常可能不发布结果，使用方应同时检查源时间戳和等待超时。识别效果受目标距离、角度和光照影响；人物统计范围与车牌融合规则见 [任务结果说明](../robot_competition/P2B.md)。
+车牌消息没有 `frame_valid` 字段，断流或异常可能不发布结果，使用方应同时检查源时间戳和等待超时。识别效果受目标距离、角度和光照影响；人物统计范围与车牌融合规则见 [任务结果说明](../robot_competition/README.md)。
+
+人物模型启动时要求类别映射为 `0: community_person`、`1: non_community_person`（显示为 C/NC）；交通灯 checkpoint 必须为 classify 任务，类别恰为 red/yellow/green，不可用仓库根目录的通用 `yolo26n.pt` 替代。缺少模型时节点拒绝启动，不自动下载替代品。交通灯数据、训练和导出路径见 [仓库说明](../../../README.md)。
