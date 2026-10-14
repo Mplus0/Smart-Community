@@ -61,7 +61,7 @@ source /opt/ros/noetic/setup.bash
   --source /workspace/car_2026/src/robot_perception/models/hyperlpr3 --verify-only
 ```
 
-同哈希的缓存文件可复用，冲突文件不会被覆盖。容器用户目录没有持久挂载，重建容器后需要重新准备 `~/.hyperlpr3`。
+同哈希的缓存文件可复用，冲突文件不会被覆盖。容器用户目录没有持久挂载，重建容器后需要重新准备 `~/.hyperlpr3`。GUI 调用的 `start.sh` 会在启动仿真前自动从本地模型准备并校验当前用户的缓存；直接运行视觉 launch 时仍需先执行上述准备命令。
 
 ## 日常启停
 
@@ -106,3 +106,23 @@ docker images smart-community
 ```
 
 图形窗口无法显示时检查宿主机 `DISPLAY`、X11 授权和 `/tmp/.X11-unix` 挂载。文件权限与宿主机不匹配时检查 Compose 的 `USER_UID`、`USER_GID`。缓存和任务日志的路径见 [工作空间说明](../car_2026/README.md)。
+
+### GUI 中文显示为方框
+
+若 `gui.py` 的英文和图片正常、中文显示为方框，先检查容器是否有中文字体。X11 转发不会共享宿主机字体；旧容器中手工安装的字体也不会随容器重建保留。
+
+在宿主机的 `docker/` 目录执行：
+
+```bash
+docker compose exec ros fc-list :lang=zh family
+```
+
+没有输出表示缺少中文字体。Dockerfile 已包含 `fonts-noto-cjk` 和字体缓存更新；按上面的镜像更新步骤构建并重建容器后，再启动 GUI。
+
+如需修复当前容器而暂不重建，可执行：
+
+```bash
+docker compose exec --user root ros bash -lc 'apt-get update && apt-get install -y --no-install-recommends fontconfig fonts-noto-cjk && fc-cache -f'
+```
+
+安装完成后关闭并重新启动 `gui.py`。此临时安装仅对当前容器有效。

@@ -164,4 +164,14 @@ RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && \
     assert torch.version.cuda is None; \
     print('Isolated CPU inference dependencies and ROS messages import OK')\""
 
+# Chinese glyphs for Qt GUIs. Keep this after inference setup so font changes
+# do not invalidate the expensive ROS / Python dependency build layers.
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fontconfig \
+    fonts-noto-cjk \
+    && fc-cache -f \
+    && rm -rf /var/lib/apt/lists/*
+USER ${USERNAME}
+
 CMD ["/bin/bash"]
