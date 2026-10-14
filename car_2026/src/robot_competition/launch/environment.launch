@@ -9,7 +9,8 @@
 
     <!-- 人员、车牌、红绿灯视觉 -->
     <include file="$(find robot_perception)/launch/perception.launch">
-        <arg name="plate_font_path" value="/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"/>
+        <!-- Auto-select installed Chinese fonts (WenQuanYi or Noto CJK). -->
+        <arg name="plate_font_path" value=""/>
         <arg name="enable_traffic_light" value="true"/>
         <arg name="python" value="/home/developer/.venvs/robot-perception/bin/python"/>
     </include>

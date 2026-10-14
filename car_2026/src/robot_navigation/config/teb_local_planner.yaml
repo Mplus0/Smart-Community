@@ -29,7 +29,7 @@ TebLocalPlannerROS:
   # TEB velocity limits (lateral motion disabled)
   # =======================================================
 
-  max_vel_x: 0.25
+  max_vel_x: 0.5
   max_vel_x_backwards: 0.08
 
   max_vel_y: 0.05

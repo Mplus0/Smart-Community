@@ -79,7 +79,7 @@
     <include>
       <uri>model://traffic_light</uri>
       <name>traffic_light_2</name>
-      <pose>-1.20 0.102 0 0 0 -1.57</pose>
+      <pose>-1.0 0.102 0 0 0 -1.57</pose>
     </include>
 
 

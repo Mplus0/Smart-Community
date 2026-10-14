@@ -55,7 +55,7 @@ route:
     stop_before_line: true
     x: 1.818008543571963
     y: 1.8656699405042714
-    yaw: 1.6285131533588841
+    yaw: 1.5785131533588841
   - id: plate_01
     type: task
     task: plate
