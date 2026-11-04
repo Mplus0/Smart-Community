@@ -1,0 +1,4 @@
+string file_path  # 视频保存路径（完整路径）
+---
+bool success
+string message

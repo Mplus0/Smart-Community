@@ -1,0 +1,11 @@
+<launch>
+  <arg name="data_dir" default="$(env HOME)/.ros/community"/>
+  <arg name="image_topic" default="/usb_cam/image_raw"/>
+  <arg name="route" default="$(find community_mission)/config/route.yaml"/>
+  <node pkg="community_mission" type="mission_node.py" name="community_mission" output="screen" required="true">
+    <rosparam command="load" file="$(arg route)"/>
+    <param name="data_dir" value="$(arg data_dir)"/>
+    <param name="image_topic" value="$(arg image_topic)"/>
+    <param name="planner_namespace" value="/move_base/DWAPlannerROS"/>
+  </node>
+</launch>

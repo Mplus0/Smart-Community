@@ -23,7 +23,7 @@ services:
       - __VK_LAYER_NV_optimus=NVIDIA_only
 
     volumes:
-      - ../car_2026:/workspace/car_2026
+      - ../simulation_ws:/workspace/simulation_ws
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
 
     devices:
@@ -44,6 +44,6 @@ services:
     stdin_open: true
     tty: true
 
-    working_dir: /workspace/car_2026
+    working_dir: /workspace/simulation_ws
 
     command: /bin/bash

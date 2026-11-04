@@ -10,7 +10,7 @@ Docker 镜像提供 ROS、Gazebo、Cartographer 和视觉推理环境。工作�
 | ROS / 仿真 | ROS Noetic / Gazebo 11 |
 | 镜像 / 容器 | `smart-community:latest` / `smart-community-dev` |
 | Compose 服务 / 用户 | `ros` / `developer`（UID/GID 默认 1000） |
-| 工作空间 | `/workspace/car_2026` |
+| 工作空间 | `/workspace/simulation_ws` |
 | Cartographer | `/opt/cartographer_ws/install_isolated` |
 | 视觉 Python | `/home/developer/.venvs/robot-perception/bin/python` |
 
@@ -37,18 +37,18 @@ docker compose exec --user developer ros bash
 以下命令在容器内执行：
 
 ```bash
-cd /workspace/car_2026
+cd /workspace/simulation_ws
 source /opt/ros/noetic/setup.bash
 source /opt/cartographer_ws/install_isolated/setup.bash
 catkin_make -j2
 source devel/setup.bash --extend
 ```
 
-之后每个新容器终端加载上述两个 ROS 环境，再执行 `source /workspace/car_2026/devel/setup.bash --extend`。`--extend` 保留 Cartographer 的包搜索路径。
+之后每个新容器终端加载上述两个 ROS 环境，再执行 `source /workspace/simulation_ws/devel/setup.bash --extend`。`--extend` 保留 Cartographer 的包搜索路径。
 
-仿真、导航、视觉和比赛任务按 [工作空间说明](../car_2026/README.md) 分终端启动。`simulation.launch` 使用 roslaunch 管理 ROS Master 和 Gazebo，无需另开一个空 Gazebo 实例。
+仿真、导航、视觉和比赛任务按 [工作空间说明](../simulation_ws/README.md) 分终端启动。`simulation.launch` 使用 roslaunch 管理 ROS Master 和 Gazebo，无需另开一个空 Gazebo 实例。
 
-也可使用 `bash /workspace/car_2026/src/tools/start.sh` 集中启动基础环境，再由 `start_competition.sh` 确认定位后启动比赛；图形控制台为 `python3 /workspace/car_2026/src/tools/gui.py`。集中启动会开启 RViz 和三路视觉，启动前必须准备交通灯权重、车牌缓存和中文字体。
+也可使用 `bash /workspace/simulation_ws/src/tools/start.sh` 集中启动基础环境，再由 `start_competition.sh` 确认定位后启动比赛；图形控制台为 `python3 /workspace/simulation_ws/src/tools/gui.py`。集中启动会开启 RViz 和三路视觉，启动前必须准备交通灯权重、车牌缓存和中文字体。
 
 ## GUI 与中文证据依赖
 
@@ -73,19 +73,19 @@ test -f /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc
 
 ## 模型与 Python 环境
 
-catkin 与任务主程序使用系统 Python 3.8。Dockerfile 创建 Python 3.10.18 视觉环境，并按 [依赖锁文件](../car_2026/src/robot_perception/docs/requirements-cpu.lock.txt) 安装 CPU 推理依赖；不要全局激活视觉 venv 来编译 ROS。
+catkin 与任务主程序使用系统 Python 3.8。Dockerfile 创建 Python 3.10.18 视觉环境，并按 [依赖锁文件](../simulation_ws/src/robot_perception/docs/requirements-cpu.lock.txt) 安装 CPU 推理依赖；不要全局激活视觉 venv 来编译 ROS。
 
-模型通过工作空间挂载提供，不打包进镜像。人物、车牌和交通灯模型的路径及部署方式见 [视觉包说明](../car_2026/src/robot_perception/README.md)。使用节点的同一用户在容器内准备车牌缓存：
+模型通过工作空间挂载提供，不打包进镜像。人物、车牌和交通灯模型的路径及部署方式见 [视觉包说明](../simulation_ws/src/robot_perception/README.md)。使用节点的同一用户在容器内准备车牌缓存：
 
-交通灯包内目标 `car_2026/src/robot_perception/models/traffic_light_best.pt` 是本地部署文件，Git 忽略该文件。首次部署时，在宿主机仓库根目录将 `models/traffic_light/best.pt` 复制到该目标；未复制时集中环境中的必需视觉节点会启动失败。顶层 `models/`、`scripts/` 和 `yolo_train/` 不在默认挂载内。
+交通灯包内目标 `simulation_ws/src/robot_perception/models/traffic_light_best.pt` 是本地部署文件，Git 忽略该文件。首次部署时，在宿主机仓库根目录将 `models/traffic_light/best.pt` 复制到该目标；未复制时集中环境中的必需视觉节点会启动失败。顶层 `models/` 和 `yolo_train/`（含训练脚本） 不在默认挂载内。
 
 ```bash
-cd /workspace/car_2026
+cd /workspace/simulation_ws
 source /opt/ros/noetic/setup.bash
 "$HOME/.venvs/robot-perception/bin/python" src/robot_perception/scripts/prepare_hyperlpr_models.py \
-  --source /workspace/car_2026/src/robot_perception/models/hyperlpr3
+  --source /workspace/simulation_ws/src/robot_perception/models/hyperlpr3
 "$HOME/.venvs/robot-perception/bin/python" src/robot_perception/scripts/prepare_hyperlpr_models.py \
-  --source /workspace/car_2026/src/robot_perception/models/hyperlpr3 --verify-only
+  --source /workspace/simulation_ws/src/robot_perception/models/hyperlpr3 --verify-only
 ```
 
 同哈希的缓存文件可复用，冲突文件不会被覆盖。容器用户目录没有持久挂载，重建容器后需要重新准备 `~/.hyperlpr3`。
@@ -132,4 +132,4 @@ docker compose exec --user developer ros nvidia-smi
 docker images smart-community
 ```
 
-图形窗口无法显示时检查宿主机 `DISPLAY`、X11 授权和 `/tmp/.X11-unix` 挂载。文件权限与宿主机不匹配时检查 Compose 的 `USER_UID`、`USER_GID`。缓存和任务日志的路径见 [工作空间说明](../car_2026/README.md)。
+图形窗口无法显示时检查宿主机 `DISPLAY`、X11 授权和 `/tmp/.X11-unix` 挂载。文件权限与宿主机不匹配时检查 Compose 的 `USER_UID`、`USER_GID`。缓存和任务日志的路径见 [工作空间说明](../simulation_ws/README.md)。

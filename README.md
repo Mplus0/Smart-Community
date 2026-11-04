@@ -1,89 +1,85 @@
 # Smart-Community
 
-基于 ROS 1 Noetic 和 Gazebo 11 的智慧社区机器人系统，已实现麦克纳姆底盘仿真、建图定位、多航点导航、人物与车牌识别、交通灯等待放行、任务结果保存和 PyQt5 比赛控制台。本文按当前仓库代码及配置整理；部署入口以 Docker 仿真环境为主，实车需要另行对接底盘和传感器。
-
-## 功能组成
-
-- **仿真与底盘**：机器人 Xacro、传感器和比赛场景，麦轮控制、轮式里程计与 IMU 的 EKF 融合。
-- **建图与导航**：Cartographer 建图、AMCL 定位、定位/规划双地图、move_base 与 TEB 路径规划。
-- **视觉识别**：人物 YOLO、HyperLPR3 车牌识别和 YOLO 交通灯 ROI 分类，输出 JSON 与标注图。
-- **任务执行**：按航点顺序导航，到点采集人物/车牌结果；交通灯点停车等待连续有效绿灯；保存任务状态、统计和图像证据。
-- **运行控制**：集中启动基础环境、人工确认后开始比赛、按顺序停止；GUI 显示实时相机、任务证据、结果和比赛日志。
-
-## 运行环境
-
-ROS 与 Python 程序在 Docker 容器中运行：Ubuntu 20.04、ROS Noetic、Gazebo 11。任务控制器使用系统 Python 3.8，视觉推理使用独立 Python 3.10 环境。宿主机需要 Docker Compose；默认容器配置使用 NVIDIA GPU 和 X11 图形显示，视觉推理默认使用 CPU。
+智慧社区机器人自主巡检系统，基于 ROS Noetic，包含实车与 Gazebo 仿真两个独立工作空间，提供导航巡检、视觉识别、任务调度和结果记录。
 
 ## 目录结构
 
 ```text
-car_2026/       ROS catkin 工作空间
-  src/         六个 robot_* 功能包
-  results/     任务结果目录，运行时创建
-docker/        镜像、Compose 配置与部署说明
-yolo_train/    已有交通灯 raw/train/val/test 数据集及训练权重
-models/        模型权重与导出模型
-scripts/       交通灯数据准备、训练、评估及导出工具
-复赛资料/       比赛资料与素材
+Smart-Community/
+├── robot_ws/          # 实车：底盘、传感器、导航、感知和巡检任务
+├── simulation_ws/     # 仿真：Gazebo 场景、机器人、导航、感知和任务控制台
+├── docker/            # 仿真镜像、Compose 配置和部署说明
+├── models/            # 模型权重与导出模型
+├── yolo_train/        # 训练脚本、数据集及已有训练结果
+├── .gitignore
+├── LICENSE
+└── README.md
 ```
 
-根目录 PDF 和实现流程文件供资料查阅；运行和部署以本 README 及下列使用说明为准。
+技术文档目前位于 `robot_ws/docs/` 和仿真功能包内部；仓库根目录尚无独立 `docs/`。
 
-## 部署与使用
+## 主要功能
 
-1. 按 [Docker 部署说明](docker/README.md) 构建镜像、创建容器。
-2. 按 [视觉包说明](car_2026/src/robot_perception/README.md) 准备模型与 HyperLPR 缓存。
-3. 按 [工作空间说明](car_2026/README.md) 编译，选择集中启动、GUI 或分终端启动流程。
+- **实车**：串口底盘控制、里程计、雷达/IMU/相机接入、定位导航、六类 YOLO 检测、OCR、倒伏统计、路线调度、语音和录像。
+- **仿真**：麦克纳姆底盘与传感器仿真、Cartographer 建图、AMCL 定位、双地图导航和 TEB 规划；人物、车牌及交通灯识别，多航点任务与绿灯等待。
+- **运行控制**：仿真支持集中启动、人工确认后执行比赛和 PyQt5 控制台，保存任务状态、统计及图像证据。任务完成不代表每项识别均成功，应查看结果状态。
 
-已有容器的终端入口（宿主机执行）：
+## 实车环境与启动
+
+使用已有 Ubuntu 20.04 / ROS Noetic / Python 3 环境，依赖和设备说明见 [实车 README](robot_ws/README.md)。以下假定仓库部署在 `/home/mowen/workspace/Smart-Community`：
 
 ```bash
-docker exec -it --user developer smart-community-dev bash
+source /opt/ros/noetic/setup.bash
+cd /home/mowen/workspace/Smart-Community/robot_ws
+# 先生成厂商雷达消息，避免首次编译时消息头文件尚未生成
+catkin_make lslidar_msgs_generate_messages -j2 -l2
+catkin_make -j2 -l2
+source devel/setup.bash
+# 启动系统，默认不自动巡检
+roslaunch community_bringup community.launch base_protocol:=aa_bb
 ```
 
-比赛主入口为 `robot_competition/launch/competition.launch`。默认路线为 `car_2026/src/robot_competition/config/waypoints.yaml`；使用前应确认地图、定位、路线和停车位置与运行场地一致。
+比赛时使用 `roslaunch community_bringup finals.launch base_protocol:=aa_bb` 作为替代入口，不要同时运行两个总入口。`base_protocol`、串口设备、相机、地图及路线须按实际硬件确认。实车自研包为 `community_*`，雷达与 IMU 包保留厂商实现。
 
-完成编译、模型缓存和中文字体准备后，在容器中启动基础环境：
+## 仿真环境与启动
+
+使用 Docker 提供 Ubuntu 20.04、ROS Noetic、Gazebo 11 和 Cartographer。系统 Python 3.8 用于 ROS，独立 Python 3.10 用于视觉推理；不要全局激活视觉环境编译 ROS。默认 Compose 保留 NVIDIA GPU、host 网络及 X11 配置，适用于具备相应支持的 Linux 图形宿主机，视觉推理依赖为 CPU 版本。
+
+在仓库根目录的宿主机终端执行：
 
 ```bash
-cd /workspace/car_2026
-bash src/tools/start.sh
+cd docker
+# 图形宿主机需按 Docker 文档配置 X11 授权
+xhost +local:docker
+docker compose build ros
+docker compose up -d ros
+docker compose exec --user developer ros bash
 ```
 
-在 RViz 使用 **2D Pose Estimate** 校准定位，然后在另一个容器终端执行：
+在容器中编译：
 
 ```bash
-bash /workspace/car_2026/src/tools/start_competition.sh
+cd /workspace/simulation_ws
+source /opt/ros/noetic/setup.bash
+source /opt/cartographer_ws/install_isolated/setup.bash
+catkin_make -j2
+source devel/setup.bash --extend
 ```
 
-输入 `yes` 后开始比赛。停止时执行 `bash /workspace/car_2026/src/tools/stop.sh`。GUI 入口为 `python3 /workspace/car_2026/src/tools/gui.py`，环境加载及依赖见工作空间说明；不要同时用 GUI 和终端重复启动同一套环境。
+按 [视觉部署说明](simulation_ws/src/robot_perception/README.md) 准备模型和 HyperLPR 缓存后，在容器中执行 `bash /workspace/simulation_ws/src/tools/start.sh`。在 RViz 校准定位，再在另一容器终端执行 `bash /workspace/simulation_ws/src/tools/start_competition.sh`，输入 `yes` 开始任务。停止命令为 `bash /workspace/simulation_ws/src/tools/stop.sh`。
 
-默认路线共有 12 点：2 个交通灯点、5 个人员点、3 个车牌点和 2 个普通航点。当前配置采用 3 帧连续有效绿灯、置信度至少 0.8 放行，最长等待 35 秒；导航成功和识别成功分别记录。`FINISH` 表示路线执行完毕，仍须查看各任务状态，不能据此认定全部识别成功。
+GUI 入口：`python3 /workspace/simulation_ws/src/tools/gui.py`；不要与终端重复启动同一套环境。详细步骤见 [Docker 说明](docker/README.md) 和 [仿真 README](simulation_ws/README.md)。
 
-## 交通灯数据与训练
+## 模型与训练
 
-已有数据位于 `yolo_train/datasets/traffic_light/`，按 `red/yellow/green` 分类；训练权重位于 `yolo_train/results/traffic_light/yolo11n_baseline/weights/`，部署源文件为 `models/traffic_light/best.pt`，另有导出的 `best.onnx`。ROS 分类节点使用 `.pt` 模型。
+训练工具位于 `yolo_train/scripts/traffic_light/`，数据在 `yolo_train/datasets/traffic_light/`，部署权重在 `models/traffic_light/`。脚本的相对配置路径以 `yolo_train/` 为基准；已有数据已划分，重新划分时需将 `data.source` 指向 `datasets/traffic_light/raw`。训练前使用独立输出配置，避免覆盖已有权重。默认 Compose 只挂载 `simulation_ws/`，不挂载顶层模型和训练目录；交通灯权重的复制步骤见视觉部署说明。
 
-训练工具位于 `scripts/traffic_light/`，包含数据划分、微调、评估和 ONNX 导出。**当前 `config.yaml` 仍指向根目录的 `datasets/traffic_light` 和 `results/traffic_light`，与已有数据位置不同**。使用已有数据时，先复制配置为自己的 YAML，将 `data.source` 改为 `yolo_train/datasets/traffic_light/raw`、`data.root` 改为 `yolo_train/datasets/traffic_light`，并设置独立的 `output.project`、`output.best` 与 `export.path`，避免覆盖部署权重。
+## 注意事项
 
-在能访问完整仓库、已安装 Ultralytics、PyTorch、PyYAML 和 ONNX 的 Python 环境中，从仓库根目录运行（`my_config.yaml` 为上述自备配置）：
+- 两个工作空间包含同名功能包，应在不同终端或环境中分别加载，不要叠加 `source`。
+- 迁移前的 `build/`、`devel/` 等产物可能保存绝对路径，迁移后应重新生成；本次未编译、构建镜像或启动节点，以上迁移后的命令均待目标环境验证。
+- 仿真结果写入 `simulation_ws/results/<run_id>/`，实车默认输出至 `~/.ros/community`；编译产物、缓存和新增运行结果由 `.gitignore` 忽略，必要模型、地图和配置继续保留。
+- 原实车示例 `robot_ws/src/robot_description/world/test.world` 含历史 `/home/mowen/test_ws` 资源路径，默认实车入口不加载它；本次按限制保留模型文件。旧仿真辅助脚本 `start_simulation.sh` 仍有 Melodic 环境探测，推荐使用上述 Noetic 集中入口，该既有问题未在目录适配中修改。
+- 当前实车任务尚缺异常温度、仪表识读、动态指示牌判断、独立泊车结果校验和全程 300 秒预算控制。
 
-```bash
-python scripts/traffic_light/prepare_dataset.py --config my_config.yaml
-python scripts/traffic_light/train.py --config my_config.yaml
-python scripts/traffic_light/test.py --config my_config.yaml
-python scripts/traffic_light/export_onnx.py --config my_config.yaml
-```
-
-数据已划分时可跳过第一步。脚本按仓库根目录解析相对路径；默认划分比例为 70%/15%/15%，随机种子 57，训练 100 epochs、尺寸 224、batch 32、patience 20。训练/评估自动选择可用 CUDA 或 CPU；评估生成混淆矩阵，导出使用 opset 17 并校验 ONNX。默认 Compose 仅挂载 `car_2026`，不包含这些训练脚本和顶层数据；训练环境与比赛容器需分别准备。相机采集方法见工作空间 README。
-
-## 使用文档
-
-- [工作空间、启动流程、建图与结果查看](car_2026/README.md)
-- [比赛任务、航点录入与故障处理](car_2026/src/robot_competition/README.md)
-- [视觉模型、输入输出与配置](car_2026/src/robot_perception/README.md)
-- [机器人模型与传感器](car_2026/src/robot_description/README.md)
-- [导航参数、双地图与调试](car_2026/src/robot_navigation/config/README.md)
-- [随机车牌生成](car_2026/src/robot_gazebo/README_RANDOM_PLATE.md)
-
-任务结果保存在 `car_2026/results/<run_id>/`。缓存、编译产物、日志和运行结果不提交到版本控制。项目许可证见 [LICENSE](LICENSE)，视觉模型及依赖的授权说明见 [NOTICE.md](car_2026/src/robot_perception/NOTICE.md)。
+项目许可证见 [LICENSE](LICENSE)，第三方模型及依赖授权见 [视觉包声明](simulation_ws/src/robot_perception/NOTICE.md) 和原文件说明。

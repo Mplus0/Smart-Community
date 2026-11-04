@@ -1,0 +1,19 @@
+<package format="2">
+  <name>community_mission</name>
+  <version>0.1.0</version>
+  <description>Smart community integration: community_mission</description>
+  <maintainer email="maintainer@example.com">Community maintainers</maintainer>
+  <license>TODO</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>community_perception</depend>
+  <depend>cv_bridge</depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>move_base_msgs</depend>
+  <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+</package>

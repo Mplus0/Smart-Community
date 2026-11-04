@@ -23,7 +23,7 @@ train:
 output:
   project: results/traffic_light
   name: yolo11n_baseline
-  best: models/traffic_light/best.pt
+  best: ../models/traffic_light/best.pt
 export:
-  path: models/traffic_light/best.onnx
+  path: ../models/traffic_light/best.onnx
   opset: 17

@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="community_perception" type="fall_counter_server.py" name="fall_counter_server" output="screen">
+        <!-- 模型路径 -->
+        <param name="model_path" value="$(find community_perception)/models/byc.onnx" />
+        
+        <!-- 检测阈值 -->
+        <param name="conf_thres" value="0.7" />
+        <param name="iou_thres" value="0.5" />
+        
+        <!-- ROI配置 -->
+        <param name="roi_enabled" value="true" />
+        <param name="roi_center_x" value="0.5" />
+        <param name="roi_center_y" value="0.8" />
+        <param name="roi_width_ratio" value="0.8" />
+        <param name="roi_height_ratio" value="0.5" />
+        
+        <!-- 抽帧配置 -->
+        <param name="frame_stride" value="2" />
+    </node>
+</launch>

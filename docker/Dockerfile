@@ -137,16 +137,16 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 RUN echo "source /opt/ros/noetic/setup.bash" >> /home/${USERNAME}/.bashrc \
     && echo "source /opt/cartographer_ws/install_isolated/setup.bash" >> /home/${USERNAME}/.bashrc
 
-RUN mkdir -p /workspace/car_2026/src \
+RUN mkdir -p /workspace/simulation_ws/src \
     && chown -R ${USERNAME}:${USERNAME} /workspace
 
-WORKDIR /workspace/car_2026
+WORKDIR /workspace/simulation_ws
 
 # --------------------------------------------------
 # P2-A inference: isolated Python, never replace ROS Python or activate globally
 # Build context is the repository root; use docker/Dockerfile.dockerignore.
 # --------------------------------------------------
-COPY car_2026/src/robot_perception/docs/requirements-cpu.lock.txt /opt/robot-perception/requirements-cpu.lock.txt
+COPY simulation_ws/src/robot_perception/docs/requirements-cpu.lock.txt /opt/robot-perception/requirements-cpu.lock.txt
 
 RUN python3 -m pip install --disable-pip-version-check --no-cache-dir \
     --target /opt/robot-perception/bootstrap uv==0.8.22

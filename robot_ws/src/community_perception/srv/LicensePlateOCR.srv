@@ -1,0 +1,8 @@
+# 请求：输入图片
+sensor_msgs/Image image
+
+---
+# 响应：返回识别结果
+string[] plate_texts
+float32[] confidences
+string status_message

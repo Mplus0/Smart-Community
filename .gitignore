@@ -1,15 +1,15 @@
 # ==================================================
 # ROS / Catkin
 # ==================================================
-car_2026/build/
-car_2026/devel/
-car_2026/install/
-car_2026/logs/
-car_2026/.catkin_tools/
-car_2026/build_isolated/
-car_2026/devel_isolated/
-car_2026/install_isolated/
-car_2026/.ros/
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+build_isolated/
+devel_isolated/
+install_isolated/
+.ros/
 
 # ==================================================
 # Python
@@ -52,17 +52,31 @@ Thumbs.db
 *.bag.active
 
 # Mission evidence is generated in the mounted workspace, never source control.
-car_2026/results/
-car_2026/src/robot_gazebo/results/
+simulation_ws/results/
+robot_ws/results/
+simulation_ws/src/robot_gazebo/results/*
+!simulation_ws/src/robot_gazebo/results/generated_plates.json
 # The existing tracked generated_plates.json remains with its scene textures.
 # Recorder advisory locks are created on demand; do not ignore dependency lockfiles.
-car_2026/**/*.yaml.lock
+simulation_ws/**/*.yaml.lock
+robot_ws/**/*.yaml.lock
 # Local camera captures, training caches and new training runs.
-car_2026/datasets/
+simulation_ws/datasets/
 datasets/**/*.cache
+yolo_train/datasets/**/*.cache
+yolo_train/runs/
+yolo_train/results/*
+!yolo_train/results/traffic_light/
+yolo_train/results/traffic_light/*
+!yolo_train/results/traffic_light/yolo11n_baseline/
+yolo_train/results/traffic_light/yolo11n_baseline/*
+!yolo_train/results/traffic_light/yolo11n_baseline/weights/
+yolo_train/results/traffic_light/yolo11n_baseline/weights/*
+!yolo_train/results/traffic_light/yolo11n_baseline/weights/best.pt
+!yolo_train/results/traffic_light/yolo11n_baseline/weights/last.pt
 /runs/
 /results/
 # Existing tracked training weights remain versioned.
 
 # Locally copied traffic-light classifier; deploy separately (or explicitly use Git LFS).
-car_2026/src/robot_perception/models/traffic_light_best.pt
+simulation_ws/src/robot_perception/models/traffic_light_best.pt

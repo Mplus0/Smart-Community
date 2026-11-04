@@ -1,0 +1,7 @@
+build/
+devel/
+install/
+logs/
+__pycache__/
+*.pyc
+.catkin_tools/

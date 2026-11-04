@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.0.2)
+project(community_bringup)
+find_package(catkin REQUIRED COMPONENTS amcl community_base community_mission community_perception dwa_local_planner global_planner lslidar_driver map_server move_base robot_description robot_localization robot_state_publisher rospy tf usb_cam wit_ros_imu)
+catkin_package(CATKIN_DEPENDS amcl community_base community_mission community_perception dwa_local_planner global_planner lslidar_driver map_server move_base robot_description robot_localization robot_state_publisher rospy tf usb_cam wit_ros_imu)
+catkin_install_python(PROGRAMS scripts/configure_camera.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(DIRECTORY launch config maps DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

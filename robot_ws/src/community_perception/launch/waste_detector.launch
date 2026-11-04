@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="conf_threshold" default="0.5" />
+    <arg name="iou_threshold" default="0.4" />
+    <arg name="save_enabled" default="false" />
+    <arg name="save_dir" default="$(env HOME)/detection_results/waste" />
+    
+    <node name="waste_detector" pkg="community_perception" type="yolo_detector_service.py" output="screen">
+        <param name="model_path" value="$(find community_perception)/models/waste.onnx" />
+        <param name="model_name" value="waste_detector" />
+        <param name="conf_threshold" value="$(arg conf_threshold)" />
+        <param name="iou_threshold" value="$(arg iou_threshold)" />
+        <param name="save_enabled" value="$(arg save_enabled)" />
+        <param name="save_dir" value="$(arg save_dir)" />
+        
+        <!-- 垃圾检测36个具体类别 -->
+        <rosparam param="class_names">
+            [
+                "hazardous1", "hazardous2", "hazardous3", "hazardous4", "hazardous5", "hazardous6", "hazardous7", "hazardous8",
+                "kitchen1", "kitchen2", "kitchen3", "kitchen4", "kitchen5", "kitchen6", "kitchen7", "kitchen8", "kitchen9", "kitchen10", "kitchen11",
+                "orther1", "orther2", "orther3", "orther4", "orther5", "orther6", "orther7", "orther8", "orther9", "orther10",
+                "recoverable1", "recoverable2", "recoverable3", "recoverable4", "recoverable5", "recoverable6", "recoverable7"
+            ]
+        </rosparam>
+        
+        <!-- 需要保存的类别索引 -->
+        <rosparam param="save_classes">[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35]</rosparam>
+        
+        <param name="service_name" value="/waste_detector/detect" />
+    </node>
+</launch>

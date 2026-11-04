@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="community_mission" type="speech_server.py" name="speech_server" output="screen"/>
+</launch>

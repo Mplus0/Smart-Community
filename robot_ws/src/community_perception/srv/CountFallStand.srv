@@ -1,0 +1,7 @@
+# CountFallStand.srv
+string video_path
+---
+int32 fall_count
+int32 stand_count
+string message
+bool success

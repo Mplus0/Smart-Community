@@ -1,0 +1,11 @@
+# Match ROS cv_bridge's NumPy/OpenCV ABI. Install ROS packages through the target system.
+numpy<2
+onnxruntime
+paddleocr>=2.6,<3
+paddlepaddle>=2.4,<3
+filterpy
+scipy
+scikit-image
+matplotlib
+pyserial
+PyYAML

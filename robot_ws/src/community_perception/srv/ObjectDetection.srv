@@ -1,0 +1,9 @@
+sensor_msgs/Image image
+---
+bool success
+string message
+string[] detected_classes
+float32[] confidences
+int32[] bboxes
+string[] class_names
+int32[] class_counts
