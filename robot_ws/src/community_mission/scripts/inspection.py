@@ -2,7 +2,7 @@
 from collections import Counter
 import time
 
-from .rules import (detections, people_counts, illegal_parking_count,
+from rules import (detections, people_counts, illegal_parking_count,
                     trash_announcement, vehicle_counts, vehicle_announcement)
 
 

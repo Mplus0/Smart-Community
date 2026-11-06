@@ -1,6 +1,6 @@
 # 智慧社区 ROS 工作空间
 
-ROS 1 智慧社区巡检工程，自研节点使用 Python 3。本次完成 14→9 包结构合并，只进行静态检查与离线规则回归；没有安装 ROS、编译或实车测试。
+ROS 1 智慧社区巡检工程，自研节点使用 Python 3。自研包的运行代码统一放在 scripts/，去掉包内 src/、Python 安装配置和重复包装入口；仅完成静态检查与离线回归，未进行 ROS 编译和实车测试。
 
 ## 目录及功能包
 
@@ -24,6 +24,34 @@ robot_ws/
 ```
 
 四个 community_* 包由项目维护；雷达与 IMU 驱动实现未修改。robot_description 保留模型几何与参数。community_perception 内 SORT 是第三方代码，保留文件头声明；ONNX 权重是原项目资源。
+
+## 自研 Python 文件分布
+
+工作空间根目录 `src/` 保留。以下文件均直接位于对应包的 `scripts/`，每个节点文件包含实现及启动入口，无需 `setup.py` 或 `__init__.py`。
+
+```text
+community_base/scripts/
+├── serial_bridge.py          # 底盘串口收发与速度反馈
+└── odometry_node.py          # 平面里程计积分及 ROS 发布节点
+community_perception/scripts/
+├── yolo_detector_service.py  # YOLO 推理及检测服务
+├── license_plate_server.py   # 车牌 OCR 识别服务
+├── fall_counter_server.py   # 视频倒伏统计服务
+└── sort.py                  # SORT 跟踪辅助模块，保留第三方声明
+community_mission/scripts/
+├── mission_node.py          # 路线调度、导航与任务启动入口
+├── inspection.py            # 到点巡检及视频识别任务
+├── rules.py                 # 识别结果处理与路线校验规则
+├── services.py              # 服务调用与语音队列
+├── speech_server.py         # 语音播报服务
+└── video_recorder_node.py   # 相机录像服务
+community_bringup/scripts/
+└── configure_camera.py      # 相机参数设置（原样保留）
+```
+
+各包 `CMakeLists.txt` 负责节点及辅助模块部署，`package.xml` 声明 ROS 依赖；`launch/` 保留现有启动入口，`config/` 保存配置，`srv/` 保存服务定义，`models/` 保存原模型权重。辅助模块在 Catkin devel 和 install 空间均放在节点旁，沿用普通同目录导入。原有 `roslaunch`、`rosrun` 命令及 Topic、Service、Action 名称不变。
+
+`tools/validate_workspace.py` 检查语法、引用、安装声明和文件完整性；`tools/test_python_migration.py` 运行离线规则、里程计和任务回归。`docs/structure_integrity.json` 保留历史基线，记录移动/删除路径并校验当前文件哈希。
 
 ## 主要功能
 

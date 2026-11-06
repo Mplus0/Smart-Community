@@ -17,7 +17,7 @@
 - /people_detector/detect 等检测服务、/license_plate_ocr、/count_fall_stand、/speech_say、/video_recorder_node/start_recording 和 stop_recording 均保留原名。
 - /cmd_vel、/vel_raw、/odom_raw、/odom、/scan、/wit/imu、/usb_cam/image_raw 及 /move_base action 保持不变。
 
-Python 模块分别使用 community_perception_yolo/ocr/fall、community_mission_runtime/speech/video，避免模块与生成的 srv 包重名。服务节点仍独立运行，共用一个功能包并不合并进程。
+Python 节点和辅助模块统一放在各功能包的 scripts/，通过同目录导入，与 Catkin 生成的 srv 包分离。服务节点仍独立运行，共用一个功能包并不合并进程。
 
 ## 启动职责
 

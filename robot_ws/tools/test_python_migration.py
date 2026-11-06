@@ -11,10 +11,16 @@ import unittest
 from unittest.mock import Mock
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT/'src/community_mission/src'), str(ROOT/'src/community_base/src')]
-from community_mission_runtime.rules import (Detection, detections, people_counts, illegal_parking_count,
+sys.path[:0] = [str(ROOT/'src/community_mission/scripts')]
+from rules import (Detection, detections, people_counts, illegal_parking_count,
     vehicle_counts, trash_announcement, vehicle_announcement, validate_route)
-from community_base_runtime.odometry import OdometryIntegrator
+# Extract the pure integrator from the combined node without importing ROS.
+_tree = ast.parse((ROOT/'src/community_base/scripts/odometry_node.py').read_text(encoding='utf-8'))
+_integrator = ast.Module(body=[n for n in _tree.body if isinstance(n, ast.ClassDef)
+                               and n.name == 'OdometryIntegrator'], type_ignores=[])
+_env = {'math': math}
+exec(compile(_integrator, '<production odometry integrator>', 'exec'), _env)
+OdometryIntegrator = _env['OdometryIntegrator']
 
 
 class RulesTests(unittest.TestCase):
@@ -92,7 +98,7 @@ class OdometryTests(unittest.TestCase):
 class MissionTests(unittest.TestCase):
     def setUp(self):
         # Load only the production class with explicit test doubles for ROS dependencies.
-        tree = ast.parse((ROOT/'src/community_mission/src/community_mission_runtime/mission.py').read_text(encoding='utf-8'))
+        tree = ast.parse((ROOT/'src/community_mission/scripts/mission_node.py').read_text(encoding='utf-8'))
         module = ast.Module(body=[n for n in tree.body if isinstance(n, ast.ClassDef)], type_ignores=[])
         self.ros = SimpleNamespace(is_shutdown=lambda: False, sleep=lambda _: None,
                                    logwarn=Mock(), logerr=Mock(), Duration=lambda x: x)

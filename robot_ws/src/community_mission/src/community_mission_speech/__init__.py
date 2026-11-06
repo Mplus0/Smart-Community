@@ -1,1 +1,0 @@
-"""Smart community runtime implementation."""
