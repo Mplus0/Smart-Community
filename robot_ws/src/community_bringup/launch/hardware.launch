@@ -10,11 +10,11 @@
     <param name="port" value="$(arg imu_port)" />
     <param name="baud" value="9600" />
   </node>
-  <node pkg="community_base" type="serial_bridge.py" name="community_serial" output="screen" required="true">
+  <node pkg="community_bringup" type="serial_bridge.py" name="community_serial" output="screen" required="true">
     <param name="port" value="$(arg base_port)" />
     <param name="protocol" value="$(arg base_protocol)" />
   </node>
-  <node pkg="community_base" type="odometry_node.py" name="odometry_publisher" output="screen">
+  <node pkg="community_bringup" type="odometry_node.py" name="odometry_publisher" output="screen">
     <param name="odom_frame" value="odom" />
     <param name="base_footprint_frame" value="base_footprint" />
     <remap from="/sub_vel" to="/vel_raw" />

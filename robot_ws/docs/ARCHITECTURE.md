@@ -3,7 +3,7 @@
 | 原包 | 新包 |
 | --- | --- |
 | community_bringup、community_navigation | community_bringup |
-| community_base | community_base |
+| community_base | community_bringup |
 | yolo_onnx_ros、license_plate_ocr、fall_counter | community_perception |
 | move_nav、demo01_server_client、video_recorder | community_mission |
 | mowen | robot_description |
@@ -20,6 +20,8 @@
 Python 节点和辅助模块统一放在各功能包的 scripts/，通过同目录导入，与 Catkin 生成的 srv 包分离。服务节点仍独立运行，共用一个功能包并不合并进程。
 
 ## 启动职责
+
+community_bringup/scripts/ 统一保存 serial_bridge.py、odometry_node.py 和 configure_camera.py；底盘节点原样迁入，节点名称、参数及 Topic 保持不变。
 
 hardware.launch：底盘桥接、轮式里程计、原厂雷达/IMU、USB 相机。
 navigation.launch：模型 TF、EKF、地图、AMCL、move_base；原厂雷达 launch 内的静态雷达 TF 保持原样。

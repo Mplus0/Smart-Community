@@ -223,16 +223,17 @@
     "src/wit_ros_imu/scripts/wit_imu_ctrl.py": "111060ae44a9fba0532891471392b748aeeaf0a40acf169e6765fd0060046f97",
     "src/wit_ros_imu/scripts/wit_modbus_ros.py": "f644c2ccfa9fa2db58a7c47cb2f2d83fab40c4c71199b61f97c810204b839acb",
     "src/wit_ros_imu/scripts/wit_normal_ros.py": "fc575f9acf2d66bbab218a28c32579f531d2d7dd8bcc2a3495f3f8ee79d9bf9e",
-    "src/community_base/CMakeLists.txt": "57aa75e29406bba82d624c35f9313f1e06f035e2d5cf2dad69abe739a49dd201",
-    "src/community_base/package.xml": "4d377b5d4062aeb48e1a57803e00bf06363ea5f9cd8ea2cc4c15555d80034747",
-    "src/community_base/scripts/odometry_node.py": "04b987bb70735393c888a75680b222246e6d403fc8d00d3cdd0d9982821fad28",
-    "src/community_base/scripts/serial_bridge.py": "576e5343438dae0ce6e1c4e3702f259f5ec066eb56ad6638286b338569f9edff",
     "src/community_perception/scripts/sort.py": "b54931d440186f428a8aff2149cc6f6b5859dbd7c86679b2e39390ed9e84c1c4",
     "src/community_mission/scripts/inspection.py": "dc3d6fa346151f5202cf359f9b5b2a40ea07c53ba568ac265952e0eacbdafa71",
     "src/community_mission/scripts/rules.py": "034ac74c8fc2cc08a75938534a269161a20942793269546399713aca9771d15d",
     "src/community_mission/scripts/services.py": "bacfb1e8461a8410a607216c9026bb0b7bd704bbe9e83c2137265f597812764c",
     "src/community_perception/CMakeLists.txt": "95e3e05bb63707ad5e4bdd789292aab0d9e7a6bd0eb0264fb7162624a2454982",
-    "src/community_mission/CMakeLists.txt": "2eca014c76c3cc8eaa0cce6943c82088e2d12c60d88801802c9f966fcfb75cf5"
+    "src/community_mission/CMakeLists.txt": "2eca014c76c3cc8eaa0cce6943c82088e2d12c60d88801802c9f966fcfb75cf5",
+    "src/community_bringup/scripts/serial_bridge.py": "576e5343438dae0ce6e1c4e3702f259f5ec066eb56ad6638286b338569f9edff",
+    "src/community_bringup/scripts/odometry_node.py": "04b987bb70735393c888a75680b222246e6d403fc8d00d3cdd0d9982821fad28",
+    "src/community_bringup/CMakeLists.txt": "23581e39eb1e24f409be80c1ac36207ad0ecd2754662e8af36d7e285e118b528",
+    "src/community_bringup/package.xml": "d09845c548b120bc873e119dbc393d8a94df08cf26377df908d0d3e335806891",
+    "src/community_bringup/launch/hardware.launch": "5ab3c8c043d7736c2f3096946c9a7adc36c232b36876894d642e52b91bb295bc"
   },
   "removed_generated": [
     "src/lslidar_msgs/build/CATKIN_IGNORE",
@@ -551,7 +552,9 @@
     "src/community_mission/src/community_mission_runtime/services.py": "src/community_mission/scripts/services.py",
     "src/community_mission/src/community_mission_speech/speech_server.py": "src/community_mission/scripts/speech_server.py",
     "src/community_mission/src/community_mission_video/video_recorder_node.py": "src/community_mission/scripts/video_recorder_node.py",
-    "src/community_base/src/community_base_runtime/odometry.py": "src/community_base/scripts/odometry_node.py"
+    "src/community_base/src/community_base_runtime/odometry.py": "src/community_bringup/scripts/odometry_node.py",
+    "src/community_base/scripts/serial_bridge.py": "src/community_bringup/scripts/serial_bridge.py",
+    "src/community_base/scripts/odometry_node.py": "src/community_bringup/scripts/odometry_node.py"
   },
   "removed_structure": [
     "src/community_base/src/community_base_runtime/__init__.py",
@@ -563,6 +566,8 @@
     "src/community_mission/src/community_mission_runtime/__init__.py",
     "src/community_mission/src/community_mission_speech/__init__.py",
     "src/community_mission/src/community_mission_video/__init__.py",
-    "src/community_mission/setup.py"
+    "src/community_mission/setup.py",
+    "src/community_base/CMakeLists.txt",
+    "src/community_base/package.xml"
   ]
 }

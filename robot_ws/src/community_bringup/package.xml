@@ -6,7 +6,9 @@
   <license>TODO</license>
   <buildtool_depend>catkin</buildtool_depend>
   <depend>amcl</depend>
-  <depend>community_base</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <exec_depend>python3-serial</exec_depend>
   <depend>community_mission</depend>
   <depend>community_perception</depend>
   <depend>dwa_local_planner</depend>
