@@ -1,0 +1,20 @@
+# 硬件节点私有参数；设备端口与协议仍由 Launch 参数指定。
+imu:
+  baud: 9600
+community_serial:
+  baud: 115200
+  command_timeout: 0.5
+  feedback_yaw_scale: 0.95
+  read_timeout: 0.05
+  write_timeout: 0.5
+odometry_publisher:
+  odom_frame: odom
+  base_footprint_frame: base_footprint
+  linear_scale_x: 1.0
+  linear_scale_y: 1.0
+  max_interval: 1.0
+usb_cam:
+  image_width: 640
+  image_height: 480
+  pixel_format: mjpeg
+  camera_frame_id: camera_link

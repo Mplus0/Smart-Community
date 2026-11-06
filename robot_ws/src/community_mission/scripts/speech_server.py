@@ -14,8 +14,8 @@ def handle_speech(req):
         processed_text = convert_numbers_to_chinese_digits(text)
 
         # 播报处理后的文本
-        cmd = ["espeak-ng", "-v", rospy.get_param("~voice", "mb-cn1"), "-s", str(rospy.get_param("~rate", 200)), processed_text]
-        subprocess.run(cmd, check=True, timeout=rospy.get_param("~timeout", 30.0))
+        cmd = ["espeak-ng", "-v", rospy.get_param("~voice", rospy.get_param("~speech/voice", "mb-cn1")), "-s", str(rospy.get_param("~rate", rospy.get_param("~speech/rate", 200))), processed_text]
+        subprocess.run(cmd, check=True, timeout=rospy.get_param("~timeout", rospy.get_param("~speech/timeout", 30.0)))
 
         return SpeechResponse(True)
 

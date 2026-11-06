@@ -14,7 +14,12 @@ from dynamic_reconfigure.msg import Config, DoubleParameter
 
 
 class Services:
-    def call(self, name, service_type, *args, timeout=5.0):
+    def __init__(self, config):
+        self.config = config
+
+    def call(self, name, service_type, *args, timeout=None):
+        if timeout is None:
+            timeout = self.config['service_timeout']
         name = '/' + name.strip('/')
         rospy.wait_for_service(name, timeout=timeout)
         response = rospy.ServiceProxy(name, service_type)(*args)
@@ -44,7 +49,7 @@ class Services:
         config = Config(doubles=[DoubleParameter(name='max_vel_y', value=speed),
                                  DoubleParameter(name='min_vel_y', value=-speed)])
         try:
-            self.call(namespace+'/set_parameters', Reconfigure, config, timeout=1.0)
+            self.call(namespace+'/set_parameters', Reconfigure, config, timeout=self.config['planner_service_timeout'])
             return True
         except (rospy.ROSException, rospy.ServiceException, RuntimeError) as error:
             rospy.logwarn('Planner speed update failed: %s', error)
@@ -52,8 +57,9 @@ class Services:
 
 
 class SpeechQueue:
-    def __init__(self, services):
+    def __init__(self, services, config):
         self.services = services
+        self.config = config
         self.queue = queue.Queue()
         self.closed = False
         self.thread = threading.Thread(target=self._work, name='community_speech', daemon=True)
@@ -75,7 +81,9 @@ class SpeechQueue:
             finally:
                 self.queue.task_done()
 
-    def drain(self, timeout=90.0):
+    def drain(self, timeout=None):
+        if timeout is None:
+            timeout = self.config['speech_drain_timeout']
         deadline = time.monotonic()+timeout
         while not rospy.is_shutdown() and time.monotonic() < deadline:
             with self.queue.all_tasks_done:
@@ -95,4 +103,4 @@ class SpeechQueue:
             except queue.Empty:
                 break
         self.queue.put(None)
-        self.thread.join(timeout=1.0)
+        self.thread.join(timeout=self.config['speech_join_timeout'])

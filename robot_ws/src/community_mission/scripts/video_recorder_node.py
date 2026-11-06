@@ -18,12 +18,12 @@ class VideoRecorderNode:
 
         # ROS参数
         self.camera_topic = rospy.get_param('~camera_topic', '/usb_cam/image_raw')
-        self.default_save_dir = rospy.get_param('~default_save_dir', '~/videos')
+        self.default_save_dir = rospy.get_param('~default_save_dir', '~/.ros/community/videos')
 
         # 视频参数
-        self.frame_width = 640
-        self.frame_height = 480
-        self.fps = 30.0  # 使用浮点数确保精度
+        self.frame_width = rospy.get_param('~recorder/frame_width', 640)
+        self.frame_height = rospy.get_param('~recorder/frame_height', 480)
+        self.fps = rospy.get_param('~recorder/fps', 30.0)  # 使用浮点数确保精度
 
         # 初始化变量
         self.bridge = CvBridge()
@@ -121,7 +121,7 @@ class VideoRecorderNode:
         rospy.loginfo("等待摄像头数据...")
         try:
             # 等待第一帧消息，最多等待2秒
-            test_msg = rospy.wait_for_message(self.camera_topic, Image, timeout=2.0)
+            test_msg = rospy.wait_for_message(self.camera_topic, Image, timeout=rospy.get_param('~recorder/probe_timeout', 2.0))
             rospy.loginfo("摄像头数据流正常")
         except rospy.ROSException:
             response.success = False
@@ -166,7 +166,7 @@ class VideoRecorderNode:
             rospy.loginfo("获取图像尺寸...")
             try:
                 # 等待一帧图像
-                image_msg = rospy.wait_for_message(self.camera_topic, Image, timeout=1.0)
+                image_msg = rospy.wait_for_message(self.camera_topic, Image, timeout=rospy.get_param('~recorder/image_timeout', 1.0))
                 cv_image = self.bridge.imgmsg_to_cv2(image_msg, desired_encoding="bgr8")
                 height, width = cv_image.shape[:2]
                 rospy.loginfo(f"检测到实际分辨率: {width}x{height}")
@@ -180,12 +180,8 @@ class VideoRecorderNode:
             fourcc = None
 
             # 编码器选项列表（按优先级排序）
-            codec_options = [
-                ('avc1', cv2.VideoWriter_fourcc(*'avc1')),  # H.264编码，最兼容
-                ('h264', cv2.VideoWriter_fourcc(*'h264')),  # H.264另一种表示
-                ('X264', cv2.VideoWriter_fourcc(*'X264')),  # X264编码
-                ('mp4v', cv2.VideoWriter_fourcc(*'mp4v')),  # 原始MP4编码
-            ]
+            codec_options = [(name, cv2.VideoWriter_fourcc(*name)) for name in
+                             rospy.get_param('~recorder/codecs', ['avc1', 'h264', 'X264', 'mp4v'])]
 
             for codec_name, codec_value in codec_options:
                 try:

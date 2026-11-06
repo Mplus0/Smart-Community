@@ -6,6 +6,7 @@ import numpy as np
 from cv_bridge import CvBridge
 from community_perception.srv import LicensePlateOCR, LicensePlateOCRResponse
 import os
+import tempfile
 import re
 import time
 import threading
@@ -18,13 +19,13 @@ class LicensePlateOCRServer:
         self.bridge = CvBridge()
         self.conf = rospy.get_param('~conf', 0.8)
         # ==================== 图片保存路径 ====================
-        self.save_dir = rospy.get_param('~save_dir', os.path.expanduser('~/.ros/community/license_plate_ocr'))
+        self.save_dir = rospy.get_param('~save_dir', os.path.expanduser('~/.ros/community/ocr'))
         os.makedirs(self.save_dir, exist_ok=True)
         rospy.loginfo(f"识别结果图片将保存到: {self.save_dir}")
 
         # ==================== 简化配置 ====================
         self.use_center_crop_only = rospy.get_param('~use_center_crop_only', True)
-        self.crop_ratio = rospy.get_param('~crop_ratio', 0.6)  # 修改默认值为0.8 (80%)
+        self.crop_ratio = rospy.get_param('~crop_ratio', 0.6)  # 水平方向保留比例
 
         # ==================== 并发控制 ====================
         self.processing_lock = threading.Lock()
@@ -36,19 +37,21 @@ class LicensePlateOCRServer:
         # 创建服务
         self.service = rospy.Service('license_plate_ocr', LicensePlateOCR, self.handle_ocr_request)
         rospy.loginfo("License Plate OCR Server 已启动，等待请求...")
-        rospy.loginfo("使用简化模式：直接处理图像中心区域 (x轴60%，y轴全高)")
+        rospy.loginfo("处理图像中心区域：x轴保留 %.0f%%，y轴全高", self.crop_ratio * 100)
 
-    def init_paddle_ocr(self, max_retries=3):
+    def init_paddle_ocr(self, max_retries=None):
         """初始化PaddleOCR - 带健康检查和重试"""
+        if max_retries is None:
+            max_retries = rospy.get_param('~ocr_init_retries', 3)
         for attempt in range(max_retries):
             try:
                 self.ocr = PaddleOCR(
-                    use_angle_cls=False,
-                    lang='ch',
-                    use_gpu=False,
+                    use_angle_cls=rospy.get_param('~ocr_angle_cls', False),
+                    lang=rospy.get_param('~ocr_language', 'ch'),
+                    use_gpu=rospy.get_param('~ocr_use_gpu', False),
                     show_log=False,
                     drop_score=self.conf,
-                    rec_batch_num=1
+                    rec_batch_num=rospy.get_param('~ocr_batch_size', 1)
                 )
                 rospy.loginfo(f"PaddleOCR初始化成功 (尝试 {attempt+1}/{max_retries})")
                 self.ocr_health = True
@@ -56,8 +59,8 @@ class LicensePlateOCRServer:
             except Exception as e:
                 rospy.logerr(f"PaddleOCR初始化失败 (尝试 {attempt+1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
-                    rospy.loginfo("等待2秒后重试...")
-                    time.sleep(2)
+                    rospy.loginfo("等待 %.1f 秒后重试", rospy.get_param("~ocr_retry_delay", 2.0))
+                    time.sleep(rospy.get_param('~ocr_retry_delay', 2.0))
                 else:
                     rospy.logerr("PaddleOCR初始化彻底失败")
                     self.ocr_health = False
@@ -67,15 +70,15 @@ class LicensePlateOCRServer:
         """检查OCR引擎健康状态，必要时重新初始化"""
         if not self.ocr_health:
             rospy.logwarn("OCR引擎不健康，尝试重新初始化...")
-            return self.init_paddle_ocr(max_retries=2)
+            return self.init_paddle_ocr(max_retries=rospy.get_param('~ocr_recovery_retries', 2))
         return True
 
-    # 修改点1：重写裁剪逻辑（y轴不裁剪，x轴70%）
+    # 水平方向按配置裁剪，y轴不裁剪
     def get_center_crop(self, image):
-        """获取图像中心区域 - 仅x轴裁剪（y轴保持完整）"""
+        """获取图像中心区域 - 仅x轴按配置裁剪（y轴保持完整）"""
         height, width = image.shape[:2]
 
-        # x轴裁剪：中心70%区域（宽度 = width * 0.7）
+        # x轴裁剪：按 crop_ratio 保留中心区域
         crop_width = int(width * self.crop_ratio)
         # y轴不裁剪：高度 = 原图高度
         crop_height = height
@@ -86,7 +89,7 @@ class LicensePlateOCRServer:
         # y轴：从0到height（不裁剪）
         y1, y2 = 0, height
 
-        rospy.loginfo(f"裁剪区域: {width}x{height} -> [{x1},{y1},{x2},{y2}] (x轴60%)")
+        rospy.loginfo(f"裁剪区域: {width}x{height} -> [{x1},{y1},{x2},{y2}] (x轴{self.crop_ratio:.0%})")
         return image[y1:y2, x1:x2], [x1, y1, x2, y2]
 
     def enhance_image(self, image):
@@ -234,7 +237,7 @@ class LicensePlateOCRServer:
 
                 enhanced_crop = self.enhance_image(crop_image)
 
-                temp_dir = "/tmp/ros_ocr"
+                temp_dir = os.path.join(tempfile.gettempdir(), 'ros_ocr')
                 os.makedirs(temp_dir, exist_ok=True)
                 temp_path = os.path.join(temp_dir, f"plate_center_{int(time.time()*1000)}.jpg")
                 cv2.imwrite(temp_path, enhanced_crop)

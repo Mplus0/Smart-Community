@@ -1,0 +1,211 @@
+# 模型类别顺序与原权重一致；mission_confidence 保留总入口阈值。
+detectors:
+  people_detector:
+    model_path: $(find community_perception)/models/people.onnx
+    model_name: people_detector
+    conf_threshold: 0.5
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/people
+    class_names:
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - good
+    - bad
+    - bad
+    - bad
+    - bad
+    save_classes:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+    service_name: /people_detector/detect
+  traffic_light_detector:
+    model_path: $(find community_perception)/models/light.onnx
+    model_name: traffic_light_detector
+    conf_threshold: 0.9
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/traffic_light
+    class_names:
+    - red_light
+    - yellow_light
+    - green_light
+    save_classes:
+    - 0
+    - 1
+    - 2
+    service_name: /traffic_light_detector/detect
+  fire_detector:
+    model_path: $(find community_perception)/models/fire.onnx
+    model_name: fire_detector
+    conf_threshold: 0.9
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/fire
+    class_names:
+    - fire
+    save_classes:
+    - 0
+    service_name: /fire_detector/detect
+  trash_bin_detector:
+    model_path: $(find community_perception)/models/tong.onnx
+    model_name: trash_bin_detector
+    conf_threshold: 0.5
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/trash_bin
+    class_names:
+    - blue_close
+    - blue_open
+    - gray_close
+    - gray_open
+    - green_close
+    - green_open
+    - red_close
+    - red_open
+    save_classes:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    service_name: /trash_bin_detector/detect
+  waste_detector:
+    model_path: $(find community_perception)/models/waste.onnx
+    model_name: waste_detector
+    conf_threshold: 0.5
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/waste
+    class_names:
+    - hazardous1
+    - hazardous2
+    - hazardous3
+    - hazardous4
+    - hazardous5
+    - hazardous6
+    - hazardous7
+    - hazardous8
+    - kitchen1
+    - kitchen2
+    - kitchen3
+    - kitchen4
+    - kitchen5
+    - kitchen6
+    - kitchen7
+    - kitchen8
+    - kitchen9
+    - kitchen10
+    - kitchen11
+    - orther1
+    - orther2
+    - orther3
+    - orther4
+    - orther5
+    - orther6
+    - orther7
+    - orther8
+    - orther9
+    - orther10
+    - recoverable1
+    - recoverable2
+    - recoverable3
+    - recoverable4
+    - recoverable5
+    - recoverable6
+    - recoverable7
+    save_classes:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    - 14
+    - 15
+    - 16
+    - 17
+    - 18
+    - 19
+    - 20
+    - 21
+    - 22
+    - 23
+    - 24
+    - 25
+    - 26
+    - 27
+    - 28
+    - 29
+    - 30
+    - 31
+    - 32
+    - 33
+    - 34
+    - 35
+    service_name: /waste_detector/detect
+  bicycle_detector:
+    model_path: $(find community_perception)/models/byc.onnx
+    model_name: bicycle_detector
+    conf_threshold: 0.85
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/bicycle
+    class_names:
+    - stand
+    - fall
+    save_classes:
+    - 0
+    - 1
+    service_name: /bicycle_detector/detect
+mission_confidence:
+  people_detector: 0.75
+  traffic_light_detector: 0.75
+  trash_bin_detector: 0.75
+  waste_detector: 0.85
+  fire_detector: 0.9
+  bicycle_detector: 0.85

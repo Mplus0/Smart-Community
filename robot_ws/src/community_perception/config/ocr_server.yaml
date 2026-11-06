@@ -1,0 +1,11 @@
+# 原有正式启动参数；只迁移配置，不改变算法。
+conf: 0.8
+use_center_crop_only: true
+crop_ratio: 0.6
+ocr_language: ch
+ocr_use_gpu: false
+ocr_angle_cls: false
+ocr_batch_size: 1
+ocr_init_retries: 3
+ocr_recovery_retries: 2
+ocr_retry_delay: 2.0

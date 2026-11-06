@@ -1,162 +1,183 @@
-{
-  "photo_idx": [
-    1,
-    4,
-    6,
-    8,
-    13
-  ],
-  "license_plate_idx": [
-    16,
-    17,
-    18
-  ],
-  "traffic_light_idx": [
-    0,
-    14
-  ],
-  "trash_can_idx": [
-    20
-  ],
-  "electrocar_idx": [],
-  "fire_idx": [
-    9,
-    11,
-    21
-  ],
-  "goals": [
-    [
-      1.13,
-      0.0,
-      0.0
-    ],
-    [
-      2.6,
-      -0.15,
-      1.57
-    ],
-    [
-      3.45,
-      0.0,
-      1.57
-    ],
-    [
-      3.5,
-      0.0,
-      3.14
-    ],
-    [
-      3.53,
-      0.48,
-      3.14
-    ],
-    [
-      3.4,
-      1.12,
-      -1.57
-    ],
-    [
-      2.62,
-      1.2,
-      -1.57
-    ],
-    [
-      2.6,
-      1.1,
-      1.57
-    ],
-    [
-      2.84,
-      0.98,
-      1.57
-    ],
-    [
-      2.13,
-      1.12,
-      3.14
-    ],
-    [
-      1.9,
-      1.12,
-      3.14
-    ],
-    [
-      2.06,
-      1.82,
-      3.14
-    ],
-    [
-      1.9,
-      1.9,
-      0.0
-    ],
-    [
-      1.8,
-      1.72,
-      0.0
-    ],
-    [
-      1.9,
-      1.91,
-      1.57
-    ],
-    [
-      1.9,
-      3.32,
-      3.14
-    ],
-    [
-      0.75,
-      3.37,
-      3.14
-    ],
-    [
-      0.75,
-      2.75,
-      3.14
-    ],
-    [
-      0.75,
-      2.16,
-      3.14
-    ],
-    [
-      0.75,
-      2.65,
-      0.0
-    ],
-    [
-      0.62,
-      2.57,
-      0.0
-    ],
-    [
-      0.65,
-      1.55,
-      0.0
-    ],
-    [
-      0.78,
-      1.8,
-      3.14
-    ],
-    [
-      0.78,
-      0.0,
-      3.14
-    ],
-    [
-      0.6,
-      0.0,
-      0.0
-    ],
-    [
-      0.0,
-      0.0,
-      0.0
-    ]
-  ],
-  "announcement_index": 2,
-  "record_start_index": 22,
-  "record_stop_index": 23
-}
+# 航点按列表顺序执行；tasks 关联任务，area 标识人员统计街区。
+points:
+- id: wp_01
+  x: 1.13
+  y: 0.0
+  yaw: 0.0
+  type: task
+  tasks:
+  - traffic_light
+- id: wp_02
+  x: 2.6
+  y: -0.15
+  yaw: 1.57
+  type: task
+  tasks:
+  - person
+  area: A
+- id: wp_03
+  x: 3.45
+  y: 0.0
+  yaw: 1.57
+  type: task
+  tasks:
+  - announcement
+- id: wp_04
+  x: 3.5
+  y: 0.0
+  yaw: 3.14
+  type: waypoint
+  tasks: []
+- id: wp_05
+  x: 3.53
+  y: 0.48
+  yaw: 3.14
+  type: task
+  tasks:
+  - person
+  area: A
+- id: wp_06
+  x: 3.4
+  y: 1.12
+  yaw: -1.57
+  type: waypoint
+  tasks: []
+- id: wp_07
+  x: 2.62
+  y: 1.2
+  yaw: -1.57
+  type: task
+  tasks:
+  - person
+  area: A
+- id: wp_08
+  x: 2.6
+  y: 1.1
+  yaw: 1.57
+  type: waypoint
+  tasks: []
+- id: wp_09
+  x: 2.84
+  y: 0.98
+  yaw: 1.57
+  type: task
+  tasks:
+  - person
+  area: B
+- id: wp_10
+  x: 2.13
+  y: 1.12
+  yaw: 3.14
+  type: task
+  tasks:
+  - fire
+- id: wp_11
+  x: 1.9
+  y: 1.12
+  yaw: 3.14
+  type: waypoint
+  tasks: []
+- id: wp_12
+  x: 2.06
+  y: 1.82
+  yaw: 3.14
+  type: task
+  tasks:
+  - fire
+- id: wp_13
+  x: 1.9
+  y: 1.9
+  yaw: 0.0
+  type: waypoint
+  tasks: []
+- id: wp_14
+  x: 1.8
+  y: 1.72
+  yaw: 0.0
+  type: task
+  tasks:
+  - person
+  area: B
+- id: wp_15
+  x: 1.9
+  y: 1.91
+  yaw: 1.57
+  type: task
+  tasks:
+  - traffic_light
+- id: wp_16
+  x: 1.9
+  y: 3.32
+  yaw: 3.14
+  type: waypoint
+  tasks: []
+- id: wp_17
+  x: 0.75
+  y: 3.37
+  yaw: 3.14
+  type: task
+  tasks:
+  - plate
+  parking_lot: 1
+- id: wp_18
+  x: 0.75
+  y: 2.75
+  yaw: 3.14
+  type: task
+  tasks:
+  - plate
+  parking_lot: 2
+- id: wp_19
+  x: 0.75
+  y: 2.16
+  yaw: 3.14
+  type: task
+  tasks:
+  - plate
+  parking_lot: 3
+- id: wp_20
+  x: 0.75
+  y: 2.65
+  yaw: 0.0
+  type: waypoint
+  tasks: []
+- id: wp_21
+  x: 0.62
+  y: 2.57
+  yaw: 0.0
+  type: task
+  tasks:
+  - trash
+- id: wp_22
+  x: 0.65
+  y: 1.55
+  yaw: 0.0
+  type: task
+  tasks:
+  - fire
+- id: wp_23
+  x: 0.78
+  y: 1.8
+  yaw: 3.14
+  type: task
+  tasks:
+  - record_start
+- id: wp_24
+  x: 0.78
+  y: 0.0
+  yaw: 3.14
+  type: task
+  tasks:
+  - record_stop
+- id: wp_25
+  x: 0.6
+  y: 0.0
+  yaw: 0.0
+  type: waypoint
+  tasks: []
+- id: wp_26
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+  type: waypoint
+  tasks: []

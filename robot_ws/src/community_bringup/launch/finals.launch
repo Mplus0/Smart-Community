@@ -1,4 +1,10 @@
 <launch>
+  <arg name="green_confirm_frames" default=""/>
+  <arg name="traffic_light_timeout" default=""/>
+  <arg name="navigation_retries" default=""/>
+  <arg name="navigation_cancel_timeout" default=""/>
+  <arg name="goal_timeout" default=""/>
+
   <!-- Finals entry for the currently implemented mission; see README for missing tasks. -->
   <arg name="base_protocol"/>
   <arg name="base_port" default="/dev/carserial"/>
@@ -9,6 +15,12 @@
   <arg name="map" default="$(find community_bringup)/maps/map.yaml"/>
   <arg name="route" default="$(find community_mission)/config/route.yaml"/>
   <include file="$(find community_bringup)/launch/community.launch">
+    <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>
+    <arg name="traffic_light_timeout" value="$(arg traffic_light_timeout)"/>
+    <arg name="navigation_retries" value="$(arg navigation_retries)"/>
+    <arg name="navigation_cancel_timeout" value="$(arg navigation_cancel_timeout)"/>
+    <arg name="goal_timeout" value="$(arg goal_timeout)"/>
+
     <arg name="run_mission" value="true"/>
     <arg name="base_protocol" value="$(arg base_protocol)"/>
     <arg name="base_port" value="$(arg base_port)"/>

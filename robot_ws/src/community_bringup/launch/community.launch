@@ -1,4 +1,10 @@
 <launch>
+  <arg name="green_confirm_frames" default=""/>
+  <arg name="traffic_light_timeout" default=""/>
+  <arg name="navigation_retries" default=""/>
+  <arg name="navigation_cancel_timeout" default=""/>
+  <arg name="goal_timeout" default=""/>
+
   <arg name="base_protocol"/>
   <arg name="base_port" default="/dev/carserial"/>
   <arg name="imu_port" default="/dev/ttyUSB1"/>
@@ -16,6 +22,12 @@
   <include file="$(find community_bringup)/launch/navigation.launch"><arg name="map" value="$(arg map)"/></include>
   <include file="$(find community_bringup)/launch/services.launch"><arg name="data_dir" value="$(arg data_dir)"/></include>
   <include if="$(arg run_mission)" file="$(find community_mission)/launch/mission.launch">
+    <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>
+    <arg name="traffic_light_timeout" value="$(arg traffic_light_timeout)"/>
+    <arg name="navigation_retries" value="$(arg navigation_retries)"/>
+    <arg name="navigation_cancel_timeout" value="$(arg navigation_cancel_timeout)"/>
+    <arg name="goal_timeout" value="$(arg goal_timeout)"/>
+
     <arg name="data_dir" value="$(arg data_dir)"/><arg name="route" value="$(arg route)"/>
   </include>
 </launch>

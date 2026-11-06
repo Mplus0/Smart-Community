@@ -30,7 +30,8 @@ class OdometryIntegrator:
 class OdometryNode:
     def __init__(self):
         self.integrator = OdometryIntegrator(rospy.get_param('~linear_scale_x', 1.0),
-                                             rospy.get_param('~linear_scale_y', 1.0))
+                                             rospy.get_param('~linear_scale_y', 1.0),
+                                             rospy.get_param('~max_interval', 1.0))
         self.odom_frame = rospy.get_param('~odom_frame', 'odom')
         self.base_frame = rospy.get_param('~base_footprint_frame', 'base_footprint')
         self.publisher = rospy.Publisher('/pub_odom', Odometry, queue_size=50)

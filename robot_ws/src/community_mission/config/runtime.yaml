@@ -1,0 +1,32 @@
+# 按节点分组；启动参数优先于 YAML，运动速度保持原值。
+mission:
+  image_timeout: 5.0
+  server_timeout: 30.0
+  arrival_wait: 1.2
+  ocr_interval: 3.0
+  normal_lateral_speed: 0.5
+  recording_lateral_speed: 0.15
+  service_timeout: 5.0
+  planner_service_timeout: 1.0
+  speech_drain_timeout: 90.0
+  speech_join_timeout: 1.0
+  goal_timeout: 120.0
+  traffic_light_timeout: 15.0
+  green_confirm_frames: 3
+  navigation_retries: 0
+  navigation_cancel_timeout: 2.0
+recorder:
+  frame_width: 640
+  frame_height: 480
+  fps: 30.0
+  codecs:
+  - avc1
+  - h264
+  - X264
+  - mp4v
+  probe_timeout: 2.0
+  image_timeout: 1.0
+speech:
+  voice: mb-cn1
+  rate: 200
+  timeout: 30.0

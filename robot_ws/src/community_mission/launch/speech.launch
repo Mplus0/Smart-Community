@@ -1,3 +1,5 @@
 <launch>
-  <node pkg="community_mission" type="speech_server.py" name="speech_server" output="screen"/>
+  <node pkg="community_mission" type="speech_server.py" name="speech_server" output="screen">
+    <rosparam command="load" file="$(find community_mission)/config/runtime.yaml" />
+  </node>
 </launch>

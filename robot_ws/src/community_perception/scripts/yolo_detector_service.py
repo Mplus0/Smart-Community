@@ -15,53 +15,26 @@ class YOLOv8DetectorService:
     def __init__(self):
         self.bridge = CvBridge()
 
-        # 从参数服务器获取配置
-        self.model_path = rospy.get_param('~model_path', './models/best.onnx')
-        self.conf_threshold = rospy.get_param('~conf_threshold', 0.5)
-        self.iou_threshold = rospy.get_param('~iou_threshold', 0.4)
-
-        # 从参数服务器获取类别映射
-        # 支持多种格式：列表、字典、字符串
-        class_names_param = rospy.get_param('~class_names', None)
-
-        if class_names_param is None:
-            # 默认类别（向后兼容）
-            self.class_names = {
-                0: "peopleInside",
-                1: "peopleOutside",
-                2: "object3",
-                3: "object4",
-                4: "object5"
-            }
-        elif isinstance(class_names_param, list):
-            # 列表格式：[class0_name, class1_name, ...]
-            self.class_names = {i: name for i, name in enumerate(class_names_param)}
-        elif isinstance(class_names_param, dict):
-            # 字典格式：{0: "class0", 1: "class1", ...}
-            self.class_names = class_names_param
-        else:
-            rospy.logwarn("未知的类别名称格式，使用默认类别")
-            self.class_names = {
-                0: "peopleInside",
-                1: "peopleOutside",
-                2: "object3",
-                3: "object4",
-                4: "object5"
-            }
+        self.model_name = rospy.get_param('~model_name')
+        config = rospy.get_param('~detectors')[self.model_name]
+        profile = rospy.get_param('~profile', 'standalone')
+        confidence = (rospy.get_param('~mission_confidence')[self.model_name]
+                      if profile == 'mission' else config['conf_threshold'])
+        self.model_path = rospy.get_param('~model_path', config['model_path'])
+        self.conf_threshold = rospy.get_param('~conf_threshold', confidence)
+        self.iou_threshold = rospy.get_param('~iou_threshold', config['iou_threshold'])
+        self.class_names = dict(enumerate(rospy.get_param('~class_names', config['class_names'])))
 
         self.nc = len(self.class_names)
 
-        # 模型名称（可选，用于日志）
-        self.model_name = rospy.get_param('~model_name', os.path.basename(self.model_path))
-
         # 保存配置
-        self.save_dir = rospy.get_param('~save_dir', os.path.expanduser('~/.ros/community/yolo_onnx_ros'))
-        self.save_enabled = rospy.get_param('~save_enabled', True)
+        self.save_dir = rospy.get_param('~save_dir', config['save_dir'])
+        self.save_enabled = rospy.get_param('~save_enabled', config['save_enabled'])
         self.save_idx = 0
         os.makedirs(self.save_dir, exist_ok=True)
 
         # 指定要保存的类别（可选）
-        self.save_classes = rospy.get_param('~save_classes', [0, 1])  # 默认保存人员类别
+        self.save_classes = rospy.get_param('~save_classes', config['save_classes'])
 
         # 检查模型文件
         if not os.path.isfile(self.model_path):
@@ -98,7 +71,7 @@ class YOLOv8DetectorService:
         self.input_height, self.input_width = self.input_shape[2:4]
 
         # 服务名称（可选参数）
-        service_name = rospy.get_param('~service_name', '~/detect_objects')
+        service_name = rospy.get_param('~service_name', config['service_name'])
 
         # 创建服务
         self.service = rospy.Service(service_name, ObjectDetection, self.handle_detection_request)

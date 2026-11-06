@@ -199,7 +199,9 @@ class SimpleFallCounter:
         rospy.loginfo(f"处理参数: ROI={self.roi_enabled}, 抽帧={self.frame_stride}")
 
         # 初始化追踪器和计数器
-        tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
+        tracker = Sort(max_age=rospy.get_param('~tracker_max_age', 20),
+                       min_hits=rospy.get_param('~tracker_min_hits', 3),
+                       iou_threshold=rospy.get_param('~tracker_iou_threshold', 0.3))
         track_class = {}  # track_id -> class_id
         fall_count = 0
         stand_count = 0

@@ -105,7 +105,7 @@
           <geometry>
             <mesh>
               <scale>1 1 1</scale>
-              <uri>/home/mowen/test_ws/src/robot_description/mowen/meshes/base_link.STL</uri>
+              <uri>package://robot_description/meshes/base_link.STL</uri>
             </mesh>
           </geometry>
           <max_contacts>10</max_contacts>
@@ -127,7 +127,7 @@
           <geometry>
             <mesh>
               <scale>1 1 1</scale>
-              <uri>/home/mowen/test_ws/src/robot_description/mowen/meshes/base_link.STL</uri>
+              <uri>package://robot_description/meshes/base_link.STL</uri>
             </mesh>
           </geometry>
         </visual>

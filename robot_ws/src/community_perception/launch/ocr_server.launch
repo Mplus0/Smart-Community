@@ -1,7 +1,7 @@
 <launch>
-  <arg name="save_dir" default="$(env HOME)/.ros/community/ocr"/>
+  <arg name="save_dir" default="$(env HOME)/.ros/community/ocr" />
   <node pkg="community_perception" type="license_plate_server.py" name="license_plate_ocr_server" output="screen">
-    <param name="conf" value="0.8"/>
-    <param name="save_dir" value="$(arg save_dir)"/>
+    <rosparam command="load" file="$(find community_perception)/config/ocr_server.yaml" subst_value="true" />
+    <param name="save_dir" value="$(arg save_dir)" />
   </node>
 </launch>

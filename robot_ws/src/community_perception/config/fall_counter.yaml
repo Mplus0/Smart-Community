@@ -1,0 +1,13 @@
+# 原有正式启动参数；只迁移配置，不改变算法。
+model_path: $(find community_perception)/models/byc.onnx
+conf_thres: 0.7
+iou_thres: 0.5
+roi_enabled: true
+roi_center_x: 0.5
+roi_center_y: 0.8
+roi_width_ratio: 0.8
+roi_height_ratio: 0.5
+frame_stride: 2
+tracker_max_age: 20
+tracker_min_hits: 3
+tracker_iou_threshold: 0.3

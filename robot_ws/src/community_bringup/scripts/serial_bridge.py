@@ -47,7 +47,8 @@ class SerialBridge:
         self.last_command = time.monotonic()
         self.stopped = True
         self.port = serial.Serial(rospy.get_param('~port', '/dev/carserial'),
-                                  rospy.get_param('~baud', 115200), timeout=0.05, write_timeout=0.5)
+                                  rospy.get_param('~baud', 115200), timeout=rospy.get_param('~read_timeout', 0.05),
+                                  write_timeout=rospy.get_param('~write_timeout', 0.5))
         self.publisher = rospy.Publisher('/vel_raw', Twist, queue_size=20)
         # Both original sender scripts emit this initialization sequence.
         self.send(b'\x11' + bytes(8), delay=0.001)

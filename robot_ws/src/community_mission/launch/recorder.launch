@@ -1,8 +1,9 @@
 <launch>
-  <arg name="image_topic" default="/usb_cam/image_raw"/>
-  <arg name="data_dir" default="$(env HOME)/.ros/community"/>
+  <arg name="image_topic" default="/usb_cam/image_raw" />
+  <arg name="data_dir" default="$(env HOME)/.ros/community" />
   <node pkg="community_mission" type="video_recorder_node.py" name="video_recorder_node" output="screen">
-    <param name="camera_topic" value="$(arg image_topic)"/>
-    <param name="default_save_dir" value="$(arg data_dir)/videos"/>
+    <rosparam command="load" file="$(find community_mission)/config/runtime.yaml" />
+    <param name="camera_topic" value="$(arg image_topic)" />
+    <param name="default_save_dir" value="$(arg data_dir)/videos" />
   </node>
 </launch>

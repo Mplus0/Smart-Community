@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <launch>
     <!-- 通用参数 -->
-    <arg name="conf_threshold" default="0.75" />
-    <arg name="iou_threshold" default="0.4" />
+    <arg name="conf_threshold" default="" />
+    <arg name="iou_threshold" default="" />
     <arg name="save_enabled" default="false" />
-    <arg name="save_dir" default="$(env HOME)/detection_results" />
-    <arg name="fire_conf_threshold" default="0.9" />
-    <arg name="people_conf_threshold" default="0.75" />
-    <arg name="bicycle_conf_threshold" default="0.85" />
-    <arg name="waste_conf_threshold" default="0.85" />
+    <arg name="save_dir" default="$(env HOME)/.ros/community/detections" />
+    <arg name="fire_conf_threshold" default="" />
+    <arg name="people_conf_threshold" default="" />
+    <arg name="bicycle_conf_threshold" default="" />
+    <arg name="waste_conf_threshold" default="" />
     
     <!-- 选择要启动的模型 -->
     <arg name="enable_people" default="true" />
@@ -21,7 +21,9 @@
     
     <group if="$(arg enable_people)">
         <include file="$(find community_perception)/launch/people_detector.launch">
-            <arg name="conf_threshold" value="$(arg people_conf_threshold)" />
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(eval arg('people_conf_threshold') if arg('people_conf_threshold') != '' else arg('conf_threshold'))"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>
             <arg name="save_enabled" value="$(arg save_enabled)" />
             <arg name="save_dir" value="$(arg save_dir)/people" />
         </include>
@@ -29,7 +31,9 @@
     
     <group if="$(arg enable_traffic_light)">
         <include file="$(find community_perception)/launch/traffic_light_detector.launch">
-            <arg name="conf_threshold" value="0.75" />  <!-- 红绿灯需要更高置信度 -->
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(arg conf_threshold)"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>  <!-- 红绿灯需要更高置信度 -->
             <arg name="save_enabled" value="$(arg save_enabled)" />
             <arg name="save_dir" value="$(arg save_dir)/traffic_light" />
         </include>
@@ -39,7 +43,9 @@
     
     <group if="$(arg enable_trash_bin)">
         <include file="$(find community_perception)/launch/trash_bin_detector.launch">
-            <arg name="conf_threshold" value="0.75" />
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(arg conf_threshold)"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>
             <arg name="save_enabled" value="$(arg save_enabled)" />
             <arg name="save_dir" value="$(arg save_dir)/trash_bin" />
         </include>
@@ -47,7 +53,9 @@
     
     <group if="$(arg enable_waste)">
         <include file="$(find community_perception)/launch/waste_detector.launch">
-            <arg name="conf_threshold" value="$(arg waste_conf_threshold)" />
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(eval arg('waste_conf_threshold') if arg('waste_conf_threshold') != '' else arg('conf_threshold'))"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>
             <arg name="save_enabled" value="$(arg save_enabled)" />
             <arg name="save_dir" value="$(arg save_dir)/waste" />
         </include>
@@ -55,7 +63,9 @@
 
     <group if="$(arg enable_fire)">
         <include file="$(find community_perception)/launch/fire_detector.launch">
-            <arg name="conf_threshold" value="$(arg fire_conf_threshold)" />
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(eval arg('fire_conf_threshold') if arg('fire_conf_threshold') != '' else arg('conf_threshold'))"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>
             <arg name="save_enabled" value="$(arg save_enabled)" />
             <arg name="save_dir" value="$(arg save_dir)/fire" />
         </include>
@@ -63,7 +73,9 @@
 
     <group if="$(arg enable_bicycle)">
         <include file="$(find community_perception)/launch/bicycle_detector.launch">
-            <arg name="conf_threshold" value="$(arg bicycle_conf_threshold)" />
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(eval arg('bicycle_conf_threshold') if arg('bicycle_conf_threshold') != '' else arg('conf_threshold'))"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>
             <arg name="save_enabled" value="$(arg save_enabled)" />
             <arg name="save_dir" value="$(arg save_dir)/bicycle" />
         </include>
