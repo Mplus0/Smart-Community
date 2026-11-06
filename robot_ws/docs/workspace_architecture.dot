@@ -1,0 +1,58 @@
+digraph Workspace {
+graph [rankdir=TB, bgcolor="#f7f9fc", fontname="Noto Sans CJK SC", label="智慧社区 robot_ws：包、节点与运行数据流", labelloc=t, fontsize=23, pad=0.35];
+node [shape=box, style="rounded,filled", fillcolor="white", color="#6685a4", fontname="Noto Sans CJK SC", fontsize=12];
+edge [fontname="Noto Sans CJK SC", fontsize=10, color="#52677e"];
+entry [label="community_bringup 启动编排
+community.launch：硬件 + 导航 + 服务
+finals.launch：再启用自动任务",fillcolor="#dbeafe"];
+hw [label="hardware.launch
+串口底盘 / serial_bridge
+轮式里程计 / odometry_node
+lslidar_driver + lslidar_msgs（lslidar 元包）
+wit_ros_imu / usb_cam / 可选相机调参", fillcolor="#dcfce7"];
+nav [label="navigation.launch
+map_server + AMCL
+EKF / robot_localization
+move_base：全局规划 + DWA 局部避障",fillcolor="#dcfce7"];
+model [label="robot_description
+mowen.urdf + robot_state_publisher
+固定关节 TF / 车体几何"];
+per [label="community_perception
+人员 / 红绿灯 / 火焰 / 垃圾桶 / 垃圾 / 电动车
+六个 ONNX YOLO 检测服务
+PaddleOCR 文字与车牌服务
+SORT + 视频倒伏统计服务",fillcolor="#fef3c7"];
+mission [label="community_mission / mission_node
+26 航点导航与巡检任务
+人员统计、车牌、火情、垃圾判断、电动车拍照
+连续绿灯放行、导航超时/有限重试
+INIT → NAVIGATE → WAIT_TRAFFIC/TASK
+NEXT_POINT → FINISH；异常 ERROR",fillcolor="#ede9fe"];
+media [label="community_mission 服务
+speech_server：语音队列播报
+video_recorder_node：相机录像",fillcolor="#fef3c7"];
+cfg [label="配置与资源
+route / runtime / recognition_rules
+硬件与导航 YAML、地图、六种 ONNX 权重",shape=folder];
+out [label="ResultManager
+~/.ros/community/<run_id>/
+JSON 结果 / mission.log / photo / videos
+服务调试图：detections、ocr",shape=folder,fillcolor="#ffe4e6"];
+tools [label="tools/ + docs/
+结构与 121 文件历史完整性检查
+38 项离线回归 / 架构与验收记录"];
+entry -> hw; entry -> nav; entry -> per [label="services.launch"]; entry -> media [label="services.launch"]; entry -> mission [label="run_mission=true"];
+hw -> nav [label="/scan、/odom_raw、/wit/imu"];
+model -> nav [label="base_footprint 及固定 TF"];
+nav -> mission [label="/move_base action 状态 / map TF"];
+mission -> nav [label="导航目标"];
+nav -> hw [label="/cmd_vel"];
+hw -> mission [label="/usb_cam/image_raw"];
+mission -> per [label="图像/视频服务请求"];
+per -> mission [label="检测框/文本/倒伏计数"];
+mission -> media [label="播报 / 开始与停止录像"];
+hw -> media [label="相机图像"];
+mission -> out [label="任务状态、结果与媒体路径"];
+cfg -> nav; cfg -> mission; cfg -> per;
+tools -> cfg [style=dashed,label="静态与离线检查"];
+}

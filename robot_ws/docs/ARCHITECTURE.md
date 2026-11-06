@@ -1,3 +1,16 @@
+# 整个工作空间架构
+
+![工作空间架构](workspace_architecture.svg)
+
+图对应 2026-11-06 实际 launch 与源码。实线表示启动依赖或运行数据流；离线检查以虚线表示。
+可编辑源文件为 workspace_architecture.dot，另提供 PNG。
+各包功能、入口命令和验收状态见 [README](../README.md) 与 [逐步验收](ACCEPTANCE.md)。
+
+TF 主链：map → odom（AMCL）→ base_footprint（EKF）→ 车体固定关节（URDF）；雷达固定 TF 由厂商 launch 发布。
+轮式里程计发布 /odom_raw，不重复发布 odom→base TF；最终需现场检查 TF 唯一性与时间戳。
+识别按服务请求触发，六模型服务并不自动订阅相机持续推理；任务节点获取图像再调用服务。
+视频统计在录像停止后调用，独立于逐帧巡检。
+
 # 功能包合并与接口
 
 | 原包 | 新包 |
@@ -28,7 +41,7 @@ navigation.launch：模型 TF、EKF、地图、AMCL、move_base；原厂雷达 l
 services.launch：检测、OCR、视频统计、语音、录像。
 community.launch：组合入口；finals.launch：启用原巡检任务的一键入口。
 
-地图只改文件名及 YAML image 引用；模型只改 ROS 包名/资源 URI。导航 YAML、路线、模型权重和串口实现保持原内容。structure_integrity.json 保存原始及允许的路径/导入替换后哈希；removed_generated 记录移除的厂商目录旧构建产物。厂商实现没有修改。
+本次实车排查没有修改导航算法、路线、模型权重或串口协议。启动入口的 IMU 默认端口使用 /dev/imu；设备绑定和实测范围见 ACCEPTANCE.md。structure_integrity.json 保存原始及允许的路径/导入替换后哈希；removed_generated 记录移除的厂商目录旧构建产物。厂商实现没有修改。
 
 ## 已知问题与实机验证
 

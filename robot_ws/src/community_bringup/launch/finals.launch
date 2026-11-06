@@ -5,10 +5,10 @@
   <arg name="navigation_cancel_timeout" default=""/>
   <arg name="goal_timeout" default=""/>
 
-  <!-- Finals entry for the currently implemented mission; see README for missing tasks. -->
+  <!-- Finals entry: automatically execute the configured inspection route. -->
   <arg name="base_protocol"/>
   <arg name="base_port" default="/dev/carserial"/>
-  <arg name="imu_port" default="/dev/ttyUSB1"/>
+  <arg name="imu_port" default="/dev/imu"/>
   <arg name="camera_device" default="/dev/video0"/>
   <arg name="configure_camera" default="false"/>
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>

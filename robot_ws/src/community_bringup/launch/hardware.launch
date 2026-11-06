@@ -2,7 +2,7 @@
   <rosparam command="load" file="$(find community_bringup)/config/hardware.yaml" />
   <arg name="base_protocol" />
   <arg name="base_port" default="/dev/carserial" />
-  <arg name="imu_port" default="/dev/ttyUSB1" />
+  <arg name="imu_port" default="/dev/imu" />
   <arg name="camera_device" default="/dev/video0" />
   <arg name="configure_camera" default="false" />
   <include file="$(find lslidar_driver)/launch/lslidar_serial.launch" />
