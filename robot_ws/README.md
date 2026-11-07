@@ -114,3 +114,29 @@ source devel/setup.bash
 三个硬件组合入口均以 /dev/imu 为默认 IMU 端口，避免将 ttyUSB1 误作 IMU。
 udev 规则位于目标机 /etc/udev/rules.d/，属于主机配置，不随 Git 提交部署。
 换机时先通过拔插和数据帧核对设备身份，再建立别名。不要同时运行新旧底盘节点占用串口。
+
+## 图片采集
+
+用于采集人物、车辆、红绿灯、垃圾等各类目标及背景图片。相机启动并发布 `/usb_cam/image_raw` 后，在已加载 ROS 环境的终端执行：
+
+```bash
+cd /home/mowen/workspace/Smart-Community/robot_ws
+python3 tools/collect_dataset.py community_images --datasets-dir ../yolo_train/datasets --no-preview
+```
+
+`community_images` 是自定义数据集名称，可替换为 `bicycle`、`traffic_light` 等。上述命令将原图保存至 `yolo_train/datasets/community_images/images/`；不指定 `--datasets-dir` 时，默认保存至 `robot_ws/datasets/<数据集名称>/images/`。图像按时间命名，重复运行可继续采集。可通过 `--topic` 指定其他 `sensor_msgs/Image` 相机话题。
+
+当前用户环境的 OpenCV 不支持 GUI 时，脚本会自动转为终端采集。若需实时预览，请在小车图形桌面终端使用系统 OpenCV：
+
+```bash
+python3 -s tools/collect_dataset.py community_images --datasets-dir ../yolo_train/datasets
+```
+
+`-s` 禁用用户级 Python 包，使用已安装且支持 GTK 的系统 OpenCV；终端仍需先加载 ROS 环境。纯 SSH 会话使用 `--no-preview`。
+
+SSH 无窗口模式下，按回车保存一张最新图像，输入 `q` 后回车退出。去掉 `--no-preview` 使用图形预览，S/空格保存，Q/Esc 退出。保存的是原图，不包含预览提示或检测框。
+
+所有数据集（包括 `person`）统一保存至 `<数据集根目录>/<数据集名称>/images/`，不自动分类，也不创建类别或训练集划分目录。分类与标注由用户后续手动完成。
+
+采集用于 YOLO 训练的图片后，仍需逐个目标画框标注并划分训练集、验证集；分类文件夹不能代替检测标签。
+
