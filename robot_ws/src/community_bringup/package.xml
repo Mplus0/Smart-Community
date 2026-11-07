@@ -15,6 +15,8 @@
   <depend>global_planner</depend>
   <depend>lslidar_driver</depend>
   <depend>map_server</depend>
+  <exec_depend>gmapping</exec_depend>
+  <exec_depend>rviz</exec_depend>
   <depend>move_base</depend>
   <depend>robot_description</depend>
   <depend>robot_localization</depend>
