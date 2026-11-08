@@ -83,6 +83,63 @@ finals.launch 不包含人工验收或定位确认界面；服务就绪后任务
 结果默认保存到 ~/.ros/community/<run_id>/：mission_results.json、mission.log、photo/、videos/。
 服务调试图另在 detections/、ocr/，不属于某次任务证据。
 
+## 键盘建图与导航测试
+
+每个终端先加载上文 ROS 和 devel 环境。小车需安装 `ros-noetic-gmapping`，
+图形显示需 `ros-noetic-rviz`。新增脚本后执行一次 `catkin_make` 并重新加载 devel。
+
+```bash
+# 终端 1：硬件（已有硬件节点运行时不要重复启动）
+roslaunch community_bringup hardware.launch base_protocol:=aa_bb
+# 终端 2：建图、机器人 TF 和 EKF；有桌面时可追加 rviz:=true
+roslaunch community_bringup mapping.launch
+# 终端 3：在交互终端进行键盘控制，SSH 使用 ssh -t mowen
+rosrun community_bringup teleop_twist_keyboard.py
+```
+
+默认线速度 0.1 m/s、角速度 0.3 rad/s；10 Hz 发送，停止按键输入 0.6 秒后回零。
+`i` 前进、`,` 后退、`j/l` 左右转；大写 `J/L` 左右横移（Shift+j/l）；
+空格或 `k` 停车，Ctrl+C 退出。`q/z` 调整速度，q 不是退出键。
+终端必须保持焦点；其他速度发布节点应停止，尤其不要同时运行 move_base 或自动巡检。
+参数可覆盖，例如 `_speed:=0.08 _turn:=0.2`。
+脚本来自 [ros-teleop/teleop_twist_keyboard](https://github.com/ros-teleop/teleop_twist_keyboard)，
+版本与改动见 [来源说明](src/community_bringup/docs/TELEOP_SOURCE.md)。
+
+RViz 将 Fixed Frame 设为 `map`，添加 Map（`/map`）、LaserScan（`/scan`）、TF、RobotModel。
+确认激光与障碍物重合后再缓慢遥控建图。建图时观察相机中目标的尺寸、角度与遮挡，
+作为采集位置的依据；导航使用的最终位置应在同一地图坐标系中记录。
+
+```bash
+# 保持建图运行，另开终端保存新地图（不要覆盖现有地图）
+mkdir -p ~/maps
+rosrun map_server map_saver -f ~/maps/community_test
+# 保存后停止键盘和 mapping.launch，保留硬件，启动新地图定位导航
+roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml
+rosrun rviz rviz
+```
+
+建图和 navigation.launch 二选一，避免重复的 map→odom 与 EKF/机器人 TF。
+导航时先用 RViz 的 2D Pose Estimate 初始化定位，确认地图与扫描对齐后，
+再在空旷处设置近距离的 2D Nav Goal。首次测试不启动 mission.launch 或 finals.launch。
+以上入口具备建图/导航链路，地面运动、地图质量与导航到点效果需现场验收。
+
+## 图片采集
+
+用于采集人物、车辆、红绿灯、垃圾等各类目标及背景图片。先启动相机并加载 ROS 工作空间环境，在 `robot_ws` 目录执行：
+
+```bash
+python3 tools/collect_dataset.py community_images
+# SSH 无图形界面：回车保存一张，输入 q 后回车退出
+python3 tools/collect_dataset.py community_images --no-preview
+```
+
+默认订阅 `/usb_cam/image_raw`，可用 `--topic` 指定其他 `sensor_msgs/Image` 话题。
+预览窗口按空格或 S 保存原图，按 Q 或 Esc 退出。
+数据集名称由命令的位置参数指定，例如 `community_images`、`traffic_light` 或 `bicycle`，可按采集任务自行命名。
+图像按时间命名，保存至 `robot_ws/datasets/<数据集名称>/images/`，重复运行可继续采集。
+可用 `--datasets-dir /目标目录` 更改数据集根目录。
+采集图像不含检测框或标签，训练前需标注并划分训练集、验证集；本地数据集不纳入 Git。
+
 ## 开发检查及边界
 
 ```bash
