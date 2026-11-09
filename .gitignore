@@ -62,6 +62,7 @@ simulation_ws/**/*.yaml.lock
 robot_ws/**/*.yaml.lock
 # Local camera captures, training caches and new training runs.
 simulation_ws/datasets/
+robot_ws/datasets/
 datasets/**/*.cache
 yolo_train/datasets/**/*.cache
 yolo_train/runs/
