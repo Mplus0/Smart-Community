@@ -234,3 +234,18 @@ SSH 无窗口模式下，按回车保存一张最新图像，输入 `q` 后回�
 
 采集用于 YOLO 训练的图片后，仍需逐个目标画框标注并划分训练集、验证集；分类文件夹不能代替检测标签。
 
+### 浏览器预览与拍照
+
+在已加载 ROS 环境、相机已启动的 robot_ws 终端执行：
+
+```bash
+python3 tools/collect_dataset.py trashbin --datasets-dir ../yolo_train/datasets --web-port 8080 --web-host 0.0.0.0 --web-only
+```
+
+同一局域网访问 http://小车IP:8080/，可实时预览并点击“拍照保存”。
+VS Code Remote SSH 可在“端口”面板转发 8080，再打开转发地址。
+预览约 10 帧/秒，保存原始分辨率 JPEG（质量 95），目录是 yolo_train/datasets/trashbin/images/。
+相机断流超过 2 秒时拒绝保存旧画面；本次保存数量从每次启动时的 0 开始统计。
+--web-port 默认 0（关闭），--web-host 默认 127.0.0.1（仅本机）。
+--web-only 适合后台运行；需要同时保留终端回车拍照时，将它替换为 --no-preview。
+启动前先退出旧采集进程，ROS 主节点与相机节点保持运行。
