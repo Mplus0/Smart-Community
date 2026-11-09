@@ -120,7 +120,8 @@
       "kie_linking": []
     },
     {
-      "label": "community_person",
+      "review_status": "pending",
+      "label": "outsider",
       "score": 0.7491697072982788,
       "points": [
         [
@@ -141,7 +142,7 @@
         ]
       ],
       "group_id": null,
-      "description": null,
+      "description": "",
       "difficult": false,
       "shape_type": "rectangle",
       "flags": {},
