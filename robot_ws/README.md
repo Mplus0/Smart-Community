@@ -14,6 +14,8 @@ ROS Noetic / Python 3 自主巡检工程。2026-11-07 已在 mowen 完成启动�
 | robot_description | URDF 几何和固定关节 TF，默认 mowen.urdf |
 
 自研节点与辅助模块在各包 scripts/，参数在 config/，模型在 community_perception/models/，地图在 community_bringup/maps/。
+
+人员检测使用 `community_perception/models/people.onnx`，由 `yolo_train/model/person.pt`（YOLO26n）导出。输入为 FP32 `[1, 3, 640, 640]`，输出为 `[1, 6, 8400]`，ONNX opset 12；导出参数为 `end2end=False, nms=False, dynamic=False, simplify=False`，由现有检测服务执行后处理。模型类别 0 `community_person`、1 `outsider` 在 `detectors.yaml` 中分别映射为业务标签 `good`、`bad`。
 [完整架构及接口](docs/ARCHITECTURE.md) · [架构图](docs/workspace_architecture.svg) · [逐步验收](docs/ACCEPTANCE.md)。
 
 ## 编译产物与检查状态
@@ -139,6 +141,41 @@ python3 tools/collect_dataset.py community_images --no-preview
 图像按时间命名，保存至 `robot_ws/datasets/<数据集名称>/images/`，重复运行可继续采集。
 可用 `--datasets-dir /目标目录` 更改数据集根目录。
 采集图像不含检测框或标签，训练前需标注并划分训练集、验证集；本地数据集不纳入 Git。
+
+## 人物模型浏览器测试
+
+工具 `tools/test_person_model.py` 直接加载实车的 `people.onnx`，默认订阅 `/usb_cam/image_raw`，无需启动检测服务或巡检任务，也不直接占用 USB 相机。使用与实车检测服务相同的缩放、阈值和 NMS 方式，绿框表示社区人员，红框表示外来人员；画面上方显示两类人数和单帧处理耗时。人数统计为全画面检测结果，不应用巡检任务的 ROI 规则。
+
+先在小车终端加载环境并启动相机，已有相机话题发布时跳过相机启动命令：
+
+```bash
+source /opt/ros/noetic/setup.bash
+cd /home/mowen/workspace/Smart-Community/robot_ws
+source devel/setup.bash
+# 仅启动相机；已经运行 hardware.launch 时不要重复启动
+rosrun usb_cam usb_cam_node _video_device:=/dev/video0 _pixel_format:=mjpeg _image_width:=640 _image_height:=480 _framerate:=30
+```
+
+另开终端，同样加载环境后执行：
+
+```bash
+cd /home/mowen/workspace/Smart-Community/robot_ws
+python3 tools/test_person_model.py --port 8080
+```
+
+在同一局域网的电脑浏览器访问 `http://小车IP:8080/`，小车本机访问 `http://127.0.0.1:8080/`。默认监听 `0.0.0.0`，使用 MJPEG 实时预览，Ctrl+C 关闭。相机停止发布时会保留最后一帧。端口被占用时通过 `--port 8081` 更换端口；无法连接时检查小车 IP、网络及端口放行。
+
+可覆盖相机话题、置信度、IoU 阈值和最大推理频率：
+
+```bash
+python3 tools/test_person_model.py --topic /usb_cam/image_raw --conf 0.5 --iou 0.4 --fps 10 --port 8080
+# 指定其他兼容的两类 ONNX 模型
+python3 tools/test_person_model.py --model /绝对路径/people.onnx --port 8080
+# 单张图片预览，无需 ROS 或相机；依赖 OpenCV、NumPy、ONNX Runtime
+python3 tools/test_person_model.py --image ../yolo_train/datasets/person/val/images/0011.jpg --port 8080
+```
+
+实时模式使用 ROS Noetic 的 `rospy`、`cv_bridge`、`sensor_msgs` 和现有 ONNX Runtime/OpenCV/NumPy 依赖，不需要 Flask 或图形桌面，也不需要重新编译工作空间。HTTP 部分使用 Python 标准库 [ThreadingHTTPServer](https://docs.python.org/3.8/library/http.server.html#http.server.ThreadingHTTPServer)。
 
 ## 开发检查及边界
 

@@ -7,50 +7,13 @@ detectors:
     iou_threshold: 0.4
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/people
+    # community_person -> good; outsider -> bad (mission business labels).
     class_names:
     - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - good
-    - bad
-    - bad
-    - bad
     - bad
     save_classes:
     - 0
     - 1
-    - 2
-    - 3
-    - 4
-    - 5
-    - 6
-    - 7
-    - 8
-    - 9
-    - 10
-    - 11
-    - 12
-    - 13
-    - 14
-    - 15
-    - 16
-    - 17
-    - 18
-    - 19
-    - 20
     service_name: /people_detector/detect
   traffic_light_detector:
     model_path: $(find community_perception)/models/light.onnx
