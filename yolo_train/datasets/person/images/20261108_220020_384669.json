@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "community_person",
+      "score": 0.9024994373321533,
+      "points": [
+        [
+          158.54354858398438,
+          208.27105712890625
+        ],
+        [
+          265.5003967285156,
+          208.27105712890625
+        ],
+        [
+          265.5003967285156,
+          443.94207763671875
+        ],
+        [
+          158.54354858398438,
+          443.94207763671875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8844285011291504,
+      "points": [
+        [
+          290.26287841796875,
+          205.81036376953125
+        ],
+        [
+          370.72711181640625,
+          205.81036376953125
+        ],
+        [
+          370.72711181640625,
+          443.78973388671875
+        ],
+        [
+          290.26287841796875,
+          443.78973388671875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8760073781013489,
+      "points": [
+        [
+          409.8271484375,
+          205.19366455078125
+        ],
+        [
+          510.862548828125,
+          205.19366455078125
+        ],
+        [
+          510.862548828125,
+          444.07025146484375
+        ],
+        [
+          409.8271484375,
+          444.07025146484375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261108_220020_384669.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640,
+  "description": ""
+}

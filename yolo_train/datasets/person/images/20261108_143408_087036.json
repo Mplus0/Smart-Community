@@ -1,0 +1,128 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "community_person",
+      "score": 0.9051454067230225,
+      "points": [
+        [
+          83.01754760742188,
+          219.556884765625
+        ],
+        [
+          164.63986206054688,
+          219.556884765625
+        ],
+        [
+          164.63986206054688,
+          437.9110107421875
+        ],
+        [
+          83.01754760742188,
+          437.9110107421875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.9023184180259705,
+      "points": [
+        [
+          320.867919921875,
+          225.35589599609375
+        ],
+        [
+          401.157958984375,
+          225.35589599609375
+        ],
+        [
+          401.157958984375,
+          433.5574951171875
+        ],
+        [
+          320.867919921875,
+          433.5574951171875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8998669385910034,
+      "points": [
+        [
+          176.97149658203125,
+          218.91387939453125
+        ],
+        [
+          260.7677917480469,
+          218.91387939453125
+        ],
+        [
+          260.7677917480469,
+          435.37835693359375
+        ],
+        [
+          176.97149658203125,
+          435.37835693359375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "outsider",
+      "score": 0.7280077934265137,
+      "points": [
+        [
+          412.190673828125,
+          223.18670654296875
+        ],
+        [
+          499.2666015625,
+          223.18670654296875
+        ],
+        [
+          499.2666015625,
+          435.95477294921875
+        ],
+        [
+          412.190673828125,
+          435.95477294921875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261108_143408_087036.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640,
+  "description": ""
+}
