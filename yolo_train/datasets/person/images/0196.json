@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "community_person",
+      "score": 0.9070197939872742,
+      "points": [
+        [
+          162.16796875,
+          205.80279541015625
+        ],
+        [
+          250.4373779296875,
+          205.80279541015625
+        ],
+        [
+          250.4373779296875,
+          444.7979736328125
+        ],
+        [
+          162.16796875,
+          444.7979736328125
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8917868733406067,
+      "points": [
+        [
+          288.2283935546875,
+          204.34161376953125
+        ],
+        [
+          371.84326171875,
+          204.34161376953125
+        ],
+        [
+          371.84326171875,
+          444.4818115234375
+        ],
+        [
+          288.2283935546875,
+          444.4818115234375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8835304975509644,
+      "points": [
+        [
+          408.60498046875,
+          205.03955078125
+        ],
+        [
+          511.40350341796875,
+          205.03955078125
+        ],
+        [
+          511.40350341796875,
+          444.147216796875
+        ],
+        [
+          408.60498046875,
+          444.147216796875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0196.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640,
+  "description": ""
+}

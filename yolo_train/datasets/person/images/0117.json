@@ -1,0 +1,157 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "community_person",
+      "score": 0.9037768840789795,
+      "points": [
+        [
+          144.13345336914062,
+          233.369140625
+        ],
+        [
+          210.80441284179688,
+          233.369140625
+        ],
+        [
+          210.80441284179688,
+          407.871826171875
+        ],
+        [
+          144.13345336914062,
+          407.871826171875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8995702266693115,
+      "points": [
+        [
+          436.1477355957031,
+          223.2169189453125
+        ],
+        [
+          503.9118957519531,
+          223.2169189453125
+        ],
+        [
+          503.9118957519531,
+          405.995849609375
+        ],
+        [
+          436.1477355957031,
+          405.995849609375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8760758638381958,
+      "points": [
+        [
+          298.3121337890625,
+          228.51629638671875
+        ],
+        [
+          362.8824462890625,
+          228.51629638671875
+        ],
+        [
+          362.8824462890625,
+          407.7137451171875
+        ],
+        [
+          298.3121337890625,
+          407.7137451171875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8656296730041504,
+      "points": [
+        [
+          210.83416748046875,
+          230.83465576171875
+        ],
+        [
+          277.0462646484375,
+          230.83465576171875
+        ],
+        [
+          277.0462646484375,
+          407.12908935546875
+        ],
+        [
+          210.83416748046875,
+          407.12908935546875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.844626784324646,
+      "points": [
+        [
+          359.0525207519531,
+          229.6976318359375
+        ],
+        [
+          430.0141296386719,
+          229.6976318359375
+        ],
+        [
+          430.0141296386719,
+          406.97625732421875
+        ],
+        [
+          359.0525207519531,
+          406.97625732421875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0117.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640,
+  "description": ""
+}

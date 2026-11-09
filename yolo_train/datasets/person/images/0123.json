@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "community_person",
+      "score": 0.9419113993644714,
+      "points": [
+        [
+          172.71359252929688,
+          226.8165283203125
+        ],
+        [
+          253.25057983398438,
+          226.8165283203125
+        ],
+        [
+          253.25057983398438,
+          408.0098876953125
+        ],
+        [
+          172.71359252929688,
+          408.0098876953125
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.88838791847229,
+      "points": [
+        [
+          345.3154296875,
+          232.29840087890625
+        ],
+        [
+          427.6641845703125,
+          232.29840087890625
+        ],
+        [
+          427.6641845703125,
+          406.258056640625
+        ],
+        [
+          345.3154296875,
+          406.258056640625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "community_person",
+      "score": 0.8600860834121704,
+      "points": [
+        [
+          269.1469421386719,
+          226.6063232421875
+        ],
+        [
+          346.7000427246094,
+          226.6063232421875
+        ],
+        [
+          346.7000427246094,
+          408.30517578125
+        ],
+        [
+          269.1469421386719,
+          408.30517578125
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0123.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640,
+  "description": ""
+}

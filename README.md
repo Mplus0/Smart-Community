@@ -72,6 +72,8 @@ GUI 入口：`python3 /workspace/simulation_ws/src/tools/gui.py`；不要与终�
 
 ## 模型与训练
 
+人员检测训练入口为 `python yolo_train/scripts/person/train.py`，默认使用 YOLO26n，读取已按 9:1 划分的训练集和验证集，结果保存至 `yolo_train/results/person/`。依赖安装、参数调整与权重位置见 [人员训练说明](yolo_train/scripts/person/README.md)。
+
 训练工具位于 `yolo_train/scripts/traffic_light/`，数据在 `yolo_train/datasets/traffic_light/`，部署权重在 `models/traffic_light/`。脚本的相对配置路径以 `yolo_train/` 为基准；已有数据已划分，重新划分时需将 `data.source` 指向 `datasets/traffic_light/raw`。训练前使用独立输出配置，避免覆盖已有权重。默认 Compose 只挂载 `simulation_ws/`，不挂载顶层模型和训练目录；交通灯权重的复制步骤见视觉部署说明。
 
 ## 注意事项
