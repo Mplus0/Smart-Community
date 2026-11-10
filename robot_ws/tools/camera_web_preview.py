@@ -57,6 +57,7 @@ def main():
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--topic", default="/usb_cam/image_raw")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default="0.0.0.0", help="HTTP listen address (default: all interfaces)")
     # Leave ROS remapping arguments available to rospy in ROS mode.
     args, remaining = parser.parse_known_args()
     if args.camera != "ros" and remaining:
@@ -136,9 +137,10 @@ def main():
 
     server = None
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+        server = ThreadingHTTPServer((args.host, args.port), Handler)
         server.daemon_threads = True
-        print("Camera: {}  Preview: http://127.0.0.1:{}/".format(source, args.port), flush=True)
+        print("Camera: {}  Listening: {}:{}".format(source, args.host, args.port), flush=True)
+        print("Preview: http://<robot-ip>:{}/ (use the robot's LAN IP)".format(args.port), flush=True)
         server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
         pass
