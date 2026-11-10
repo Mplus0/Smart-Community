@@ -41,7 +41,7 @@ class Mission:
                (self.goal_timeout, self.image_timeout, self.light_timeout, self.cancel_timeout)):
             raise ValueError('Timeouts must be finite and positive')
         if any(not math.isfinite(self.runtime[k]) or self.runtime[k] <= 0 for k in
-               ('server_timeout', 'arrival_wait', 'ocr_interval', 'service_timeout',
+               ('server_timeout', 'ocr_interval', 'service_timeout',
                 'planner_service_timeout', 'speech_drain_timeout', 'speech_join_timeout')):
             raise ValueError('Runtime intervals must be finite and positive')
         self.results = ResultManager(rospy.get_param('~data_dir', '~/.ros/community'),
@@ -198,42 +198,43 @@ class Mission:
         self.results.waypoint(point, 'RUNNING')
         self.results.execute('navigation', point, self.move_to,
                              (point['x'], point['y'], point['yaw']))
-        rospy.sleep(self.runtime['arrival_wait'])
-        self.transition('WAIT_TRAFFIC' if 'traffic_light' in point.get('tasks', [])
-                        else 'TASK', '已到达航点')
+        self.transition('TASK', '已到达航点')
 
     def wait_traffic(self):
         rospy.loginfo('[红绿灯] 航点=%s，等待绿灯', self.route['points'][self.index]['id'])
         self.results.execute('traffic_light', self.route['points'][self.index], self.wait_for_green)
-        self.transition('TASK', '已确认绿灯，继续本航点任务')
 
     def task(self):
         index = self.index
         point = self.route['points'][index]
-        tasks = point.get('tasks', [])
-        rospy.loginfo('[任务] 执行航点=%s 的全部任务', point['id'])
-        # 保留独立 if，按原顺序完成同一航点的多个任务。
-        if any(task in tasks for task in ('person', 'plate', 'fire', 'trash', 'vehicle_photo')):
+        task_type = point['task']
+        rospy.loginfo('[任务] 航点=%s，任务=%s', point['id'], task_type)
+        self.check_running()
+        if task_type == 'navigation':
+            pass
+        elif task_type == 'traffic_light':
+            self.wait_traffic()
+        elif task_type == 'announcement':
+            self.results.execute('announcement', point, self.announce)
+        elif task_type == 'record_start':
+            self.results.execute('record_start', point, self.start_recording,
+                                 paths=[self.video_path])
+        elif task_type == 'record_stop':
+            self.finish_recording(point)
+        else:
             image_path = self.data_dir/'photo'/f'{index:03d}.jpg'
             image = self.fresh_image()
             frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
             if not cv2.imwrite(str(image_path), frame):
                 raise RuntimeError('Failed to save inspection image')
-            for task_type in ('person', 'plate', 'fire', 'trash', 'vehicle_photo'):
-                if task_type in tasks:
-                    self.run_inspection(point, task_type, image, image_path)
-        if 'announcement' in tasks:
-            self.results.execute('announcement', point, self.announce)
-        if 'record_start' in tasks:
-            self.results.execute('record_start', point, self.start_recording,
-                                 paths=[self.video_path])
-        if 'record_stop' in tasks:
-            self.results.execute('record_stop', point, self.stop_recording,
-                                 paths=[self.video_path])
-            self.run_inspection(point, 'vehicle_video', self.video_path,
-                                self.video_path)
+            self.run_inspection(point, task_type, image, image_path)
         self.results.waypoint(point, 'SUCCESS')
         self.transition('NEXT_POINT', '本航点任务完成')
+
+    def finish_recording(self, point):
+        self.results.execute('record_stop', point, self.stop_recording,
+                             paths=[self.video_path])
+        self.run_inspection(point, 'vehicle_video', self.video_path, self.video_path)
 
     def run_inspection(self, point, task_type, source, media_path):
         result = self.inspection.execute(point, task_type, source)
@@ -268,7 +269,7 @@ class Mission:
 
     def run(self):
         handlers = {'INIT': self.initialize, 'NAVIGATE': self.navigate,
-                    'TASK': self.task, 'WAIT_TRAFFIC': self.wait_traffic,
+                    'TASK': self.task,
                     'NEXT_POINT': self.next_point}
         try:
             self.transition('INIT', '开始巡检')

@@ -1,0 +1,127 @@
+Panels:
+- Class: rviz/Displays
+  Name: Displays
+- Class: rviz/Views
+  Name: Views
+Visualization Manager:
+  Class: ''
+  Enabled: true
+  Global Options:
+    Fixed Frame: map
+    Background Color: 48; 48; 48
+    Frame Rate: 20
+  Displays:
+  - Class: rviz/Grid
+    Name: Grid
+    Enabled: true
+    Cell Size: 1
+    Plane Cell Count: 20
+    Color: 160; 160; 164
+    Alpha: 0.3
+  - Class: rviz/Map
+    Name: Map
+    Enabled: true
+    Topic: /map
+    Alpha: 0.7
+    Color Scheme: map
+    Draw Behind: true
+    Use Timestamp: false
+  - Class: rviz/LaserScan
+    Name: LaserScan
+    Enabled: true
+    Topic: /scan
+    Queue Size: 5
+    Size (Pixels): 3
+    Style: Points
+    Decay Time: 0
+    Color Transformer: FlatColor
+    Color: 255; 50; 50
+  - Class: rviz/TF
+    Name: TF
+    Enabled: true
+    Show Arrows: true
+    Show Axes: true
+    Show Names: false
+    Marker Scale: 0.25
+    Frame Timeout: 15
+  - Class: rviz/Odometry
+    Name: Odometry
+    Enabled: true
+    Topic: /odom
+    Keep: 30
+    Position Tolerance: 0.1
+    Angle Tolerance: 0.1
+    Shape:
+      Value: Arrow
+      Color: 255; 170; 0
+      Alpha: 1
+      Head Length: 0.12
+      Head Radius: 0.05
+      Shaft Length: 0.25
+      Shaft Radius: 0.02
+  - Class: rviz/Map
+    Name: Global Costmap
+    Enabled: true
+    Topic: /move_base/global_costmap/costmap
+    Alpha: 0.3
+    Color Scheme: costmap
+    Draw Behind: false
+    Use Timestamp: false
+  - Class: rviz/Map
+    Name: Local Costmap
+    Enabled: true
+    Topic: /move_base/local_costmap/costmap
+    Alpha: 0.5
+    Color Scheme: costmap
+    Draw Behind: false
+    Use Timestamp: false
+  - Class: rviz/Path
+    Name: Global Plan
+    Enabled: true
+    Topic: /move_base/GlobalPlanner/plan
+    Color: 0; 255; 0
+    Alpha: 1
+    Buffer Length: 1
+    Line Style: Lines
+    Line Width: 0.03
+    Pose Style: None
+  - Class: rviz/Path
+    Name: Local Plan
+    Enabled: true
+    Topic: /move_base/DWAPlannerROS/local_plan
+    Color: 0; 150; 255
+    Alpha: 1
+    Buffer Length: 1
+    Line Style: Lines
+    Line Width: 0.03
+    Pose Style: None
+  - Class: rviz/Polygon
+    Name: Footprint
+    Enabled: true
+    Topic: /move_base/local_costmap/footprint
+    Color: 255; 255; 0
+    Alpha: 1
+  Tools:
+  - Class: rviz/Interact
+  - Class: rviz/MoveCamera
+  - Class: rviz/Select
+  - Class: rviz/Measure
+  - Class: rviz/SetInitialPose
+    Topic: /initialpose
+  - Class: rviz/SetGoal
+    Topic: /move_base_simple/goal
+  Views:
+    Current:
+      Class: rviz/TopDownOrtho
+      Name: Current View
+      Target Frame: <Fixed Frame>
+      Scale: 70
+      Angle: 0
+      X: 0
+      Y: 0
+    Saved: []
+Window Geometry:
+  Width: 1280
+  Height: 800
+  Hide Left Dock: false
+  Hide Right Dock: false

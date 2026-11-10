@@ -1,183 +1,140 @@
-# 航点按列表顺序执行；tasks 关联任务，area 标识人员统计街区。
+# 每个航点配置一个 task；按航点列表顺序执行。
 points:
 - id: wp_01
   x: 1.13
   y: 0.0
   yaw: 0.0
-  type: task
-  tasks:
-  - traffic_light
+  task: traffic_light
 - id: wp_02
   x: 2.6
   y: -0.15
   yaw: 1.57
-  type: task
-  tasks:
-  - person
+  task: person
   area: A
 - id: wp_03
   x: 3.45
   y: 0.0
   yaw: 1.57
-  type: task
-  tasks:
-  - announcement
+  task: announcement
 - id: wp_04
   x: 3.5
   y: 0.0
   yaw: 3.14
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_05
   x: 3.53
   y: 0.48
   yaw: 3.14
-  type: task
-  tasks:
-  - person
+  task: person
   area: A
 - id: wp_06
   x: 3.4
   y: 1.12
   yaw: -1.57
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_07
   x: 2.62
   y: 1.2
   yaw: -1.57
-  type: task
-  tasks:
-  - person
+  task: person
   area: A
 - id: wp_08
   x: 2.6
   y: 1.1
   yaw: 1.57
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_09
   x: 2.84
   y: 0.98
   yaw: 1.57
-  type: task
-  tasks:
-  - person
+  task: person
   area: B
 - id: wp_10
   x: 2.13
   y: 1.12
   yaw: 3.14
-  type: task
-  tasks:
-  - fire
+  task: fire
 - id: wp_11
   x: 1.9
   y: 1.12
   yaw: 3.14
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_12
   x: 2.06
   y: 1.82
   yaw: 3.14
-  type: task
-  tasks:
-  - fire
+  task: fire
 - id: wp_13
   x: 1.9
   y: 1.9
   yaw: 0.0
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_14
   x: 1.8
   y: 1.72
   yaw: 0.0
-  type: task
-  tasks:
-  - person
+  task: person
   area: B
 - id: wp_15
   x: 1.9
   y: 1.91
   yaw: 1.57
-  type: task
-  tasks:
-  - traffic_light
+  task: traffic_light
 - id: wp_16
   x: 1.9
   y: 3.32
   yaw: 3.14
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_17
   x: 0.75
   y: 3.37
   yaw: 3.14
-  type: task
-  tasks:
-  - plate
+  task: plate
   parking_lot: 1
 - id: wp_18
   x: 0.75
   y: 2.75
   yaw: 3.14
-  type: task
-  tasks:
-  - plate
+  task: plate
   parking_lot: 2
 - id: wp_19
   x: 0.75
   y: 2.16
   yaw: 3.14
-  type: task
-  tasks:
-  - plate
+  task: plate
   parking_lot: 3
 - id: wp_20
   x: 0.75
   y: 2.65
   yaw: 0.0
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_21
   x: 0.62
   y: 2.57
   yaw: 0.0
-  type: task
-  tasks:
-  - trash
+  task: trash
 - id: wp_22
   x: 0.65
   y: 1.55
   yaw: 0.0
-  type: task
-  tasks:
-  - fire
+  task: fire
 - id: wp_23
   x: 0.78
   y: 1.8
   yaw: 3.14
-  type: task
-  tasks:
-  - record_start
+  task: record_start
 - id: wp_24
   x: 0.78
   y: 0.0
   yaw: 3.14
-  type: task
-  tasks:
-  - record_stop
+  task: record_stop
 - id: wp_25
   x: 0.6
   y: 0.0
   yaw: 0.0
-  type: waypoint
-  tasks: []
+  task: navigation
 - id: wp_26
   x: 0.0
   y: 0.0
   yaw: 0.0
-  type: waypoint
-  tasks: []
+  task: navigation

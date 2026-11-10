@@ -2,7 +2,6 @@
 mission:
   image_timeout: 5.0
   server_timeout: 30.0
-  arrival_wait: 1.2
   ocr_interval: 3.0
   normal_lateral_speed: 0.5
   recording_lateral_speed: 0.15
@@ -11,7 +10,7 @@ mission:
   speech_drain_timeout: 90.0
   speech_join_timeout: 1.0
   goal_timeout: 120.0
-  traffic_light_timeout: 15.0
+  traffic_light_timeout: 30.0
   green_confirm_frames: 3
   navigation_retries: 0
   navigation_cancel_timeout: 2.0

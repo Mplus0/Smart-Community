@@ -30,7 +30,7 @@ class Inspection:
         illegal = illegal_parking_count(vehicles, bounds, image.width, image.height, self.settings)
         self.illegal[street] += illegal
         self.people_points.add(point['id'])
-        if self.people_points == {p['id'] for p in self.route['points'] if 'person' in p.get('tasks', [])}:
+        if self.people_points == {p['id'] for p in self.route['points'] if p['task'] == 'person'}:
             self.speech.put(f'社区内共有{sum(self.people.values())}人，其中A街人数{self.people["A"]}人，'
                             f'B街人数{self.people["B"]}人，发现{self.outside["A"]}名非社区人员在A街，'
                             f'发现{self.outside["B"]}名非社区人员在B街，图片已保存')
@@ -77,7 +77,7 @@ class Inspection:
     def inspect_vehicle_photo(self, point, image):
         objects = detections(self.services.detect('bicycle_detector', image))
         self.vehicle_frames.append((objects, image.width, image.height))
-        if len(self.vehicle_frames) == sum('vehicle_photo' in p.get('tasks', []) for p in self.route['points']):
+        if len(self.vehicle_frames) == sum(p['task'] == 'vehicle_photo' for p in self.route['points']):
             stand, fall = vehicle_counts(self.vehicle_frames, self.settings)
             self.speech.put(vehicle_announcement(self.illegal, stand, fall))
 

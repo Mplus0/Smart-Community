@@ -85,7 +85,7 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(len(SETTINGS['waste_names']), 36)
         self.assertEqual(SETTINGS['waste_names']['orther1'], '脏污衣物')
         self.assertEqual(RUNTIME['green_confirm_frames'], 3)
-        self.assertEqual(RUNTIME['traffic_light_timeout'], 15.0)
+        self.assertEqual(RUNTIME['traffic_light_timeout'], 30.0)
         self.assertEqual(RUNTIME['navigation_retries'], 0)
 
 
@@ -135,12 +135,13 @@ class RulesTests(unittest.TestCase):
         import json
         route = yaml.safe_load((ROOT/'src/community_mission/config/route.yaml').read_text(encoding='utf-8'))
         validate_route(route)
-        for change in ('duplicate', 'coordinate', 'task', 'recording'):
+        for change in ('duplicate', 'coordinate', 'task', 'multiple', 'recording'):
             bad = copy.deepcopy(route)
             if change == 'duplicate': bad['points'][1]['id'] = bad['points'][0]['id']
             elif change == 'coordinate': bad['points'][0]['x'] = float('nan')
-            elif change == 'task': bad['points'][0]['tasks'] = ['unknown']
-            else: bad['points'][22]['tasks'] = []
+            elif change == 'task': bad['points'][0]['task'] = 'unknown'
+            elif change == 'multiple': bad['points'][0]['task'] = ['traffic_light', 'person']
+            else: bad['points'][22]['task'] = 'navigation'
             with self.subTest(change=change), self.assertRaises(ValueError): validate_route(bad)
 
 
@@ -148,7 +149,7 @@ class RulesTests(unittest.TestCase):
 class ResultManagerTests(unittest.TestCase):
     def test_runs_are_isolated_and_results_include_timing_paths(self):
         with tempfile.TemporaryDirectory() as root:
-            point = dict(id='p1', tasks=['person'])
+            point = dict(id='p1', task='person')
             first = ResultManager(root, [point], Mock())
             second = ResultManager(root, [point], Mock())
             self.assertNotEqual(first.path, second.path)
@@ -171,8 +172,8 @@ class ResultManagerTests(unittest.TestCase):
 
     def test_failure_keeps_reason_and_unexecuted_tasks(self):
         with tempfile.TemporaryDirectory() as root:
-            point = dict(id='p1', tasks=['plate', 'fire'])
-            results = ResultManager(root, [point], Mock())
+            point = dict(id='p1', task='plate')
+            results = ResultManager(root, [point, dict(id='p2', task='fire')], Mock())
             results.waypoint(point, 'RUNNING')
             def fail(): raise RuntimeError('OCR unavailable')
             with self.assertRaisesRegex(RuntimeError, 'OCR unavailable'):
@@ -187,10 +188,10 @@ class ResultManagerTests(unittest.TestCase):
 
     def test_recognition_status_is_saved_without_reinterpretation(self):
         with tempfile.TemporaryDirectory() as root:
-            point = {'id': 'p', 'tasks': ['person', 'plate', 'fire']}
-            results = ResultManager(root, [point], Mock())
-            for kind, status in zip(point['tasks'], ('SUCCESS', 'EMPTY_VALID', 'FAILED')):
-                results.record_task(dict(waypoint_id='p', task_type=kind, status=status,
+            points = [dict(id=kind, task=kind) for kind in ('person', 'plate', 'fire')]
+            results = ResultManager(root, points, Mock())
+            for point, status in zip(points, ('SUCCESS', 'EMPTY_VALID', 'FAILED')):
+                results.record_task(dict(waypoint_id=point['id'], task_type=point['task'], status=status,
                     reason='test', result={}, duration_sec=0.5, started_at='start', ended_at='end'), paths=['/image.jpg'])
             results.finish('ERROR', 'test')
             data = json.loads((results.path/'mission_results.json').read_text(encoding='utf-8'))
@@ -213,9 +214,10 @@ class WaypointTasksTests(unittest.TestCase):
     def test_all_tasks_share_success_empty_and_failure_contract(self):
         from inspection import Inspection
         kinds = ('person', 'plate', 'fire', 'trash', 'vehicle_photo', 'vehicle_video')
-        point = dict(id='arbitrary_id', tasks=list(kinds), area='B', parking_lot=3)
+        point = dict(id='arbitrary_id', task='person', area='B', parking_lot=3)
         image = SimpleNamespace(width=640, height=480)
         for kind in kinds:
+            point['task'] = 'record_stop' if kind == 'vehicle_video' else kind
             for expected in ('SUCCESS', 'EMPTY_VALID', 'FAILED'):
                 with self.subTest(kind=kind, status=expected):
                     services, speech = Mock(), Mock()
@@ -257,13 +259,13 @@ class WaypointTasksTests(unittest.TestCase):
 
     def test_area_and_parking_number_are_explicit(self):
         from inspection import Inspection
-        point = dict(id='not_an_index', tasks=['person', 'plate'], area='B', parking_lot=3)
+        point = dict(id='not_an_index', task='person', area='B', parking_lot=3)
         services, speech = Mock(), Mock()
         services.detect.return_value = SimpleNamespace(detected_classes=[], bboxes=[], confidences=[])
         services.ocr.return_value = SimpleNamespace(plate_texts=['AB123'])
         inspection = Inspection({'points': [point]}, services, speech, SETTINGS)
         inspection.inspect_people(point, SimpleNamespace(width=640, height=480))
-        inspection.inspect_plate(point, object())
+        inspection.inspect_plate(dict(id='parking', task='plate', parking_lot=3), object())
         self.assertEqual(inspection.people_points, {'not_an_index'})
         self.assertIn('B街人数', speech.put.call_args_list[0].args[0])
         self.assertEqual(inspection.plates, {3: 'AB123'})
@@ -311,22 +313,19 @@ class MissionTests(unittest.TestCase):
         self.node.results = Mock()
         self.node.results.execute.side_effect = lambda kind, point, callback, *args, **kwargs: callback(*args)
 
-    def test_point_tasks_complete_before_next_goal(self):
-        n = self.node
-        route = {'points': [dict(id='first', x=0, y=0, yaw=0,
-                                 tasks=['person', 'announcement', 'record_start'], area='A'),
-                            dict(id='second', x=0, y=0, yaw=0, tasks=['record_stop']),
-                            dict(id='last', x=0, y=0, yaw=0, tasks=[])]}
-        n.route, n.data_dir, n.planner = route, Path('/offline'), '/move_base/DWAPlannerROS'
-        n.client, n.services, n.speech, n.inspection, n.bridge = Mock(), Mock(), Mock(), Mock(), Mock()
+    def test_point_task_completes_before_next_goal(self):
+        n = self.prepare_route()
+        n.route = {'points': [dict(id='person', x=0, y=0, yaw=0, task='person', area='A'),
+                              dict(id='start', x=0, y=0, yaw=0, task='record_start'),
+                              dict(id='stop', x=0, y=0, yaw=0, task='record_stop'),
+                              dict(id='last', x=0, y=0, yaw=0, task='navigation')]}
         events = []
-        n.move_to = lambda _: events.append('move')
-        n.fresh_image = lambda: object()
-        n.inspection.execute.side_effect = lambda p, kind, source: (events.append('count_video' if kind == 'vehicle_video' else 'inspect'+p['id']) or {'status': 'SUCCESS'})
-        n.services.start_recording.side_effect = lambda _: events.append('record_start')
-        n.services.stop_recording.side_effect = lambda: events.append('record_stop')
+        n.move_to.side_effect = lambda _: events.append('move')
+        n.inspection.execute.side_effect = lambda p, kind, source: (events.append(kind) or {'status': 'SUCCESS'})
+        n.services.start_recording.side_effect = lambda _: events.append('start')
+        n.services.stop_recording.side_effect = lambda: events.append('stop')
         n.run()
-        self.assertEqual(events, ['move', 'inspectfirst', 'record_start', 'move', 'record_stop', 'count_video', 'move'])
+        self.assertEqual(events, ['move', 'person', 'move', 'start', 'move', 'stop', 'vehicle_video', 'move'])
         self.assertFalse(n.recording)
 
     def prepare_route(self):
@@ -347,7 +346,6 @@ class MissionTests(unittest.TestCase):
         n.run()
         expected = ['INIT', 'NAVIGATE']
         for index in range(26):
-            if index in (0, 14): expected.append('WAIT_TRAFFIC')
             expected.extend(['TASK', 'NEXT_POINT', 'FINISH' if index == 25 else 'NAVIGATE'])
         self.assertEqual([c.args[0] for c in n.transition.call_args_list], expected)
         self.assertEqual([c.args[0] for c in n.move_to.call_args_list], [tuple(p[k] for k in ('x', 'y', 'yaw')) for p in n.route['points']])
@@ -355,33 +353,29 @@ class MissionTests(unittest.TestCase):
                          ['wp_02', 'wp_05', 'wp_07', 'wp_09', 'wp_10', 'wp_12', 'wp_14',
                           'wp_17', 'wp_18', 'wp_19', 'wp_21', 'wp_22'])
         self.assertEqual((n.state, n.index), ('FINISH', 25))
+        self.assertEqual(n.wait_for_green.call_count, 2)
         n.speech.drain.assert_called_once()
 
-    def test_traffic_and_multiple_tasks_at_same_point(self):
+    def test_traffic_wait_runs_only_at_configured_point(self):
         n = self.prepare_route()
-        n.route = {'points': [dict(id='combined', x=0, y=0, yaw=0, area='A',
-                                  tasks=['traffic_light', 'person', 'announcement',
-                                         'record_start', 'record_stop'])]}
+        n.route = {'points': [dict(id='light', x=0, y=0, yaw=0, task='traffic_light'),
+                              dict(id='person', x=1, y=0, yaw=0, task='person', area='A')]}
         events = []
         n.move_to.side_effect = lambda _: events.append('navigate')
         n.wait_for_green.side_effect = lambda: events.append('green')
-        n.inspection.execute.side_effect = lambda p, kind, source: (events.append('video' if kind == 'vehicle_video' else 'inspect') or {'status': 'SUCCESS'})
-        n.speech.put.side_effect = lambda text: events.append(text)
-        n.services.start_recording.side_effect = lambda _: events.append('start')
-        n.services.stop_recording.side_effect = lambda: events.append('stop')
+        n.inspection.execute.side_effect = lambda *args: (events.append('person') or {'status': 'SUCCESS'})
         n.run()
-        self.assertEqual(events, ['我要验牌', 'navigate', 'green', 'inspect',
-                                  '前方发现禁止直行标识', 'start', 'stop', 'video'])
+        self.assertEqual(events, ['navigate', 'green', 'navigate', 'person'])
 
     def test_failures_enter_error_without_advancing_or_retry(self):
-        for phase in ('INIT', 'NAVIGATE', 'WAIT_TRAFFIC', 'TASK'):
+        for phase in ('INIT', 'NAVIGATE', 'TRAFFIC_TASK', 'TASK'):
             with self.subTest(phase=phase):
                 n = self.prepare_route()
                 n.state, n.index = 'INIT', 0
-                n.route['points'][0]['tasks'].append('person')
+                if phase == 'TASK': n.route['points'][0]['task'] = 'person'
                 if phase == 'INIT': n.client.wait_for_server.return_value = False
                 elif phase == 'NAVIGATE': n.move_to.side_effect = RuntimeError('navigation timeout')
-                elif phase == 'WAIT_TRAFFIC': n.wait_for_green.side_effect = RuntimeError('traffic timeout')
+                elif phase == 'TRAFFIC_TASK': n.wait_for_green.side_effect = RuntimeError('traffic timeout')
                 else: n.inspection.execute.return_value = {'status': 'FAILED', 'reason': 'inspection failed'}
                 with self.assertRaises(RuntimeError): n.run()
                 self.assertEqual((n.state, n.index), ('ERROR', 0))
@@ -390,6 +384,15 @@ class MissionTests(unittest.TestCase):
                 self.assertTrue(n.reason)
                 self.assertLessEqual(n.move_to.call_count, 1)
                 n.speech.drain.assert_not_called()
+
+    def test_non_traffic_points_never_invoke_green_wait(self):
+        n = self.prepare_route()
+        n.route = {'points': [dict(id='navigation', x=0, y=0, yaw=0, task='navigation'),
+                              dict(id='people', x=1, y=0, yaw=0, task='person', area='A')]}
+        n.run()
+        n.wait_for_green.assert_not_called()
+        n.fresh_image.assert_called_once()
+        n.inspection.execute.assert_called_once()
 
     def test_shutdown_enters_error_before_navigation(self):
         n = self.prepare_route()
@@ -416,9 +419,10 @@ class MissionTests(unittest.TestCase):
             with self.subTest(failed=failed), tempfile.TemporaryDirectory() as root:
                 n = self.prepare_route()
                 n.state, n.index = 'INIT', 0
-                point = dict(id='multi', x=0, y=0, yaw=0, tasks=['person', 'plate'], area='A', parking_lot=1)
-                n.route = {'points': [point]}
-                n.results = ResultManager(root, [point], Mock())
+                point = dict(id='people', x=0, y=0, yaw=0, task='person', area='A')
+                points = [point, dict(id='plate', x=1, y=0, yaw=0, task='plate', parking_lot=1)]
+                n.route = {'points': points}
+                n.results = ResultManager(root, points, Mock())
                 n.data_dir = n.results.path
                 n.move_to.return_value = None
                 n.fresh_image.return_value = SimpleNamespace(width=640, height=480)
@@ -433,15 +437,15 @@ class MissionTests(unittest.TestCase):
                     n.run()
                 data = json.loads((n.results.path/'mission_results.json').read_text(encoding='utf-8'))
                 self.assertEqual(data['status'], 'ERROR' if failed else 'FINISH')
-                self.assertEqual([t['status'] for t in data['operations'][1:]],
+                self.assertEqual([t['status'] for t in data['operations'] if t['task_type'] != 'navigation'],
                                  ['FAILED'] if failed else ['EMPTY_VALID', 'EMPTY_VALID'])
 
     def test_transition_logs_state_point_and_reason(self):
         n = self.prepare_route()
         n.index = 14
-        n.transition('WAIT_TRAFFIC', 'arrived')
-        self.assertEqual((n.state, n.reason), ('WAIT_TRAFFIC', 'arrived'))
-        n.results.state.assert_called_with('WAIT_TRAFFIC', n.route['points'][14], 'arrived')
+        n.transition('TASK', 'arrived')
+        self.assertEqual((n.state, n.reason), ('TASK', 'arrived'))
+        n.results.state.assert_called_with('TASK', n.route['points'][14], 'arrived')
 
     def test_stale_camera_frame_is_not_reused(self):
         n = self.node
@@ -611,7 +615,7 @@ if __name__ == '__main__':
               f'- 用例数：{result.testsRun}。\n- 失败：{len(result.failures)}；错误：{len(result.errors)}。\n'
               '- 覆盖：逐目标响应解析、ROI 缩放、违停框去重、垃圾投放、多照片车辆去重、'
               '播报计数、配置校验、首帧/异常时间/旋转里程计、到点任务顺序、图像新鲜度、'
-              '导航成功/失败/超时、红绿灯条件、26 航点状态转换、同点多任务、错误终止、退出清理、结果目录隔离、任务记录、异常汇总、写入失败、六类识别任务统一返回结构、空结果和服务异常区分、连续绿灯与重复帧、导航取消确认及有限重试、YAML 模型配置/启动覆盖与规则参数读取。\n'
+              '导航成功/失败/超时、红绿灯条件、26 航点状态转换、单航点单任务及红绿灯按配置执行、错误终止、退出清理、结果目录隔离、任务记录、异常汇总、写入失败、六类识别任务统一返回结构、空结果和服务异常区分、连续绿灯与重复帧、导航取消确认及有限重试、YAML 模型配置/启动覆盖与规则参数读取。\n'
               '- 任务编排测试使用 ROS/服务测试替身；未启动 ROS，未加载模型，未连接硬件，未编译。\n\n'
               '复现：`python3 tools/test_python_migration.py`。\n')
     (ROOT/'docs/PYTHON_TESTS.md').write_text(report, encoding='utf-8')

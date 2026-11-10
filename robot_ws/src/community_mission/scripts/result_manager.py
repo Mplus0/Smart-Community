@@ -21,8 +21,8 @@ class ResultManager:
         self.data = dict(run_id=self.run_id, status='RUNNING', started_at=timestamp(),
                          ended_at=None, duration_sec=0.0, current_waypoint=None, error=None,
                          waypoints=[dict(id=p['id'], status='NOT_EXECUTED') for p in points],
-                         planned_tasks=[dict(waypoint_id=p['id'], task_type=t, status='NOT_EXECUTED')
-                                        for p in points for t in p.get('tasks', [])],
+                         planned_tasks=[dict(waypoint_id=p['id'], task_type=p['task'], status='NOT_EXECUTED')
+                                        for p in points if p['task'] != 'navigation'],
                          operations=[], recording_errors=[])
         self.event('开始巡检 ' + self.run_id)
         self.save()

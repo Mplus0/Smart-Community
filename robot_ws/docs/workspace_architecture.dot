@@ -26,7 +26,7 @@ mission [label="community_mission / mission_node
 26 航点导航与巡检任务
 人员统计、车牌、火情、垃圾判断、电动车拍照
 连续绿灯放行、导航超时/有限重试
-INIT → NAVIGATE → WAIT_TRAFFIC/TASK
+INIT → NAVIGATE → TASK
 NEXT_POINT → FINISH；异常 ERROR",fillcolor="#ede9fe"];
 media [label="community_mission 服务
 speech_server：语音队列播报

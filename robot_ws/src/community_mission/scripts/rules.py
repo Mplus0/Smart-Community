@@ -27,7 +27,7 @@ def validate_route(route):
     if not isinstance(points, list) or not points:
         raise ValueError('points must be a nonempty list')
     ids = set()
-    allowed = {'person', 'plate', 'traffic_light', 'fire', 'trash',
+    allowed = {'navigation', 'person', 'plate', 'traffic_light', 'fire', 'trash',
                'vehicle_photo', 'announcement', 'record_start', 'record_stop'}
     recording = False
     for point in points:
@@ -41,20 +41,17 @@ def validate_route(route):
             value = point.get(key)
             if type(value) not in (int, float) or not math.isfinite(value):
                 raise ValueError(f'{name}: {key} must be finite')
-        tasks = point.get('tasks', [])
-        if (not isinstance(tasks, list) or any(not isinstance(t, str) or t not in allowed for t in tasks)
-                or len(tasks) != len(set(tasks))):
-            raise ValueError(f'{name}: invalid or duplicate tasks')
-        if point.get('type', 'task' if tasks else 'waypoint') != ('task' if tasks else 'waypoint'):
-            raise ValueError(f'{name}: type does not match tasks')
-        if 'person' in tasks and point.get('area') not in ('A', 'B'):
+        task = point.get('task')
+        if not isinstance(task, str) or task not in allowed or 'tasks' in point:
+            raise ValueError(f'{name}: task must name one supported task')
+        if task == 'person' and point.get('area') not in ('A', 'B'):
             raise ValueError(f'{name}: person requires area A or B')
-        if 'plate' in tasks and (type(point.get('parking_lot')) is not int or point['parking_lot'] < 1):
+        if task == 'plate' and (type(point.get('parking_lot')) is not int or point['parking_lot'] < 1):
             raise ValueError(f'{name}: plate requires a positive parking_lot')
-        if 'record_start' in tasks:
+        if task == 'record_start':
             if recording: raise ValueError('Recording already started')
             recording = True
-        if 'record_stop' in tasks:
+        if task == 'record_stop':
             if not recording: raise ValueError('Recording stop must follow recording start')
             recording = False
     if recording:

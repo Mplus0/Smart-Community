@@ -190,6 +190,22 @@ rosrun rviz rviz
 
 RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，再使用 `2D Nav Goal` 测试导航。建图与导航不同时运行。
 
+## Ubuntu 本地 RViz 调试
+
+多机通信配置完成后，在 Ubuntu 本地终端执行以下命令。小车端先启动硬件及 `mapping.launch`（保持 `rviz:=false`），或硬件及 `navigation.launch`。
+
+```bash
+cd /你的路径/Smart-Community/robot_ws
+# 建图显示：地图、雷达、TF、里程计
+roslaunch src/community_bringup/launch/rviz/slam_rviz.launch
+# 导航显示：增加全局/局部代价地图、规划路径、机器人轮廓及定位/目标工具
+roslaunch src/community_bringup/launch/rviz/navigation_rviz.launch
+```
+
+两个入口只启动本地 RViz，默认固定坐标系为 `map`；不启动小车硬件、建图或导航节点。显示配置位于 `src/community_bringup/rviz/`，可用 `config:=/绝对路径/custom.rviz` 覆盖。可将 `launch/rviz/` 和 `rviz/` 按现有相对目录结构复制到 Ubuntu 后通过文件路径启动，无需编译整套实车包。已加载工作空间时也可使用 `roslaunch community_bringup slam_rviz.launch` 或 `roslaunch community_bringup navigation_rviz.launch`。
+
+建图窗口仅用于查看；导航窗口提供 `2D Pose Estimate` 和 `2D Nav Goal`。当前默认不显示相机图像或三维模型。多机网络环境需要另行配置，实际连接与显示效果需在 Ubuntu 和小车上验证。
+
 ## 常用配置与结果
 
 | 位置 | 用途 |
@@ -204,6 +220,8 @@ RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`route` 和 `data_dir` 覆盖对应参数。
 
+航点按列表顺序执行，每点只配置一个 `task`：普通导航点用 `task: navigation`，人物点用 `task: person` 并指定 `area: A` 或 `B`，红绿灯点用 `task: traffic_light`。到点后直接执行该任务；不再使用 `type` 和 `tasks` 列表。绿灯等待默认上限 30 秒，需连续 3 帧有效绿灯。
+
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 
 ## 开发检查
@@ -216,3 +234,25 @@ python3 tools/test_python_migration.py
 ```
 
 识别效果、定位导航和完整巡检流程需要在目标硬件与现场验证。详细说明见 [架构与接口](docs/ARCHITECTURE.md)、[实车验收](docs/ACCEPTANCE.md) 和 [底盘协议说明](docs/BASE_PROTOCOL_REVIEW.md)。
+
+## 浏览器相机预览
+
+在工作空间目录运行，默认通过 ROS 订阅 `/usb_cam/image_raw`：
+
+```bash
+cd ~/workspace/Smart-Community/robot_ws
+source devel/setup.bash
+python3 tools/camera_web_preview.py
+```
+
+通过环境变量 `CAMERA` 选择来源：
+
+```bash
+CAMERA=ros python3 tools/camera_web_preview.py       # 默认，需先启动相机话题
+CAMERA=dji python3 tools/camera_web_preview.py       # DJI Pocket 3，3840×2160，30 fps
+CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 fps
+```
+
+也可用 `--camera ros|dji|orbbec` 覆盖环境变量。直连模式使用 `/dev/v4l/by-id/` 的设备路径，避免插拔后设备编号变化；不依赖 ROS，且不要与其他程序同时占用同一相机。可用 `--width 1920 --height 1080 --fps 30` 调整直连采集参数，启动日志会显示实际协商的分辨率。DJI 默认使用 MJPEG 4K。
+
+服务仅监听小车本机的 8765 端口。在 VS Code 远程连接的“端口”面板转发 8765，然后在本地浏览器打开 `http://localhost:8765/`。用 `--topic` 更改 ROS 话题，`--port` 更改端口；Ctrl+C 停止预览。

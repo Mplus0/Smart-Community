@@ -74,7 +74,7 @@
 <text text-anchor="middle" x="416" y="-179.4" font-family="Noto Sans CJK SC" font-size="12.00">26 航点导航与巡检任务</text>
 <text text-anchor="middle" x="416" y="-166.4" font-family="Noto Sans CJK SC" font-size="12.00">人员统计、车牌、火情、垃圾判断、电动车拍照</text>
 <text text-anchor="middle" x="416" y="-153.4" font-family="Noto Sans CJK SC" font-size="12.00">连续绿灯放行、导航超时/有限重试</text>
-<text text-anchor="middle" x="416" y="-140.4" font-family="Noto Sans CJK SC" font-size="12.00">INIT → NAVIGATE → WAIT_TRAFFIC/TASK</text>
+<text text-anchor="middle" x="416" y="-140.4" font-family="Noto Sans CJK SC" font-size="12.00">INIT → NAVIGATE → TASK</text>
 <text text-anchor="middle" x="416" y="-127.4" font-family="Noto Sans CJK SC" font-size="12.00">NEXT_POINT → FINISH；异常 ERROR</text>
 </g>
 <!-- entry&#45;&gt;mission -->

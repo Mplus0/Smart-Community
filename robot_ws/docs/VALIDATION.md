@@ -1,37 +1,33 @@
-# 静态检查与提交前验证
+# 静态检查报告
 
-2026-11-07 在 mowen 的 ROS Noetic 环境验证现有编译产物。
+功能包：8；完整性校验：121 个文件。
 
-## 验证结果
+检查 Python 语法、本地模块/服务导入、依赖、XML/YAML、资源引用、入口、include 参数、服务生成、scripts 安装声明及旧结构移除。
 
-- tools/test_python_migration.py：38/38通过。
-- community.launch / finals.launch：roslaunch --nodes解析成功，分别21/22个节点。
-- 三个入口均默认使用 /dev/imu，wit_normal_ros.py 具有执行权限。
-- git diff --check：通过。
-- 完整性工具检查8个包、121个历史基线文件，返回码1；不能记为全部通过。
+## 项目问题
 
-## 完整性差异分类
+Integrity mismatch: src/community_perception/models/people.onnx
+Integrity mismatch: src/community_mission/config/route.yaml
+Integrity mismatch: src/community_mission/scripts/mission_node.py
+Integrity mismatch: src/wit_ros_imu/scripts/wit_normal_ros.py
+Integrity mismatch: src/community_mission/scripts/inspection.py
+Integrity mismatch: src/community_mission/scripts/rules.py
+Integrity mismatch: src/community_bringup/CMakeLists.txt
+Integrity mismatch: src/community_bringup/package.xml
+Integrity mismatch: src/community_bringup/launch/hardware.launch
+Integrity mismatch: src/community_mission/scripts/result_manager.py
+Integrity mismatch: src/community_bringup/launch/community.launch
+Integrity mismatch: src/community_bringup/launch/finals.launch
+Integrity mismatch: src/community_perception/config/detectors.yaml
+Integrity mismatch: src/community_mission/config/runtime.yaml
 
-对 tools/validate_workspace.py 报告的差异逐项核对：
-- 57个文本文件：仅LF/CRLF差异，恢复CRLF后哈希与历史基线一致。
-- 3个启动文件：本次将imu_port默认值从/dev/ttyUSB1改为/dev/imu。
-- 1个历史文件缺失：src/robot_description/export.log。
-- 除上述完整性差异外，本次工具未报告其他项目结构/资源错误。
-- 历史基线未重写，未通过更新哈希掩盖差异。
+## 厂商原有问题（未修改）
 
-变更文件：
-- src/community_bringup/launch/hardware.launch
-- src/community_bringup/launch/community.launch
-- src/community_bringup/launch/finals.launch
+src\robot_description\urdf\mowen.urdf.xacro: no element found: line 60, column 111
+src\wit_ros_imu\demo\wit_normal.py: Missing parentheses in call to 'print'. Did you mean print(...)?
+src\wit_ros_imu\scripts\wit_can_ros.py: unindent does not match any outer indentation level
+src\wit_ros_imu\scripts\wit_hcan_ros.py: unindent does not match any outer indentation level
+src\wit_ros_imu\scripts\wit_hmodbus_ros.py: unindent does not match any outer indentation level
+src\wit_ros_imu\scripts\wit_modbus_ros.py: unindent does not match any outer indentation level
 
-## 已知历史警告
-
-默认未使用的 wit_normal demo 有Python2语法，部分CAN/Modbus脚本有缩进错误。
-robot_description/urdf/mowen.urdf.xacro 不完整；当前入口使用 mowen.urdf。
-这些文件内容本次未修改。
-
-## 报告边界
-
-validate_workspace.py 会重新生成本文件，且其尾部包含历史固定措辞“未安装ROS、未编译、未启动节点”；
-该措辞不描述本次目标机环境。本报告补充本次实际验证，不修改工具或历史基线。
-默认启动解析不代表导航/全路线运行通过；实车结果见 [ACCEPTANCE.md](ACCEPTANCE.md)。
+未安装 ROS、未编译、未启动节点；外部依赖、生成服务和运行行为待工控机验证。
