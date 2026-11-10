@@ -1,0 +1,390 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "recyclable_trash",
+      "score": 0.9839754104614258,
+      "points": [
+        [
+          355.1568603515625,
+          421.072998046875
+        ],
+        [
+          419.9869384765625,
+          421.072998046875
+        ],
+        [
+          419.9869384765625,
+          480.0
+        ],
+        [
+          355.1568603515625,
+          480.0
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "hazardous_trash",
+      "score": 0.9539794921875,
+      "points": [
+        [
+          164.02757263183594,
+          357.5699462890625
+        ],
+        [
+          223.45314025878906,
+          357.5699462890625
+        ],
+        [
+          223.45314025878906,
+          411.92144775390625
+        ],
+        [
+          164.02757263183594,
+          411.92144775390625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.9487648010253906,
+      "points": [
+        [
+          225.5786895751953,
+          421.93548583984375
+        ],
+        [
+          287.00152587890625,
+          421.93548583984375
+        ],
+        [
+          287.00152587890625,
+          480.0
+        ],
+        [
+          225.5786895751953,
+          480.0
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.9329299926757812,
+      "points": [
+        [
+          162.3511962890625,
+          418.253662109375
+        ],
+        [
+          219.877197265625,
+          418.253662109375
+        ],
+        [
+          219.877197265625,
+          480.0
+        ],
+        [
+          162.3511962890625,
+          480.0
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.9134174585342407,
+      "points": [
+        [
+          289.0234375,
+          420.88629150390625
+        ],
+        [
+          352.15167236328125,
+          420.88629150390625
+        ],
+        [
+          352.15167236328125,
+          480.0
+        ],
+        [
+          289.0234375,
+          480.0
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.8852295875549316,
+      "points": [
+        [
+          355.04815673828125,
+          356.38348388671875
+        ],
+        [
+          414.84503173828125,
+          356.38348388671875
+        ],
+        [
+          414.84503173828125,
+          414.52276611328125
+        ],
+        [
+          355.04815673828125,
+          414.52276611328125
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "hazardous_trash",
+      "score": 0.8517526388168335,
+      "points": [
+        [
+          352.9095764160156,
+          292.9797058105469
+        ],
+        [
+          410.8407897949219,
+          292.9797058105469
+        ],
+        [
+          410.8407897949219,
+          347.2881774902344
+        ],
+        [
+          352.9095764160156,
+          347.2881774902344
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.8183241486549377,
+      "points": [
+        [
+          288.08544921875,
+          354.8371276855469
+        ],
+        [
+          348.2999267578125,
+          354.8371276855469
+        ],
+        [
+          348.2999267578125,
+          418.4441223144531
+        ],
+        [
+          288.08544921875,
+          418.4441223144531
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.7922589778900146,
+      "points": [
+        [
+          165.27236938476562,
+          291.58489990234375
+        ],
+        [
+          225.60543823242188,
+          291.58489990234375
+        ],
+        [
+          225.60543823242188,
+          351.82769775390625
+        ],
+        [
+          165.27236938476562,
+          351.82769775390625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "hazardous_trash",
+      "score": 0.3525945246219635,
+      "points": [
+        [
+          289.2757568359375,
+          290.63946533203125
+        ],
+        [
+          347.1644287109375,
+          290.63946533203125
+        ],
+        [
+          347.1644287109375,
+          349.86444091796875
+        ],
+        [
+          289.2757568359375,
+          349.86444091796875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.33300894498825073,
+      "points": [
+        [
+          352.62701416015625,
+          293.8591003417969
+        ],
+        [
+          410.07733154296875,
+          293.8591003417969
+        ],
+        [
+          410.07733154296875,
+          347.4754943847656
+        ],
+        [
+          352.62701416015625,
+          347.4754943847656
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "hazardous_trash",
+      "score": null,
+      "points": [
+        [
+          229.37499999999994,
+          292.0138888888889
+        ],
+        [
+          283.1944444444444,
+          292.0138888888889
+        ],
+        [
+          283.1944444444444,
+          348.61111111111114
+        ],
+        [
+          229.37499999999994,
+          348.61111111111114
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "hazardous_trash",
+      "score": null,
+      "points": [
+        [
+          228.68055555555554,
+          355.55555555555554
+        ],
+        [
+          280.41666666666663,
+          355.55555555555554
+        ],
+        [
+          280.41666666666663,
+          410.4166666666667
+        ],
+        [
+          228.68055555555554,
+          410.4166666666667
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261109_230220_112270.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640
+}
