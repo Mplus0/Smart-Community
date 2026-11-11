@@ -24,9 +24,7 @@ cd "$WORKSPACE"
 # 2. Load ROS / Catkin environment
 # ------------------------------------------------------------
 
-if [ -f "/opt/ros/melodic/setup.bash" ]; then
-    source /opt/ros/melodic/setup.bash
-fi
+source /opt/ros/noetic/setup.bash
 
 if [ -f "$WORKSPACE/devel/setup.bash" ]; then
     source "$WORKSPACE/devel/setup.bash"

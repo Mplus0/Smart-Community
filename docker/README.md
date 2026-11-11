@@ -2,7 +2,7 @@
 
 Docker 镜像提供 ROS、Gazebo、Cartographer 和视觉推理环境。工作空间通过目录挂载与宿主机共享。
 
-Ubuntu 22.04 宿主机也可复用此镜像连接实车并显示建图 RViz，无需启动 Gazebo；启动命令见 [实车 Docker RViz 说明](../robot_ws/README.md#ubuntu-2204复用-docker-镜像运行-rviz)。
+Ubuntu 22.04 宿主机也可复用此镜像连接实车并显示建图 RViz，无需启动 Gazebo；启动命令见 [实车 Docker RViz 说明](../robot_ws/README.md#ubuntu-本地-rviz-调试)。
 
 ## 环境与目录
 
@@ -12,7 +12,8 @@ Ubuntu 22.04 宿主机也可复用此镜像连接实车并显示建图 RViz，�
 | ROS / 仿真 | ROS Noetic / Gazebo 11 |
 | 镜像 / 容器 | `smart-community:latest` / `smart-community-dev` |
 | Compose 服务 / 用户 | `ros` / `developer`（UID/GID 默认 1000） |
-| 工作空间 | `/workspace/simulation_ws` |
+| 仿真工作空间（默认工作目录） | `/workspace/simulation_ws` |
+| 实车工作空间 | `/workspace/robot_ws` |
 | Cartographer | `/opt/cartographer_ws/install_isolated` |
 | 视觉 Python | `/home/developer/.venvs/robot-perception/bin/python` |
 
@@ -34,7 +35,19 @@ docker compose exec --user developer ros bash
 
 镜像构建需要网络下载 ROS、Cartographer 和 Python 依赖。Compose 的构建上下文为仓库根目录，`Dockerfile.dockerignore` 限制发送给构建器的内容。也可在仓库根目录使用 `docker build -f docker/Dockerfile -t smart-community:latest .` 构建同名镜像。
 
-## 编译工作空间
+## 更新已有容器的挂载
+
+Compose 同时挂载仓库中的 `simulation_ws/` 和 `robot_ws/`，文件修改会同步到宿主机。已有容器添加挂载后，需在 `docker/` 目录执行一次以下命令应用配置，无需重新构建镜像：
+
+```bash
+docker compose up -d --no-build ros
+```
+
+配置变化时该命令会重新创建容器；先结束容器中的任务，并备份需要保留的未挂载文件。之后配置不变时，使用 `docker compose start ros` 复用容器即可。
+
+`DISPLAY` 从宿主机环境读取；小车地址 `ROS_MASTER_URI`、本机地址 `ROS_IP` 在运行 RViz 的终端设置，不写入共享 Compose，以免影响仿真。两套工作空间分别加载环境，不在同一终端叠加加载。仅显示实车 RViz 无需编译 `robot_ws`，具体命令见 [Ubuntu 本地 RViz 调试](../robot_ws/README.md#ubuntu-本地-rviz-调试)。
+
+## 编译仿真工作空间
 
 以下命令在容器内执行：
 

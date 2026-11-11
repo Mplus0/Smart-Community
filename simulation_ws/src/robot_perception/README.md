@@ -35,7 +35,7 @@ source devel/setup.bash --extend
 | 车牌 | `models/hyperlpr3/20230229/onnx/` 及 `models/hyperlpr3/models_manifest.json` |
 | 交通灯 | `models/traffic_light_best.pt` |
 
-首次部署交通灯模型时，将仓库根目录的 `models/traffic_light/best.pt` 复制到 `simulation_ws/src/robot_perception/models/traffic_light_best.pt`；已有有效文件无需覆盖。源权重应保留，不能用 ONNX 或预训练权重替代此文件。默认 Compose 仅挂载 `simulation_ws`，仓库顶层 `models/` 不在容器内；文件复制可在宿主机文件管理器中完成。
+首次部署交通灯模型时，将仓库根目录的 `models/traffic_light/best.pt` 复制到 `simulation_ws/src/robot_perception/models/traffic_light_best.pt`；已有有效文件无需覆盖。源权重应保留，不能用 ONNX 或预训练权重替代此文件。默认 Compose 挂载 `simulation_ws` 和 `robot_ws`，仓库顶层 `models/` 不在容器内；文件复制可在宿主机文件管理器中完成。
 
 HyperLPR 使用当前 Linux 用户的缓存。使用与节点相同的用户和解释器，在容器中执行：
 

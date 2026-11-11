@@ -1,4 +1,4 @@
-image: /workspace/simulation_ws/src/robot_navigation/maps/localization_map.pgm
+image: localization_map.pgm
 resolution: 0.020000
 origin: [-0.547105, -0.511340, 0.000000]
 negate: 0

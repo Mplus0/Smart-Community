@@ -17,7 +17,9 @@
 
 ## 环境与编译
 
-宿主机只用于进入容器；每个新终端执行：
+Compose 已挂载 `simulation_ws` 和 `robot_ws`。旧容器需先按 [Docker 说明](../docker/README.md#更新已有容器的挂载) 更新挂载；改名前生成的 `build/`、`devel/`、`install/` 不应直接复用，需移走后在新路径重新编译。
+
+宿主机只用于进入已启动的容器；每个新终端执行：
 
 ```bash
 docker exec -it --user developer smart-community-dev bash
@@ -27,6 +29,8 @@ docker exec -it --user developer smart-community-dev bash
 
 ```bash
 cd /workspace/simulation_ws
+unset ROS_IP ROS_HOSTNAME
+export ROS_MASTER_URI=http://localhost:11311
 source /opt/ros/noetic/setup.bash
 source /opt/cartographer_ws/install_isolated/setup.bash
 source devel/setup.bash --extend
@@ -36,11 +40,15 @@ source devel/setup.bash --extend
 
 ```bash
 cd /workspace/simulation_ws
+unset ROS_IP ROS_HOSTNAME
+export ROS_MASTER_URI=http://localhost:11311
 source /opt/ros/noetic/setup.bash
 source /opt/cartographer_ws/install_isolated/setup.bash
 catkin_make -j2
 source devel/setup.bash --extend
 ```
+
+实车 RViz 与仿真使用独立终端，避免沿用小车的 ROS Master 或加载另一工作空间的环境。
 
 Cartographer 单独安装在 `/opt/cartographer_ws/install_isolated`；`--extend` 保留该环境，避免主工作空间覆盖其包搜索路径。catkin 和任务主程序使用系统 Python 3.8；视觉节点使用 `/home/developer/.venvs/robot-perception/bin/python`（Python 3.10）。不要激活视觉 venv 后编译 ROS。模型和缓存部署细节见 [视觉包 README](src/robot_perception/README.md)。
 

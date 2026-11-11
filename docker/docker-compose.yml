@@ -24,6 +24,7 @@ services:
 
     volumes:
       - ../simulation_ws:/workspace/simulation_ws
+      - ../robot_ws:/workspace/robot_ws
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
 
     devices:
