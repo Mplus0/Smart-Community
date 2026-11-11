@@ -206,7 +206,51 @@ roslaunch src/community_bringup/launch/rviz/navigation_rviz.launch
 
 建图窗口仅用于查看；导航窗口提供 `2D Pose Estimate` 和 `2D Nav Goal`。当前默认不显示相机图像或三维模型。多机网络环境需要另行配置，实际连接与显示效果需在 Ubuntu 和小车上验证。
 
+### Ubuntu 22.04：复用 Docker 镜像运行 RViz
+
+宿主机没有 ROS Noetic 时，可复用仿真的 `smart-community:latest` 镜像，其中已包含 Noetic 和 RViz，无需重新构建或编译实车工作空间。下面创建临时 RViz 容器，使用 host 网络和 X11/XWayland 显示；退出后自动删除容器。旧仿真容器可能仍挂载重构前的目录，因此这里直接挂载当前 `robot_ws`。
+
+先在小车每个 ROS 终端加载工作空间，并在启动节点前设置网络环境：
+
+```bash
+unset ROS_HOSTNAME
+export ROS_MASTER_URI=http://192.168.31.59:11311
+export ROS_IP=192.168.31.59
+```
+
+小车分别启动 `hardware.launch base_protocol:=aa_bb` 和 `mapping.launch rviz:=false`，键盘控制及保存地图沿用上文命令。已有硬件运行时不重复启动，建图期间停止导航和自动巡检。
+
+在本地 Ubuntu 图形桌面的终端执行（仓库路径按实际位置修改）：
+
+```bash
+cd /home/mplus0/workspace/smart-community
+xhost +si:localuser:$(id -un)
+
+docker run --rm -it \
+  --network host \
+  --user "$(id -u):$(id -g)" \
+  -e DISPLAY="$DISPLAY" \
+  -e QT_X11_NO_MITSHM=1 \
+  -e LIBGL_ALWAYS_SOFTWARE=1 \
+  -e ROS_MASTER_URI=http://192.168.31.59:11311 \
+  -e ROS_IP=192.168.31.83 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
+  -v "$PWD/robot_ws:/workspace/robot_ws:ro" \
+  smart-community:latest \
+  bash --noprofile --norc -c 'source /opt/ros/noetic/setup.bash && roslaunch /workspace/robot_ws/src/community_bringup/launch/rviz/slam_rviz.launch'
+```
+
+`192.168.31.59` 为小车 IP，`192.168.31.83` 为本机连接小车局域网的 IP；可用 `ip route get 192.168.31.59` 查看输出中的 `src`，地址变化时更新上述命令。此方式使用软件渲染，无需 NVIDIA 容器配置，适用于二维建图显示。容器只启动 RViz，不启动 Gazebo 或本地 ROS Master；小车和本机需要能双向通信。
+
+关闭 RViz 并退出容器后，可撤销本次 X11 授权：
+
+```bash
+xhost -si:localuser:$(id -un)
+```
+
 ## 常用配置与结果
+
+默认导航地图 `src/community_bringup/maps/map.yaml` 已替换为 2026-11-11 实车保存的 `community_test` 地图，分辨率为 0.05 m/像素。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配。
 
 | 位置 | 用途 |
 |---|---|

@@ -2,6 +2,8 @@
 
 Docker 镜像提供 ROS、Gazebo、Cartographer 和视觉推理环境。工作空间通过目录挂载与宿主机共享。
 
+Ubuntu 22.04 宿主机也可复用此镜像连接实车并显示建图 RViz，无需启动 Gazebo；启动命令见 [实车 Docker RViz 说明](../robot_ws/README.md#ubuntu-2204复用-docker-镜像运行-rviz)。
+
 ## 环境与目录
 
 | 项目 | 配置 |
