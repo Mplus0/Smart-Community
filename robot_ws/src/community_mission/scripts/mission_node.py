@@ -25,6 +25,9 @@ class Mission:
         self.index = 0
         self.reason = "等待初始化"
         self.stopping = False
+        self.navigation_only = rospy.get_param('~navigation_only', False)
+        if type(self.navigation_only) is not bool:
+            raise ValueError('navigation_only must be a boolean')
         self.route = validate_route(rospy.get_param('~'))
         self.runtime = rospy.get_param('~mission')
         self.goal_timeout = float(rospy.get_param('~goal_timeout', self.runtime['goal_timeout']))
@@ -50,18 +53,24 @@ class Mission:
         self.video_path = self.data_dir/'videos/video.mp4'
         self.planner = rospy.get_param('~planner_namespace', '/move_base/DWAPlannerROS')
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-        self.services = Services(self.runtime)
-        self.bridge = CvBridge()
+        self.services = None
+        self.bridge = None
         self.condition = threading.Condition()
         self.latest = None
         self.sequence = 0
         self.recording = False
         self.closed = False
-        self.speech = SpeechQueue(self.services, self.runtime)
-        self.inspection = Inspection(self.route, self.services, self.speech, rospy.get_param('~recognition_rules'),
-                                     self.runtime['ocr_interval'])
-        self.subscriber = rospy.Subscriber(rospy.get_param('~image_topic', '/usb_cam/image_raw'),
-                                           Image, self.image_callback, queue_size=1, buff_size=2**24)
+        self.speech = None
+        self.inspection = None
+        self.subscriber = None
+        if not self.navigation_only:
+            self.services = Services(self.runtime)
+            self.bridge = CvBridge()
+            self.speech = SpeechQueue(self.services, self.runtime)
+            self.inspection = Inspection(self.route, self.services, self.speech, rospy.get_param('~recognition_rules'),
+                                         self.runtime['ocr_interval'])
+            self.subscriber = rospy.Subscriber(rospy.get_param('~image_topic', '/usb_cam/image_raw'),
+                                               Image, self.image_callback, queue_size=1, buff_size=2**24)
         rospy.on_shutdown(self.close)
 
     def image_callback(self, image):
@@ -188,8 +197,11 @@ class Mission:
     def initialize(self):
         if not self.client.wait_for_server(rospy.Duration(self.runtime['server_timeout'])):
             raise RuntimeError('move_base is unavailable')
-        self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
-        self.speech.put('我要验牌')
+        if not self.navigation_only:
+            self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
+            self.speech.put('我要验牌')
+        else:
+            rospy.loginfo('[导航验收] 只导航模式，跳过全部航点任务及红绿灯等待')
         self.transition('NAVIGATE', '导航服务已就绪')
 
     def navigate(self):
@@ -198,7 +210,11 @@ class Mission:
         self.results.waypoint(point, 'RUNNING')
         self.results.execute('navigation', point, self.move_to,
                              (point['x'], point['y'], point['yaw']))
-        self.transition('TASK', '已到达航点')
+        if self.navigation_only:
+            self.results.waypoint(point, 'SUCCESS')
+            self.transition('NEXT_POINT', '已到达航点，跳过任务')
+        else:
+            self.transition('TASK', '已到达航点')
 
     def wait_traffic(self):
         rospy.loginfo('[红绿灯] 航点=%s，等待绿灯', self.route['points'][self.index]['id'])
@@ -260,7 +276,7 @@ class Mission:
 
     def next_point(self):
         if self.index + 1 == len(self.route['points']):
-            if not self.speech.drain():
+            if self.speech is not None and not self.speech.drain():
                 rospy.logwarn('[任务] Speech queue did not finish before its deadline')
             self.transition('FINISH', '全部航点完成')
         else:
@@ -296,8 +312,10 @@ class Mission:
             except Exception as error:
                 rospy.logerr('[任务] Failed to stop recorder: %s', error)
             self.recording = False
-        self.subscriber.unregister()
-        self.speech.close()
+        if self.subscriber is not None:
+            self.subscriber.unregister()
+        if self.speech is not None:
+            self.speech.close()
 
 
 def main():

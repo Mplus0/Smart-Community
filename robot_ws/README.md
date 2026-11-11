@@ -93,6 +93,18 @@ roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yam
 
 本地 RViz 启动方式见下一节。RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，再使用 `2D Nav Goal` 测试导航。建图与导航不同时运行。
 
+保持建图或定位运行，将小车停在目标点后记录航点和任务（保存为新文件）：
+
+```bash
+python3 tools/record_waypoints.py --output ~/maps/route.yaml
+```
+
+回车记录 `navigation`，也可输入 `person A`、`plate 1` 等任务；`u` 撤销上一点，`q` 退出。每点自动保存，坐标为 `map` 下的 `x/y/yaw`。使用记录的路线启动巡检：
+
+```bash
+roslaunch community_mission mission.launch route:=$HOME/maps/route.yaml
+```
+
 ## Ubuntu 本地 RViz 调试
 
 小车运行硬件及建图或导航，本地电脑只运行 RViz。两种本地启动方式共用以下网络配置，选择其中一种即可；无需编译本地实车工作空间。
@@ -178,6 +190,12 @@ roslaunch community_bringup navigation.launch
 roslaunch community_bringup services.launch
 # 终端 4：确认地图、定位和路线后启动自动任务
 roslaunch community_mission mission.launch
+```
+
+只导航验收时，启动硬件和导航后，用以下命令代替服务与巡检启动，按原路线逐点导航并跳过识别、红绿灯等待、播报和录像：
+
+```bash
+roslaunch community_mission mission.launch navigation_only:=true
 ```
 
 ### 组合启动
