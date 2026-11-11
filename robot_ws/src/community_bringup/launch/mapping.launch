@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Start hardware.launch separately. Do not combine with navigation.launch. -->
+  <arg name="algorithm" default="gmapping" doc="gmapping or cartographer" />
   <arg name="scan_topic" default="/scan" />
   <arg name="rviz" default="false" />
+  <arg name="resolution" default="0.05" />
+  <param name="/use_sim_time" value="false" />
   <param name="robot_description" textfile="$(find robot_description)/urdf/mowen.urdf" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization" output="screen">
@@ -14,11 +17,21 @@
     <param name="base_link_frame" value="base_footprint" />
     <remap from="odometry/filtered" to="/odom" />
   </node>
-  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+  <node if="$(eval arg('algorithm') == 'gmapping')" pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
     <remap from="scan" to="$(arg scan_topic)" />
     <param name="base_frame" value="base_footprint" />
     <param name="odom_frame" value="odom" />
     <param name="map_frame" value="map" />
+    <param name="delta" value="$(arg resolution)" />
   </node>
-  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="mapping_rviz" />
+  <group if="$(eval arg('algorithm') == 'cartographer')">
+    <node pkg="cartographer_ros" type="cartographer_node" name="cartographer_node" output="screen"
+          args="-configuration_directory $(find community_bringup)/config/mapping -configuration_basename cartographer_2d.lua">
+      <remap from="scan" to="$(arg scan_topic)" />
+      <remap from="odom" to="/odom" />
+    </node>
+    <node pkg="cartographer_ros" type="cartographer_occupancy_grid_node" name="cartographer_occupancy_grid_node" output="screen"
+          args="-resolution $(arg resolution) -publish_period_sec 1.0" />
+  </group>
+  <include if="$(arg rviz)" file="$(find community_bringup)/launch/rviz/slam_rviz.launch" />
 </launch>

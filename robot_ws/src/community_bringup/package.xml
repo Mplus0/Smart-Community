@@ -16,6 +16,7 @@
   <depend>lslidar_driver</depend>
   <depend>map_server</depend>
   <exec_depend>gmapping</exec_depend>
+  <exec_depend>cartographer_ros</exec_depend>
   <exec_depend>rviz</exec_depend>
   <depend>move_base</depend>
   <depend>robot_description</depend>
