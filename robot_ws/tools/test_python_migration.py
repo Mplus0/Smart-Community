@@ -307,6 +307,7 @@ class MissionTests(unittest.TestCase):
         self.node.runtime = RUNTIME
         self.node.video_path = Path('/offline/videos/video.mp4')
         self.node.stopping = False
+        self.node.navigation_only = False
         self.node.condition = threading.Condition()
         self.node.navigation_retries, self.node.cancel_timeout = 0, 0.01
         self.node.green_confirm_frames = 3
@@ -355,6 +356,58 @@ class MissionTests(unittest.TestCase):
         self.assertEqual((n.state, n.index), ('FINISH', 25))
         self.assertEqual(n.wait_for_green.call_count, 2)
         n.speech.drain.assert_called_once()
+
+    def test_navigation_only_runs_original_route_without_tasks_or_services(self):
+        n = self.prepare_route()
+        n.navigation_only = True
+        n.services = n.speech = n.inspection = n.subscriber = None
+        n.closed = n.recording = False
+        n.task = Mock(side_effect=AssertionError('Task must not run'))
+        n.run()
+        self.assertEqual((n.state, n.index), ('FINISH', 25))
+        self.assertEqual([c.args[0] for c in n.move_to.call_args_list],
+                         [tuple(p[k] for k in ('x', 'y', 'yaw')) for p in n.route['points']])
+        n.task.assert_not_called()
+        n.wait_for_green.assert_not_called()
+        n.fresh_image.assert_not_called()
+        self.assertEqual([c.args[0] for c in n.results.execute.call_args_list], ['navigation'] * 26)
+        n.close()
+        n.client.cancel_all_goals.assert_called_once()
+
+    def test_navigation_only_initializes_without_camera_or_perception_workers(self):
+        route = yaml.safe_load((ROOT/'src/community_mission/config/route.yaml').read_text(encoding='utf-8'))
+        params = dict(route, mission=RUNTIME)
+        self.ros.get_param = lambda key, *default: (
+            True if key == '~navigation_only' else params if key == '~' else
+            RUNTIME if key == '~mission' else default[0])
+        self.ros.on_shutdown = Mock()
+        self.ros.Subscriber = Mock(side_effect=AssertionError('Camera must not be subscribed'))
+        forbidden = Mock(side_effect=AssertionError('Perception worker must not be created'))
+        results = Mock(path=Path('/offline'))
+        dependencies = dict(validate_route=validate_route, threading=threading,
+                            ResultManager=Mock(return_value=results),
+                            actionlib=SimpleNamespace(SimpleActionClient=Mock()),
+                            MoveBaseAction=object, Services=forbidden, CvBridge=forbidden,
+                            SpeechQueue=forbidden, Inspection=forbidden)
+        with patch.dict(self.env, dependencies):
+            n = type(self.node)()
+            self.assertIsNone(n.speech)
+            self.assertIsNone(n.subscriber)
+            self.assertIsNone(n.services)
+            n.close()
+        forbidden.assert_not_called()
+        self.ros.Subscriber.assert_not_called()
+
+    def test_navigation_only_stops_at_failed_waypoint(self):
+        n = self.prepare_route()
+        n.navigation_only = True
+        n.services = n.speech = n.inspection = n.subscriber = None
+        n.move_to.side_effect = [dict(outcome='SUCCESS'), RuntimeError('NAV_FAILED')]
+        with self.assertRaisesRegex(RuntimeError, 'NAV_FAILED'):
+            n.run()
+        self.assertEqual((n.state, n.index), ('ERROR', 1))
+        self.assertEqual(n.move_to.call_count, 2)
+        n.client.cancel_goal.assert_called()
 
     def test_traffic_wait_runs_only_at_configured_point(self):
         n = self.prepare_route()
