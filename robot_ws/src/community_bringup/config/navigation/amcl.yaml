@@ -1,5 +1,5 @@
-# AMCL 全向定位；收紧激光匹配距离尺度，效果需实车验证。
-odom_model_type: omni
+# AMCL 全向定位，使用修正后的里程计运动噪声模型。
+odom_model_type: omni-corrected
 gui_publish_rate: 50.0
 laser_max_range: 6
 laser_max_beams: 360
