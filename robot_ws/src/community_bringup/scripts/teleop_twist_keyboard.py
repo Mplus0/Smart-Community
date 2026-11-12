@@ -13,33 +13,30 @@ from geometry_msgs.msg import Twist
 import sys, select, termios, tty
 
 msg = """
-Reading from the keyboard  and Publishing to Twist!
----------------------------
-Moving around:
-   u    i    o
-   j    k    l
-   m    ,    .
+麦轮小车键盘控制（按住方向键持续移动）
+------------------------------------
+i / , : 前进 / 后退
+a / d : 向左横移 / 向右横移
+j / l : 原地左转 / 原地右转
+u / o : 前进并左转 / 右转
+m / . : 后退并右转 / 左转
 
-For Holonomic mode (strafing), hold down the shift key:
----------------------------
-   U    I    O
-   J    K    L
-   M    <    >
+Shift+U/O : 左前 / 右前斜移
+Shift+M/> : 左后 / 右后斜移
+Shift+J/L : 左右横移（原有按键）
 
-t : up (+z)
-b : down (-z)
-
-anything else : stop
-
-q/z : increase/decrease max speeds by 10%
-w/x : increase/decrease only linear speed by 10%
-e/c : increase/decrease only angular speed by 10%
-
-CTRL-C to quit
+空格或 k : 停车；其他未定义按键也会停车
+默认无按键输入 0.6 秒后停车
+q/z : 同时提高/降低线速度和角速度 10%
+w/x : 提高/降低线速度 10%
+e/c : 提高/降低角速度 10%
+CTRL-C : 停车并退出
 """
 
 moveBindings = {
         'i':(1,0,0,0),
+        'a':(0,1,0,0),
+        'd':(0,-1,0,0),
         'o':(1,0,0,-1),
         'j':(0,0,0,1),
         'l':(0,0,0,-1),

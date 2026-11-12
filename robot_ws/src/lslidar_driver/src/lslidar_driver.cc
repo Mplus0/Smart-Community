@@ -882,9 +882,11 @@ namespace lslidar_driver
 					scan_points_[k].degree = 0;
 				}
 				pre_time_ = time_;
-				lock.unlock();
-				pubscan_cond_.notify_one();
 				time_ = ros::Time::now();
+				lock.unlock();
+				// The first partial sweep has no valid start timestamp.
+				if (lidar_name != "N10_P" || !pre_time_.isZero())
+					pubscan_cond_.notify_one();
 			}
 			else
 			{
@@ -948,8 +950,18 @@ namespace lslidar_driver
 					msg.range_max = max_range;
 					msg.ranges.resize(scan_num);
 					msg.intensities.resize(scan_num);
-					// msg.scan_time = scan_time;
-					// msg.time_increment = scan_time / (double)(count_num);
+					const bool timed_n10 = lidar_name == "N10_P" && !n10p_double_echo;
+					if (timed_n10)
+					{
+						// Keep spatial bins unchanged, but publish clockwise in acquisition order.
+						msg.angle_min = M_PI - msg.angle_increment;
+						msg.angle_increment = -msg.angle_increment;
+						msg.angle_max = msg.angle_min + (scan_num - 1) * msg.angle_increment;
+						msg.scan_time = scan_time;
+						msg.time_increment = scan_time / count_num;
+						// First bin is one angular step after the zero-degree sweep boundary.
+						msg.header.stamp += ros::Duration(msg.time_increment);
+					}
 
 					for (int k = 0; k < scan_num; k++)
 					{
@@ -963,6 +975,10 @@ namespace lslidar_driver
 						if(n10p_double_echo == false)
 						{
 							point_idx = round((360 - points[i].degree) * count_num / 360);
+							if (timed_n10)
+							{
+								point_idx = count_num - 1 - (point_idx % count_num);
+							}
 							if (points[i].range == 0.0)
 							{
 								msg.ranges[point_idx] = std::numeric_limits<float>::infinity();

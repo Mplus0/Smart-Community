@@ -1,4 +1,4 @@
-# AMCL 原有参数原值迁移，不作导航调参。
+# AMCL 全向定位；收紧激光匹配距离尺度，效果需实车验证。
 odom_model_type: omni
 gui_publish_rate: 50.0
 laser_max_range: 6
@@ -16,7 +16,7 @@ laser_z_hit: 0.75
 laser_z_short: 0.05
 laser_z_max: 0.05
 laser_z_rand: 0.1
-laser_sigma_hit: 0.2
+laser_sigma_hit: 0.15
 laser_lambda_short: 0.1
 laser_model_type: likelihood_field
 laser_likelihood_max_dist: 2.0
