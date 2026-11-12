@@ -1,0 +1,262 @@
+:root {
+    color-scheme: dark;
+    font-family: Inter, "Microsoft YaHei", sans-serif;
+    color: #d9e2ef;
+    background: #10151d;
+    font-size: 14px;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+}
+.shell {
+    display: flex;
+    min-height: 100vh;
+}
+aside {
+    width: 236px;
+    position: fixed;
+    inset: 0 auto 0 0;
+    background: #151c27;
+    border-right: 1px solid #283245;
+    padding: 28px 18px;
+}
+.brand {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.7;
+}
+.brand small {
+    display: block;
+    color: #7290a8;
+    font-size: 11px;
+    letter-spacing: 1.6px;
+}
+nav {
+    margin-top: 40px;
+}
+nav button {
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    padding: 15px 12px;
+    margin-bottom: 8px;
+}
+nav span {
+    color: #687e94;
+    margin-right: 14px;
+}
+nav .active {
+    background: #243a45;
+    color: #65e1c0;
+}
+aside .hint {
+    position: absolute;
+    bottom: 24px;
+    font-size: 12px;
+}
+main {
+    margin-left: 236px;
+    flex: 1;
+    padding: 26px 32px;
+    min-width: 0;
+}
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 26px;
+    gap: 20px;
+}
+h1 {
+    font-size: 25px;
+    margin: 0 0 12px;
+}
+h2 {
+    font-size: 16px;
+    margin: 0 0 18px;
+    color: #e4edf8;
+}
+article {
+    background: #171f2b;
+    border: 1px solid #293549;
+    border-radius: 9px;
+    padding: 22px;
+    margin-bottom: 20px;
+    min-width: 0;
+}
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+.row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+button,
+input,
+select {
+    font: inherit;
+    border: 1px solid #3b4c61;
+    border-radius: 5px;
+    background: #222e3e;
+    color: #e2ecf4;
+    padding: 9px 12px;
+}
+button {
+    cursor: pointer;
+    margin: 3px;
+}
+button:hover {
+    border-color: #57c9ad;
+}
+button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+button.danger {
+    background: #9b3547;
+    border-color: #d65d6d;
+    font-weight: bold;
+}
+input {
+    min-width: 0;
+    max-width: 100%;
+}
+input[type="number"] {
+    width: 100px;
+}
+label {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0;
+}
+label input:not([type="number"]) {
+    flex: 1;
+}
+select {
+    max-width: 100%;
+}
+.hint,
+small {
+    color: #8d9eb3;
+    line-height: 1.7;
+}
+.online {
+    color: #5cd6af;
+}
+.offline {
+    color: #e58d86;
+}
+.alert,
+.notice {
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.alert {
+    background: #4d2934;
+    color: #ffc5c5;
+}
+.notice {
+    background: #23423d;
+}
+.statusrow {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    border-bottom: 1px solid #283549;
+    padding: 10px 0;
+    overflow-wrap: anywhere;
+}
+.statusrow span:first-child,
+.statusrow strong {
+    margin-right: auto;
+}
+.tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+.tags span {
+    background: #243345;
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.7;
+    max-height: 480px;
+    overflow: auto;
+}
+.logs {
+    height: 290px;
+    background: #101720;
+    padding: 14px;
+}
+.pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 320px;
+    margin: 20px auto;
+    touch-action: none;
+    user-select: none;
+}
+.pad button {
+    height: 60px;
+    font-size: 26px;
+    touch-action: none;
+}
+img {
+    max-width: 100%;
+    display: block;
+    max-height: 520px;
+}
+canvas {
+    width: 100%;
+    height: auto;
+    cursor: crosshair;
+    image-rendering: pixelated;
+}
+a {
+    color: #69d2ce;
+}
+.trajectory {
+    background: #101720;
+    width: 100%;
+    height: 260px;
+}
+input[type="checkbox"] {
+    flex: none;
+}
+@media (max-width: 950px) {
+    aside {
+        width: 185px;
+        padding: 20px 10px;
+    }
+    main {
+        margin-left: 185px;
+        padding: 20px;
+    }
+    .grid {
+        grid-template-columns: 1fr;
+    }
+    header {
+        align-items: flex-start;
+    }
+    .brand {
+        font-size: 16px;
+    }
+}

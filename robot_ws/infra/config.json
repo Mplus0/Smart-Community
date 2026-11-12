@@ -1,0 +1,8 @@
+{
+  "ssh_host": "mowen",
+  "remote_workspace": "/home/mowen/workspace/Smart-Community/robot_ws",
+  "remote_results": "/home/mowen/.ros/community",
+  "master_uri": "http://192.168.31.59:11311",
+  "ros_ip": "192.168.31.83",
+  "media_root": "~/SmartCommunityInfra/data"
+}
