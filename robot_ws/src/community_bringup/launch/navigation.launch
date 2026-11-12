@@ -1,7 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <launch>
   <arg name="map" default="$(find community_bringup)/maps/map.yaml" />
+  <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml" />
+  <!-- 原地图保留 /map 和 /static_map，供 AMCL 定位使用。 -->
   <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />
+  <group ns="navigation">
+    <node pkg="map_server" type="map_server" name="map_server" args="$(arg navigation_map)">
+      <param name="frame_id" value="map" />
+      <remap from="map" to="/navigation_map" />
+      <remap from="map_metadata" to="/navigation_map_metadata" />
+    </node>
+  </group>
   <include file="$(find community_bringup)/launch/amcl.launch" />
   <include file="$(find community_bringup)/launch/move_base.launch" />
   <param name="robot_description" textfile="$(find robot_description)/urdf/mowen.urdf" />

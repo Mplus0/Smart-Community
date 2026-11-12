@@ -13,6 +13,7 @@
   <arg name="configure_camera" default="false"/>
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
   <arg name="map" default="$(find community_bringup)/maps/map.yaml"/>
+  <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml"/>
   <arg name="route" default="$(find community_mission)/config/route.yaml"/>
   <include file="$(find community_bringup)/launch/community.launch">
     <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>
@@ -29,6 +30,7 @@
     <arg name="configure_camera" value="$(arg configure_camera)"/>
     <arg name="data_dir" value="$(arg data_dir)"/>
     <arg name="map" value="$(arg map)"/>
+    <arg name="navigation_map" value="$(arg navigation_map)"/>
     <arg name="route" value="$(arg route)"/>
   </include>
 </launch>

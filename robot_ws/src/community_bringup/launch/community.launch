@@ -13,13 +13,17 @@
   <arg name="run_mission" default="false"/>
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
   <arg name="map" default="$(find community_bringup)/maps/map.yaml"/>
+  <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml"/>
   <arg name="route" default="$(find community_mission)/config/route.yaml"/>
   <include file="$(find community_bringup)/launch/hardware.launch">
     <arg name="base_protocol" value="$(arg base_protocol)"/><arg name="base_port" value="$(arg base_port)"/>
     <arg name="imu_port" value="$(arg imu_port)"/><arg name="camera_device" value="$(arg camera_device)"/>
     <arg name="configure_camera" value="$(arg configure_camera)"/>
   </include>
-  <include file="$(find community_bringup)/launch/navigation.launch"><arg name="map" value="$(arg map)"/></include>
+  <include file="$(find community_bringup)/launch/navigation.launch">
+    <arg name="map" value="$(arg map)"/>
+    <arg name="navigation_map" value="$(arg navigation_map)"/>
+  </include>
   <include file="$(find community_bringup)/launch/services.launch"><arg name="data_dir" value="$(arg data_dir)"/></include>
   <include if="$(arg run_mission)" file="$(find community_mission)/launch/mission.launch">
     <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>

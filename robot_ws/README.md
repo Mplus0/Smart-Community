@@ -88,10 +88,28 @@ rosrun map_server map_saver -f ~/maps/community_test
 停止建图和键盘控制，保留硬件，再启动新地图导航：
 
 ```bash
-roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml
+roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test.yaml
 ```
 
 本地 RViz 启动方式见下一节。RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，再使用 `2D Nav Goal` 测试导航。建图与导航不同时运行。
+
+### 定位地图与导航地图
+
+默认使用 `src/community_bringup/maps/map.yaml`（`map.pgm`）进行 AMCL 定位，使用 `map_nav.yaml`（`map_nav.pgm`）进行导航。导航地图已沿原有内侧墙边界填充禁行区：左侧内收 70 cm、上方和下方各内收 10 cm；右侧按 12 cm 要求向上取整为 3 格（15 cm）。左下角保留 70 × 70 cm 的原始空白通行区（原图像素列 1994–2007、行 1993–2006，索引从 0 开始），原墙体与障碍物保留。原地图发布到 `/map`，导航地图发布到 `/navigation_map`，全局和局部代价地图均加载导航地图静态层，并保留激光障碍层与原有膨胀参数。
+
+右上区域另有矩形禁行区：右上角距内收后的上边界 70 cm、右边界 75 cm；要求宽 96 cm、高 157 cm，按 5 cm 栅格向上取整为 100 × 160 cm（原图像素列 2042–2061、行 1942–1973，索引从 0 开始）。
+
+中间另有“└”形禁行区，左下角距原始左墙内侧 130 cm、原始底墙内侧 70 cm。左边高 275 cm，竖条宽 58 cm 向上取整为 60 cm；底边长 213 cm 向上取整为 215 cm、厚 55 cm，内侧竖边 220 cm、横边 155 cm。栅格边缘顶点依次为 `(2020, 1939)`、`(2032, 1939)`、`(2032, 1983)`、`(2063, 1983)`、`(2063, 1994)`、`(2020, 1994)`（原图左上角为坐标原点，x 向右、y 向下）。
+
+设置固定禁行区域时，只在 `map_nav.pgm` 上用纯黑色实心填充，保留原图；不要改变图片尺寸、分辨率、原点或方向。修改后重启导航，在 RViz 中检查全局、局部代价地图及路径，并在实车低速条件下验证绕行效果。
+
+更换地图时需同时指定两份处于相同坐标系、具有相同尺寸、分辨率和原点的地图，避免定位与规划错位。未绘制禁行区域时，两参数可指向同一份 YAML（如上例）；已有独立导航地图时使用：
+
+```bash
+roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test_nav.yaml
+```
+
+`community.launch` 和 `finals.launch` 同样支持 `map`、`navigation_map` 参数。RViz 添加 Map 显示并选择 `/navigation_map` 可查看导航原图。
 
 保持建图或定位运行，将小车停在目标点后记录航点和任务（保存为新文件）：
 
@@ -308,7 +326,7 @@ python3 tools/collect_dataset.py trashbin --datasets-dir ../yolo_train/datasets 
 
 ## 常用配置与结果
 
-默认导航地图 `src/community_bringup/maps/map.yaml` 已替换为 2026-11-11 实车保存的 `community_test` 地图，分辨率为 0.05 m/像素。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配。
+默认定位地图 `src/community_bringup/maps/map.yaml` 使用 2026-11-11 实车保存的 `community_test` 地图，导航地图为同目录下的 `map_nav.yaml`，分辨率均为 0.05 m/像素。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配，且不落在禁行区域内。
 
 | 位置 | 用途 |
 |---|---|
@@ -320,16 +338,16 @@ python3 tools/collect_dataset.py trashbin --datasets-dir ../yolo_train/datasets 
 | `src/community_mission/config/recognition_rules.yaml` | 人员 ROI、车辆去重等识别业务规则 |
 | `src/community_perception/config/detectors.yaml` | 检测模型路径、类别、阈值和保存设置 |
 
-默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`route` 和 `data_dir` 覆盖对应参数。
+默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route.yaml` 保留 `route_20261112_235628.yaml` 中全部 19 点的 ID、坐标和朝向。仅导航模式下，到达 `wp_04` 后按 `obstacle_mode` 手动选择后续顺序，不调用障碍物模型：
+默认 `route.yaml` 包含 21 个航点，保留原路线坐标和朝向；补录的火焰检测点为 `wp_09`，B 区人员检测点为 `wp_13`。仅导航模式下，到达 `wp_04` 后按 `obstacle_mode` 手动选择后续顺序，不调用障碍物模型：
 
-- `blocked`（默认）：01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19。
-- `clear`：01 → 02 → 03 → 04 → 11 → 10 → 08 → 06 → 05 → 07 → 09 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19。
+- `blocked`（默认）：01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 13 → 11 → 12 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
+- `clear`：01 → 02 → 03 → 04 → 13 → 12 → 11 → 08 → 06 → 05 → 07 → 09 → 10 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
 
-上述编号均为 `wp_XX`。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_12` 起沿公共路线执行，到达 `wp_19` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，仅导航模式下生效。
+上述编号均为 `wp_XX`。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_14` 起沿公共路线执行，到达 `wp_21` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，仅导航模式下生效。
 
-每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 障碍物识别、`wp_10` 仪表盘识别、`wp_11` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_17`、`wp_18` 配置录像开始、结束，`wp_19` 为最终停车点。仅导航模式会跳过所有任务；现有完整任务模式仍按 YAML 列表顺序执行，绿灯等待默认上限 30 秒，需连续 3 帧有效绿灯。
+每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 障碍物识别、`wp_11` 仪表盘识别、`wp_12` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；现有完整任务模式仍按 YAML 列表顺序执行，绿灯等待默认上限 30 秒，需连续 3 帧有效绿灯。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 

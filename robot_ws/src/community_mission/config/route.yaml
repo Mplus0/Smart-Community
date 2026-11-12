@@ -1,4 +1,4 @@
-# 正式 19 点路线；坐标和朝向来自 route_20261112_235628.yaml。
+# 正式 21 点路线；原始坐标来自 route_20261112_235628.yaml，wp_09、wp_13 补录自 extra_points.yaml。
 # navigation_only:=true 时跳过全部任务，wp_04 后按 obstacle_mode 选择顺序。
 points:
 - id: wp_01
@@ -47,59 +47,70 @@ points:
   task: person
   area: B
 - id: wp_09
+  x: 1.9514
+  y: 1.4697
+  yaw: -3.1326
+  task: fire
+- id: wp_10
   x: 1.9378
   y: 1.8882
   yaw: 1.5993
   task: traffic_light
-- id: wp_10
+- id: wp_11
   x: 2.5815
   y: 3.29
   yaw: -1.5366
   task: navigation  # 仪表盘识别占位，尚未实现
-- id: wp_11
+- id: wp_12
   x: 3.5114
   y: 2.6192
   yaw: 1.6097
   task: navigation  # 温度检测占位，尚未实现
-- id: wp_12
+- id: wp_13
+  x: 3.5429
+  y: 1.684
+  yaw: -3.0667
+  task: person
+  area: B
+- id: wp_14
   x: 0.7452
   y: 3.4244
   yaw: -3.0873
   task: plate
   parking_lot: 1
-- id: wp_13
+- id: wp_15
   x: 0.7671
   y: 2.7842
   yaw: -3.088
   task: plate
   parking_lot: 2
-- id: wp_14
+- id: wp_16
   x: 0.7671
   y: 2.6016
   yaw: 0.0059
   task: trash
-- id: wp_15
+- id: wp_17
   x: 0.7836
   y: 2.125
   yaw: 3.0929
   task: plate
   parking_lot: 3
-- id: wp_16
+- id: wp_18
   x: 0.7588
   y: 1.4592
   yaw: 0.0189
   task: fire
-- id: wp_17
+- id: wp_19
   x: 0.7772
   y: 1.456
   yaw: 3.0098
   task: record_start
-- id: wp_18
+- id: wp_20
   x: 0.708
   y: 0.4756
   yaw: 3.0609
   task: record_stop
-- id: wp_19
+- id: wp_21
   x: 0.0765
   y: -0.0386
   yaw: 0.0618
@@ -107,5 +118,5 @@ points:
 
 # 仅导航测试：wp_01～wp_04 为公共前段；这里只引用 ID，不重复保存坐标。
 navigation_branches:
-  blocked: [wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, wp_11, wp_12, wp_13, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19]
-  clear: [wp_11, wp_10, wp_08, wp_06, wp_05, wp_07, wp_09, wp_12, wp_13, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19]
+  blocked: [wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, wp_13, wp_11, wp_12, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, wp_21]
+  clear: [wp_13, wp_12, wp_11, wp_08, wp_06, wp_05, wp_07, wp_09, wp_10, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, wp_21]
