@@ -192,10 +192,13 @@ roslaunch community_bringup services.launch
 roslaunch community_mission mission.launch
 ```
 
-只导航验收时，启动硬件和导航后，用以下命令代替服务与巡检启动，按原路线逐点导航并跳过识别、红绿灯等待、播报和录像：
+当前阶段使用仅导航模式：启动硬件、定位和导航后，选择以下任一命令，无需启动识别、语音和录像服务。所有航点均只导航，跳过识别、红绿灯等待、播报和录像：
 
 ```bash
-roslaunch community_mission mission.launch navigation_only:=true
+# 有障碍物（默认 blocked）
+roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=blocked
+# 无障碍物
+roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
 ### 组合启动
@@ -319,7 +322,14 @@ python3 tools/collect_dataset.py trashbin --datasets-dir ../yolo_train/datasets 
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`route` 和 `data_dir` 覆盖对应参数。
 
-航点按列表顺序执行，每点只配置一个 `task`：普通导航点用 `task: navigation`，人物点用 `task: person` 并指定 `area: A` 或 `B`，红绿灯点用 `task: traffic_light`。到点后直接执行该任务。绿灯等待默认上限 30 秒，需连续 3 帧有效绿灯。
+默认 `route.yaml` 保留 `route_20261112_235628.yaml` 中全部 19 点的 ID、坐标和朝向。仅导航模式下，到达 `wp_04` 后按 `obstacle_mode` 手动选择后续顺序，不调用障碍物模型：
+
+- `blocked`（默认）：01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19。
+- `clear`：01 → 02 → 03 → 04 → 11 → 10 → 08 → 06 → 05 → 07 → 09 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19。
+
+上述编号均为 `wp_XX`。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_12` 起沿公共路线执行，到达 `wp_19` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，仅导航模式下生效。
+
+每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 障碍物识别、`wp_10` 仪表盘识别、`wp_11` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_17`、`wp_18` 配置录像开始、结束，`wp_19` 为最终停车点。仅导航模式会跳过所有任务；现有完整任务模式仍按 YAML 列表顺序执行，绿灯等待默认上限 30 秒，需连续 3 帧有效绿灯。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 

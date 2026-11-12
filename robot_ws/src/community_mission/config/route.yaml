@@ -1,140 +1,111 @@
-# 每个航点配置一个 task；按航点列表顺序执行。
+# 正式 19 点路线；坐标和朝向来自 route_20261112_235628.yaml。
+# navigation_only:=true 时跳过全部任务，wp_04 后按 obstacle_mode 选择顺序。
 points:
 - id: wp_01
-  x: 1.13
-  y: 0.0
-  yaw: 0.0
+  x: 1.2527
+  y: -0.084
+  yaw: 0.0674
   task: traffic_light
 - id: wp_02
-  x: 2.6
-  y: -0.15
-  yaw: 1.57
+  x: 2.7377
+  y: -0.1158
+  yaw: 1.5201
   task: person
   area: A
 - id: wp_03
-  x: 3.45
-  y: 0.0
-  yaw: 1.57
-  task: announcement
+  x: 3.4689
+  y: 0.4541
+  yaw: 3.1183
+  task: person
+  area: A
 - id: wp_04
-  x: 3.5
-  y: 0.0
-  yaw: 3.14
-  task: navigation
+  x: 3.4734
+  y: 0.6875
+  yaw: 1.6193
+  task: navigation  # 障碍物识别占位；当前由 obstacle_mode 手动选择路线
 - id: wp_05
-  x: 3.53
-  y: 0.48
-  yaw: 3.14
+  x: 2.7866
+  y: 1.0932
+  yaw: -1.6205
   task: person
   area: A
 - id: wp_06
-  x: 3.4
-  y: 1.12
-  yaw: -1.57
-  task: navigation
+  x: 2.7268
+  y: 1.072
+  yaw: 1.5923
+  task: person
+  area: B
 - id: wp_07
-  x: 2.62
-  y: 1.2
-  yaw: -1.57
-  task: person
-  area: A
+  x: 1.9077
+  y: 1.0609
+  yaw: 3.086
+  task: fire
 - id: wp_08
-  x: 2.6
-  y: 1.1
-  yaw: 1.57
-  task: navigation
+  x: 1.9102
+  y: 1.6961
+  yaw: 0.012
+  task: person
+  area: B
 - id: wp_09
-  x: 2.84
-  y: 0.98
-  yaw: 1.57
-  task: person
-  area: B
-- id: wp_10
-  x: 2.13
-  y: 1.12
-  yaw: 3.14
-  task: fire
-- id: wp_11
-  x: 1.9
-  y: 1.12
-  yaw: 3.14
-  task: navigation
-- id: wp_12
-  x: 2.06
-  y: 1.82
-  yaw: 3.14
-  task: fire
-- id: wp_13
-  x: 1.9
-  y: 1.9
-  yaw: 0.0
-  task: navigation
-- id: wp_14
-  x: 1.8
-  y: 1.72
-  yaw: 0.0
-  task: person
-  area: B
-- id: wp_15
-  x: 1.9
-  y: 1.91
-  yaw: 1.57
+  x: 1.9378
+  y: 1.8882
+  yaw: 1.5993
   task: traffic_light
-- id: wp_16
-  x: 1.9
-  y: 3.32
-  yaw: 3.14
-  task: navigation
-- id: wp_17
-  x: 0.75
-  y: 3.37
-  yaw: 3.14
+- id: wp_10
+  x: 2.5815
+  y: 3.29
+  yaw: -1.5366
+  task: navigation  # 仪表盘识别占位，尚未实现
+- id: wp_11
+  x: 3.5114
+  y: 2.6192
+  yaw: 1.6097
+  task: navigation  # 温度检测占位，尚未实现
+- id: wp_12
+  x: 0.7452
+  y: 3.4244
+  yaw: -3.0873
   task: plate
   parking_lot: 1
-- id: wp_18
-  x: 0.75
-  y: 2.75
-  yaw: 3.14
+- id: wp_13
+  x: 0.7671
+  y: 2.7842
+  yaw: -3.088
   task: plate
   parking_lot: 2
-- id: wp_19
-  x: 0.75
-  y: 2.16
-  yaw: 3.14
+- id: wp_14
+  x: 0.7671
+  y: 2.6016
+  yaw: 0.0059
+  task: trash
+- id: wp_15
+  x: 0.7836
+  y: 2.125
+  yaw: 3.0929
   task: plate
   parking_lot: 3
-- id: wp_20
-  x: 0.75
-  y: 2.65
-  yaw: 0.0
-  task: navigation
-- id: wp_21
-  x: 0.62
-  y: 2.57
-  yaw: 0.0
-  task: trash
-- id: wp_22
-  x: 0.65
-  y: 1.55
-  yaw: 0.0
+- id: wp_16
+  x: 0.7588
+  y: 1.4592
+  yaw: 0.0189
   task: fire
-- id: wp_23
-  x: 0.78
-  y: 1.8
-  yaw: 3.14
+- id: wp_17
+  x: 0.7772
+  y: 1.456
+  yaw: 3.0098
   task: record_start
-- id: wp_24
-  x: 0.78
-  y: 0.0
-  yaw: 3.14
+- id: wp_18
+  x: 0.708
+  y: 0.4756
+  yaw: 3.0609
   task: record_stop
-- id: wp_25
-  x: 0.6
-  y: 0.0
-  yaw: 0.0
-  task: navigation
-- id: wp_26
-  x: 0.0
-  y: 0.0
-  yaw: 0.0
-  task: navigation
+- id: wp_19
+  x: 0.0765
+  y: -0.0386
+  yaw: 0.0618
+  task: navigation  # 最终停车
+
+# 仅导航测试：wp_01～wp_04 为公共前段；这里只引用 ID，不重复保存坐标。
+navigation_branches:
+  blocked: [wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, wp_11, wp_12, wp_13, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19]
+  clear: [wp_11, wp_10, wp_08, wp_06, wp_05, wp_07, wp_09, wp_12, wp_13, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19]

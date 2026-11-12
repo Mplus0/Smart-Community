@@ -29,6 +29,17 @@ class Mission:
         if type(self.navigation_only) is not bool:
             raise ValueError('navigation_only must be a boolean')
         self.route = validate_route(rospy.get_param('~'))
+        self.obstacle_mode = rospy.get_param('~obstacle_mode', 'blocked')
+        if self.obstacle_mode not in ('blocked', 'clear'):
+            raise ValueError('obstacle_mode must be blocked or clear')
+        if self.navigation_only and 'navigation_branches' in self.route:
+            points = self.route['points']
+            branch_index = next(i for i, p in enumerate(points) if p['id'] == 'wp_04')
+            expected = {p['id'] for p in points[branch_index + 1:]}
+            for mode in ('blocked', 'clear'):
+                order = self.route['navigation_branches'][mode]
+                if len(order) != len(expected) or set(order) != expected:
+                    raise ValueError(f'{mode}: branch must visit every remaining waypoint once')
         self.runtime = rospy.get_param('~mission')
         self.goal_timeout = float(rospy.get_param('~goal_timeout', self.runtime['goal_timeout']))
         self.image_timeout = float(rospy.get_param('~image_timeout', self.runtime['image_timeout']))
@@ -210,11 +221,7 @@ class Mission:
         self.results.waypoint(point, 'RUNNING')
         self.results.execute('navigation', point, self.move_to,
                              (point['x'], point['y'], point['yaw']))
-        if self.navigation_only:
-            self.results.waypoint(point, 'SUCCESS')
-            self.transition('NEXT_POINT', '已到达航点，跳过任务')
-        else:
-            self.transition('TASK', '已到达航点')
+        self.transition('TASK', '已到达航点')
 
     def wait_traffic(self):
         rospy.loginfo('[红绿灯] 航点=%s，等待绿灯', self.route['points'][self.index]['id'])
@@ -226,7 +233,7 @@ class Mission:
         task_type = point['task']
         rospy.loginfo('[任务] 航点=%s，任务=%s', point['id'], task_type)
         self.check_running()
-        if task_type == 'navigation':
+        if self.navigation_only or task_type == 'navigation':
             pass
         elif task_type == 'traffic_light':
             self.wait_traffic()
@@ -275,6 +282,14 @@ class Mission:
         self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
 
     def next_point(self):
+        point = self.route['points'][self.index]
+        if (self.navigation_only and point['id'] == 'wp_04'
+                and 'navigation_branches' in self.route):
+            order = self.route['navigation_branches'][self.obstacle_mode]
+            by_id = {p['id']: p for p in self.route['points']}
+            self.route['points'][self.index + 1:] = [by_id[name] for name in order]
+            rospy.loginfo('[路线] wp_04 分支=%s，后续航点=%s',
+                          self.obstacle_mode, ' -> '.join(order))
         if self.index + 1 == len(self.route['points']):
             if self.speech is not None and not self.speech.drain():
                 rospy.logwarn('[任务] Speech queue did not finish before its deadline')

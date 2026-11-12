@@ -141,7 +141,7 @@ class RulesTests(unittest.TestCase):
             elif change == 'coordinate': bad['points'][0]['x'] = float('nan')
             elif change == 'task': bad['points'][0]['task'] = 'unknown'
             elif change == 'multiple': bad['points'][0]['task'] = ['traffic_light', 'person']
-            else: bad['points'][22]['task'] = 'navigation'
+            else: next(p for p in bad['points'] if p['task'] == 'record_start')['task'] = 'navigation'
             with self.subTest(change=change), self.assertRaises(ValueError): validate_route(bad)
 
 
@@ -308,6 +308,7 @@ class MissionTests(unittest.TestCase):
         self.node.video_path = Path('/offline/videos/video.mp4')
         self.node.stopping = False
         self.node.navigation_only = False
+        self.node.obstacle_mode = 'blocked'
         self.node.condition = threading.Condition()
         self.node.navigation_retries, self.node.cancel_timeout = 0, 0.01
         self.node.green_confirm_frames = 3
@@ -343,17 +344,17 @@ class MissionTests(unittest.TestCase):
 
     def test_full_route_state_sequence(self):
         n = self.prepare_route()
-        self.assertEqual(len(n.route['points']), 26)
+        self.assertEqual(len(n.route['points']), 19)
         n.run()
         expected = ['INIT', 'NAVIGATE']
-        for index in range(26):
-            expected.extend(['TASK', 'NEXT_POINT', 'FINISH' if index == 25 else 'NAVIGATE'])
+        for index in range(19):
+            expected.extend(['TASK', 'NEXT_POINT', 'FINISH' if index == 18 else 'NAVIGATE'])
         self.assertEqual([c.args[0] for c in n.transition.call_args_list], expected)
         self.assertEqual([c.args[0] for c in n.move_to.call_args_list], [tuple(p[k] for k in ('x', 'y', 'yaw')) for p in n.route['points']])
         self.assertEqual([c.args[0]['id'] for c in n.inspection.execute.call_args_list if c.args[1] != 'vehicle_video'],
-                         ['wp_02', 'wp_05', 'wp_07', 'wp_09', 'wp_10', 'wp_12', 'wp_14',
-                          'wp_17', 'wp_18', 'wp_19', 'wp_21', 'wp_22'])
-        self.assertEqual((n.state, n.index), ('FINISH', 25))
+                         ['wp_02', 'wp_03', 'wp_05', 'wp_06', 'wp_07', 'wp_08',
+                          'wp_12', 'wp_13', 'wp_14', 'wp_15', 'wp_16'])
+        self.assertEqual((n.state, n.index), ('FINISH', 18))
         self.assertEqual(n.wait_for_green.call_count, 2)
         n.speech.drain.assert_called_once()
 
@@ -362,17 +363,29 @@ class MissionTests(unittest.TestCase):
         n.navigation_only = True
         n.services = n.speech = n.inspection = n.subscriber = None
         n.closed = n.recording = False
-        n.task = Mock(side_effect=AssertionError('Task must not run'))
+        n.task = Mock(wraps=n.task)
         n.run()
-        self.assertEqual((n.state, n.index), ('FINISH', 25))
+        self.assertEqual((n.state, n.index), ('FINISH', 18))
         self.assertEqual([c.args[0] for c in n.move_to.call_args_list],
                          [tuple(p[k] for k in ('x', 'y', 'yaw')) for p in n.route['points']])
-        n.task.assert_not_called()
+        self.assertEqual(n.task.call_count, 19)
         n.wait_for_green.assert_not_called()
         n.fresh_image.assert_not_called()
-        self.assertEqual([c.args[0] for c in n.results.execute.call_args_list], ['navigation'] * 26)
+        self.assertEqual([c.args[0] for c in n.results.execute.call_args_list], ['navigation'] * 19)
         n.close()
         n.client.cancel_all_goals.assert_called_once()
+
+    def test_navigation_only_clear_branch_visits_all_points_in_order(self):
+        n = self.prepare_route()
+        n.navigation_only, n.obstacle_mode = True, 'clear'
+        n.services = n.speech = n.inspection = n.subscriber = None
+        n.run()
+        visited = [c.args[1]['id'] for c in n.results.execute.call_args_list]
+        self.assertEqual(visited, [f'wp_{i:02d}' for i in
+                                  (1, 2, 3, 4, 11, 10, 8, 6, 5, 7, 9, 12, 13, 14, 15, 16, 17, 18, 19)])
+        self.assertEqual(n.state, 'FINISH')
+        n.wait_for_green.assert_not_called()
+        n.fresh_image.assert_not_called()
 
     def test_navigation_only_initializes_without_camera_or_perception_workers(self):
         route = yaml.safe_load((ROOT/'src/community_mission/config/route.yaml').read_text(encoding='utf-8'))

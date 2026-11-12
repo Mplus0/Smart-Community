@@ -1,5 +1,6 @@
 <launch>
   <arg name="navigation_only" default="false" />
+  <arg name="obstacle_mode" default="blocked" />
   <arg name="green_confirm_frames" default="" />
   <arg name="traffic_light_timeout" default="" />
   <arg name="navigation_retries" default="" />
@@ -18,6 +19,7 @@
     <param if="$(eval arg('goal_timeout') != '')" name="goal_timeout" type="double" value="$(arg goal_timeout)" />
     <rosparam command="load" file="$(arg route)" />
     <param name="navigation_only" type="bool" value="$(arg navigation_only)" />
+    <param name="obstacle_mode" type="str" value="$(arg obstacle_mode)" />
     <param name="data_dir" value="$(arg data_dir)" />
     <param name="image_topic" value="$(arg image_topic)" />
     <param name="planner_namespace" value="/move_base/DWAPlannerROS" />
