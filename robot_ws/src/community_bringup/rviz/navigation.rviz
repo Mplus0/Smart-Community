@@ -88,7 +88,7 @@ Visualization Manager:
   - Class: rviz/Path
     Name: Local Plan
     Enabled: true
-    Topic: /move_base/DWAPlannerROS/local_plan
+    Topic: /move_base/local_plan
     Color: 0; 150; 255
     Alpha: 1
     Buffer Length: 1

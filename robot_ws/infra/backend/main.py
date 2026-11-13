@@ -109,6 +109,7 @@ def process_status():
 
 class Start(BaseModel):
     algorithm: str = 'cartographer'
+    local_planner: str = 'dwa'
     map: str = ''
     route: str = ''
     navigation_only: bool = False
@@ -163,8 +164,12 @@ def process_action(name: str, action: str, body: Start):
         if body.algorithm not in ['gmapping','cartographer']:
             raise ValueError('未知建图算法')
         args += ['algorithm:='+body.algorithm]
-    if name == 'navigation' and body.map:
-        args += ['map:='+body.map]
+    if name == 'navigation':
+        if body.local_planner not in ['dwa','teb']:
+            raise ValueError('未知局部规划器')
+        args += ['local_planner:='+body.local_planner]
+        if body.map:
+            args += ['map:='+body.map]
     if name == 'mission':
         if '/move_base' not in nodes:
             raise ValueError('请先启动导航')

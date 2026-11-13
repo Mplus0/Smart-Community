@@ -93,6 +93,40 @@ roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yam
 
 本地 RViz 启动方式见下一节。RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，再使用 `2D Nav Goal` 测试导航。建图与导航不同时运行。
 
+### TEB 局部规划（可选）
+
+导航默认保留 DWA，可通过 `local_planner:=teb` 切换为 TEB。先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
+
+```bash
+sudo apt update
+sudo apt install ros-noetic-teb-local-planner
+cd ~/workspace/Smart-Community/robot_ws
+source /opt/ros/noetic/setup.bash
+catkin_make
+source devel/setup.bash
+rospack find teb_local_planner
+```
+
+保持硬件运行，停止已有导航及建图后启动（无需重启硬件）：
+
+```bash
+roslaunch community_bringup navigation.launch local_planner:=teb
+# 使用新地图时同时指定 map:=... 和 navigation_map:=...
+# 恢复 DWA：停止当前导航，再使用 local_planner:=dwa 启动
+```
+
+在另一终端加载 ROS 环境后确认：
+
+```bash
+rosparam get /move_base/base_local_planner
+# 应为 teb_local_planner/TebLocalPlannerROS
+rostopic info /move_base/local_plan
+```
+
+TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，使用 `/odom`、现有 `base_link` 车体轮廓及全向运动约束；前进/后退/横移速度上限分别为 0.18/0.10/0.10 m/s，合成平移速度上限为 0.18 m/s。到点容差沿用 0.08 m / 0.15 rad。初始配置关闭多拓扑候选搜索，保留代价地图障碍检测及整条局部轨迹可行性检查。参数数值不是实际避障距离或速度的保证，需低速实测绕障、横移、倒车和停车。
+
+Infra 可在启动导航前选择 DWA / TEB，切换前先停止导航。两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 Infra 和 RViz 显示。升级后需重建 Infra 前端并重启后端。本次配置尚未在实车加载 TEB 插件或验证运动效果。
+
 ### 定位地图与导航地图
 
 默认使用 `src/community_bringup/maps/map.yaml`（`map.pgm`）进行 AMCL 定位，使用 `map_nav.yaml`（`map_nav.pgm`）进行导航。导航地图已沿原有内侧墙边界填充禁行区：左侧内收 70 cm、上方和下方各内收 10 cm；右侧按 12 cm 要求向上取整为 3 格（15 cm）。左下角保留 70 × 70 cm 的原始空白通行区（原图像素列 1994–2007、行 1993–2006，索引从 0 开始），原墙体与障碍物保留。原地图发布到 `/map`，导航地图发布到 `/navigation_map`，全局和局部代价地图均加载导航地图静态层，并保留激光障碍层与原有膨胀参数。

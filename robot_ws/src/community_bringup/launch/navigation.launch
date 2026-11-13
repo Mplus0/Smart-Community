@@ -2,6 +2,7 @@
 <launch>
   <arg name="map" default="$(find community_bringup)/maps/map.yaml" />
   <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml" />
+  <arg name="local_planner" default="dwa" doc="dwa or teb" />
   <!-- 原地图保留 /map 和 /static_map，供 AMCL 定位使用。 -->
   <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />
   <group ns="navigation">
@@ -12,7 +13,9 @@
     </node>
   </group>
   <include file="$(find community_bringup)/launch/amcl.launch" />
-  <include file="$(find community_bringup)/launch/move_base.launch" />
+  <include file="$(find community_bringup)/launch/move_base.launch">
+    <arg name="local_planner" value="$(arg local_planner)" />
+  </include>
   <param name="robot_description" textfile="$(find robot_description)/urdf/mowen.urdf" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization" output="screen">

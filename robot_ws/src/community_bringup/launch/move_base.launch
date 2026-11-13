@@ -1,4 +1,5 @@
 <launch>
+    <arg name="local_planner" default="dwa" doc="dwa or teb" />
 
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
         <rosparam file="$(find community_bringup)/config/navigation/costmap_common_params.yaml" command="load" ns="global_costmap" />
@@ -8,7 +9,12 @@
         
         <rosparam file="$(find community_bringup)/config/navigation/move_base_params.yaml" command="load" />
         <rosparam file="$(find community_bringup)/config/navigation/global_planner_params.yaml" command="load" />
-        <rosparam file="$(find community_bringup)/config/navigation/dwa_local_planner_params.yaml" command="load" />
+        <rosparam if="$(eval arg('local_planner') == 'dwa')" file="$(find community_bringup)/config/navigation/dwa_local_planner_params.yaml" command="load" />
+        <rosparam if="$(eval arg('local_planner') == 'teb')" file="$(find community_bringup)/config/navigation/teb_local_planner_params.yaml" command="load" />
+        <param name="base_local_planner" value="$(eval {'dwa': 'dwa_local_planner/DWAPlannerROS', 'teb': 'teb_local_planner/TebLocalPlannerROS'}[arg('local_planner')])" />
+        <!-- Stable visualization topic for either planner. -->
+        <remap from="~DWAPlannerROS/local_plan" to="~local_plan" />
+        <remap from="~TebLocalPlannerROS/local_plan" to="~local_plan" />
     </node>
 
 </launch>

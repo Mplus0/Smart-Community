@@ -14,6 +14,7 @@
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
   <arg name="map" default="$(find community_bringup)/maps/map.yaml"/>
   <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml"/>
+  <arg name="local_planner" default="dwa" doc="dwa or teb"/>
   <arg name="route" default="$(find community_mission)/config/route.yaml"/>
   <include file="$(find community_bringup)/launch/hardware.launch">
     <arg name="base_protocol" value="$(arg base_protocol)"/><arg name="base_port" value="$(arg base_port)"/>
@@ -23,6 +24,7 @@
   <include file="$(find community_bringup)/launch/navigation.launch">
     <arg name="map" value="$(arg map)"/>
     <arg name="navigation_map" value="$(arg navigation_map)"/>
+    <arg name="local_planner" value="$(arg local_planner)"/>
   </include>
   <include file="$(find community_bringup)/launch/services.launch"><arg name="data_dir" value="$(arg data_dir)"/></include>
   <include if="$(arg run_mission)" file="$(find community_mission)/launch/mission.launch">

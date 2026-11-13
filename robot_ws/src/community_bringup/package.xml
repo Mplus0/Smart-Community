@@ -12,6 +12,7 @@
   <depend>community_mission</depend>
   <depend>community_perception</depend>
   <depend>dwa_local_planner</depend>
+  <exec_depend>teb_local_planner</exec_depend>
   <depend>global_planner</depend>
   <depend>lslidar_driver</depend>
   <depend>map_server</depend>

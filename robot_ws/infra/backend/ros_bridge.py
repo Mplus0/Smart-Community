@@ -79,7 +79,7 @@ class RosBridge:
         subscribe('/map', OccupancyGrid, self.on_map)
         subscribe('/rosout_agg', Log, lambda m: self.logs.append(dict(node=m.name, level=m.level, text=m.msg)))
         subscribe('/move_base/status', GoalStatusArray, lambda m: None)
-        for topic in ['/move_base/GlobalPlanner/plan', '/move_base/DWAPlannerROS/local_plan']:
+        for topic in ['/move_base/GlobalPlanner/plan', '/move_base/local_plan']:
             subscribe(topic, Path, lambda m, t=topic: self.paths.update({t:m}))
         self.select_camera('/usb_cam/image_raw')
         self.ready = True

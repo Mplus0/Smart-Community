@@ -87,6 +87,8 @@ python3 -m venv --system-site-packages --without-pip .venv
 
 媒体保存位置属于本机；地图、路线和任务 JSON 路径属于 Launch 所在机器。定时采集和录像依赖工作台后端；退出会结束本机采集。
 
+导航启动前可选择 DWA（默认）或 TEB；切换需先停止导航。TEB 依赖安装、工作空间编译及参数说明见 [实车 README](../README.md#teb-局部规划可选)。安装在执行 Launch 的实车上，只有配置文件并不能加载未安装的插件。两种规划器的局部路径均显示 `/move_base/local_plan`。更新后在 `frontend` 执行 `npm run build`，并重启后端使选择项和订阅生效；TEB 运动效果仍待实车验证。
+
 ## 控制与进程边界
 
 - 初始控制锁定。手动指令每 100 ms 续租，350 ms 未续租、窗口失焦、按键/按钮释放或 WebSocket 断连会停车。ROS 离线也拒绝运动；后台每 50 ms 检查租约和其他速度发布者。

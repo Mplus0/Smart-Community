@@ -21,6 +21,7 @@ const page = ref(0),
     canvas = ref(null);
 const options = reactive({
         algorithm: "cartographer",
+        local_planner: "dwa",
         map: "",
         route: "",
         navigation_only: false,
@@ -679,7 +680,10 @@ onUnmounted(() => {
                         <input
                             v-model="options.map"
                             placeholder="实车地图 YAML 绝对路径，留空使用默认"
-                        /><button @click="service('navigation', 'start')">
+                        /><select v-model="options.local_planner" aria-label="局部规划器">
+                            <option value="dwa">DWA 局部规划</option>
+                            <option value="teb">TEB 局部规划</option>
+                        </select><button @click="service('navigation', 'start')">
                             加载并启动导航</button
                         ><button @click="service('navigation', 'stop')">
                             停止导航
