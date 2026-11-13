@@ -36,6 +36,6 @@ TRAJECTORY_BUILDER_2D.use_imu_data = false
 TRAJECTORY_BUILDER_2D.min_range = 0.1
 TRAJECTORY_BUILDER_2D.max_range = 6.0
 TRAJECTORY_BUILDER_2D.missing_data_ray_length = 6.0
-TRAJECTORY_BUILDER_2D.submaps.grid_options_2d.resolution = 0.05
+TRAJECTORY_BUILDER_2D.submaps.grid_options_2d.resolution = 0.02
 
 return options

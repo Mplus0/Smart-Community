@@ -68,10 +68,10 @@ source devel/setup.bash
 ```bash
 # 终端 1：已有硬件运行时跳过
 roslaunch community_bringup hardware.launch base_protocol:=aa_bb
-# 终端 2：建图；有图形桌面时可追加 rviz:=true
+# 终端 2：默认 Cartographer 建图，栅格和子地图分辨率均为 0.02 m；有桌面时可追加 rviz:=true
 roslaunch community_bringup mapping.launch
-# 或选择 Cartographer（默认使用 GMapping）
-# roslaunch community_bringup mapping.launch algorithm:=cartographer
+# 或选择 GMapping（默认同样为 0.02 m 栅格）
+# roslaunch community_bringup mapping.launch algorithm:=gmapping
 # 终端 3：键盘控制，SSH 使用 ssh -t mowen
 rosrun community_bringup teleop_twist_keyboard.py
 ```

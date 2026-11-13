@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
   <!-- Start hardware.launch separately. Do not combine with navigation.launch. -->
-  <arg name="algorithm" default="gmapping" doc="gmapping or cartographer" />
+  <arg name="algorithm" default="cartographer" doc="gmapping or cartographer" />
   <arg name="scan_topic" default="/scan" />
   <arg name="rviz" default="false" />
-  <arg name="resolution" default="0.05" />
+  <arg name="resolution" default="0.02" />
   <param name="/use_sim_time" value="false" />
   <param name="robot_description" textfile="$(find robot_description)/urdf/mowen.urdf" />
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" />

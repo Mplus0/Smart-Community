@@ -108,7 +108,7 @@ def process_status():
 
 
 class Start(BaseModel):
-    algorithm: str = 'gmapping'
+    algorithm: str = 'cartographer'
     map: str = ''
     route: str = ''
     navigation_only: bool = False

@@ -20,7 +20,7 @@ const page = ref(0),
     map = ref(null),
     canvas = ref(null);
 const options = reactive({
-        algorithm: "gmapping",
+        algorithm: "cartographer",
         map: "",
         route: "",
         navigation_only: false,
