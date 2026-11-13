@@ -81,3 +81,7 @@ yolo_train/results/traffic_light/yolo11n_baseline/weights/*
 
 # Locally copied traffic-light classifier; deploy separately (or explicitly use Git LFS).
 simulation_ws/src/robot_perception/models/traffic_light_best.pt
+
+# Offline meter readings are generated locally; keep the directory guide.
+/opencv/outputs/*
+!/opencv/outputs/README.md

@@ -11,6 +11,7 @@ Smart-Community/
 ├── docker/            # 仿真镜像、Compose 配置和部署说明
 ├── models/            # 模型权重与导出模型
 ├── yolo_train/        # 训练脚本、数据集及已有训练结果
+├── opencv/            # 指针仪表离线标定、读数与调试图片
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -23,6 +24,18 @@ Smart-Community/
 - **实车**：串口底盘控制、里程计、雷达/IMU/相机接入、定位导航、六类 YOLO 检测、OCR、倒伏统计、路线调度、语音和录像。
 - **仿真**：麦克纳姆底盘与传感器仿真、Cartographer 建图、AMCL 定位、双地图导航和 TEB 规划；人物、车牌及交通灯识别，多航点任务与绿灯等待。
 - **运行控制**：仿真支持集中启动、人工确认后执行比赛和 PyQt5 控制台，保存任务状态、统计及图像证据。任务完成不代表每项识别均成功，应查看结果状态。
+
+## 仪表离线读数
+
+`opencv/` 提供主表盘的手动标定、指针检测和整数读数，不依赖 ROS、YOLO 或 GPU。当前要求拍摄构图与标定时基本一致，尚未接入实车巡检任务。
+
+先按 [OpenCV 模块说明](opencv/README.md) 建立独立 Python 环境并安装依赖。在仓库根目录、使用该环境执行：
+
+```bash
+python -m opencv read opencv/photo/clear3.png --config opencv/configs/competition.json
+```
+
+结果位于 `opencv/outputs/read/clear3/`。更换拍摄构图时先运行标定，完整 Windows/Linux 命令见模块说明。
 
 ## 实车环境与启动
 

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "frame_size": [1920, 1080],
+  "roi": [610, 110, 380, 360],
+  "center": [187, 182],
+  "radius": 150,
+  "direction": "clockwise",
+  "ticks": [],
+  "exclude_circles": [[189, 253, 62]],
+  "settings": {}
+}

@@ -1,0 +1,3 @@
+# Offline module: install in its own virtual environment, not the ROS system Python.
+numpy>=1.23,<3
+opencv-python>=4.8,<6
