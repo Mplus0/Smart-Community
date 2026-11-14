@@ -1,0 +1,41 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "obstacle",
+      "score": 0.9514735341072083,
+      "points": [
+        [
+          880.0339965820312,
+          229.09213256835938
+        ],
+        [
+          1200.7175903320312,
+          229.09213256835938
+        ],
+        [
+          1200.7175903320312,
+          561.9205627441406
+        ],
+        [
+          880.0339965820312,
+          561.9205627441406
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_165523_907613.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}
