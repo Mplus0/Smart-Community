@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8589423298835754,
+      "points": [
+        [
+          922.7573547363281,
+          467.73687744140625
+        ],
+        [
+          981.2738342285156,
+          467.73687744140625
+        ],
+        [
+          981.2738342285156,
+          543.5169067382812
+        ],
+        [
+          922.7573547363281,
+          543.5169067382812
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8413046598434448,
+      "points": [
+        [
+          922.565185546875,
+          649.5247192382812
+        ],
+        [
+          984.7738037109375,
+          649.5247192382812
+        ],
+        [
+          984.7738037109375,
+          729.1635131835938
+        ],
+        [
+          922.565185546875,
+          729.1635131835938
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8225516080856323,
+      "points": [
+        [
+          1100.7886047363281,
+          648.2884826660156
+        ],
+        [
+          1160.3511657714844,
+          648.2884826660156
+        ],
+        [
+          1160.3511657714844,
+          725.8323669433594
+        ],
+        [
+          1100.7886047363281,
+          725.8323669433594
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_002424_630068.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

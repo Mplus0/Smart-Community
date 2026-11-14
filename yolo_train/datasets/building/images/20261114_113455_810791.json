@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8630228042602539,
+      "points": [
+        [
+          954.6058959960938,
+          624.0481567382812
+        ],
+        [
+          1003.4452514648438,
+          624.0481567382812
+        ],
+        [
+          1003.4452514648438,
+          685.7017822265625
+        ],
+        [
+          954.6058959960938,
+          685.7017822265625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8378869891166687,
+      "points": [
+        [
+          1106.71728515625,
+          622.0713500976562
+        ],
+        [
+          1153.718994140625,
+          622.0713500976562
+        ],
+        [
+          1153.718994140625,
+          683.4340209960938
+        ],
+        [
+          1106.71728515625,
+          683.4340209960938
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8100162744522095,
+      "points": [
+        [
+          1112.8766784667969,
+          470.600830078125
+        ],
+        [
+          1157.5320739746094,
+          470.600830078125
+        ],
+        [
+          1157.5320739746094,
+          529.6278076171875
+        ],
+        [
+          1112.8766784667969,
+          529.6278076171875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_113455_810791.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

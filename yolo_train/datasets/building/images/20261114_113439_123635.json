@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8447722792625427,
+      "points": [
+        [
+          1122.1622314453125,
+          463.5897216796875
+        ],
+        [
+          1170.4266357421875,
+          463.5897216796875
+        ],
+        [
+          1170.4266357421875,
+          527.7696533203125
+        ],
+        [
+          1122.1622314453125,
+          527.7696533203125
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8384482860565186,
+      "points": [
+        [
+          1117.1233520507812,
+          623.4462890625
+        ],
+        [
+          1166.1536865234375,
+          623.4462890625
+        ],
+        [
+          1166.1536865234375,
+          685.3245849609375
+        ],
+        [
+          1117.1233520507812,
+          685.3245849609375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.810494601726532,
+      "points": [
+        [
+          968.467529296875,
+          466.307373046875
+        ],
+        [
+          1014.9462890625,
+          466.307373046875
+        ],
+        [
+          1014.9462890625,
+          531.582275390625
+        ],
+        [
+          968.467529296875,
+          531.582275390625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_113439_123635.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

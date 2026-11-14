@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8637248277664185,
+      "points": [
+        [
+          958.2797241210938,
+          623.6716918945312
+        ],
+        [
+          1004.3237915039062,
+          623.6716918945312
+        ],
+        [
+          1004.3237915039062,
+          683.748779296875
+        ],
+        [
+          958.2797241210938,
+          683.748779296875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8412123918533325,
+      "points": [
+        [
+          1105.6900634765625,
+          619.8956909179688
+        ],
+        [
+          1152.211669921875,
+          619.8956909179688
+        ],
+        [
+          1152.211669921875,
+          680.8126831054688
+        ],
+        [
+          1105.6900634765625,
+          680.8126831054688
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.7995768785476685,
+      "points": [
+        [
+          1109.7387084960938,
+          472.9990539550781
+        ],
+        [
+          1155.1539916992188,
+          472.9990539550781
+        ],
+        [
+          1155.1539916992188,
+          532.4636535644531
+        ],
+        [
+          1109.7387084960938,
+          532.4636535644531
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_113456_564706.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

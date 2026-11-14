@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8313097357749939,
+      "points": [
+        [
+          986.7344970703125,
+          622.7237548828125
+        ],
+        [
+          1030.4073486328125,
+          622.7237548828125
+        ],
+        [
+          1030.4073486328125,
+          679.4791259765625
+        ],
+        [
+          986.7344970703125,
+          679.4791259765625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8043248653411865,
+      "points": [
+        [
+          1128.8653564453125,
+          617.782470703125
+        ],
+        [
+          1175.123291015625,
+          617.782470703125
+        ],
+        [
+          1175.123291015625,
+          676.553466796875
+        ],
+        [
+          1128.8653564453125,
+          676.553466796875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.7882987260818481,
+      "points": [
+        [
+          1133.8319091796875,
+          475.657470703125
+        ],
+        [
+          1177.264892578125,
+          475.657470703125
+        ],
+        [
+          1177.264892578125,
+          532.0667724609375
+        ],
+        [
+          1133.8319091796875,
+          532.0667724609375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_113506_033893.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8541944026947021,
+      "points": [
+        [
+          955.8662109375,
+          626.6243591308594
+        ],
+        [
+          1005.181640625,
+          626.6243591308594
+        ],
+        [
+          1005.181640625,
+          691.9479675292969
+        ],
+        [
+          955.8662109375,
+          691.9479675292969
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.850246787071228,
+      "points": [
+        [
+          1116.1329345703125,
+          460.844970703125
+        ],
+        [
+          1169.630126953125,
+          460.844970703125
+        ],
+        [
+          1169.630126953125,
+          527.464599609375
+        ],
+        [
+          1116.1329345703125,
+          527.464599609375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8432177305221558,
+      "points": [
+        [
+          961.9839477539062,
+          463.5076904296875
+        ],
+        [
+          1011.1880493164062,
+          463.5076904296875
+        ],
+        [
+          1011.1880493164062,
+          528.6968994140625
+        ],
+        [
+          961.9839477539062,
+          528.6968994140625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261114_113557_410964.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}
