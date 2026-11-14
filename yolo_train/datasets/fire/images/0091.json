@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.854271650314331,
+      "points": [
+        [
+          881.9295043945312,
+          478.28411865234375
+        ],
+        [
+          936.0866088867188,
+          478.28411865234375
+        ],
+        [
+          936.0866088867188,
+          550.02978515625
+        ],
+        [
+          881.9295043945312,
+          550.02978515625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8221874833106995,
+      "points": [
+        [
+          882.3524780273438,
+          652.9542846679688
+        ],
+        [
+          939.8036499023438,
+          652.9542846679688
+        ],
+        [
+          939.8036499023438,
+          726.5385131835938
+        ],
+        [
+          882.3524780273438,
+          726.5385131835938
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.817402720451355,
+      "points": [
+        [
+          1052.1727294921875,
+          650.4845581054688
+        ],
+        [
+          1108.2301025390625,
+          650.4845581054688
+        ],
+        [
+          1108.2301025390625,
+          724.1079711914062
+        ],
+        [
+          1052.1727294921875,
+          724.1079711914062
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0091.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

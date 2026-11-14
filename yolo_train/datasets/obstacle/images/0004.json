@@ -1,0 +1,41 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "review_status": "pending",
+      "label": "obstacle",
+      "score": null,
+      "points": [
+        [
+          845.5932203389831,
+          190.8474576271186
+        ],
+        [
+          1214.2372881355932,
+          190.8474576271186
+        ],
+        [
+          1214.2372881355932,
+          557.7966101694915
+        ],
+        [
+          845.5932203389831,
+          557.7966101694915
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0004.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920
+}

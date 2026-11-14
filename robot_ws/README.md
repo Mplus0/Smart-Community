@@ -302,7 +302,9 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 ### 模型检测浏览器预览
 
-`tools/test_detector_model.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车六个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
+人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。垃圾桶类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。障碍物服务尚未接入自动路线选择，路线仍由 `obstacle_mode` 指定。
+
+`tools/test_detector_model.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
 
 保持相机运行，另开终端执行：
 
@@ -319,9 +321,10 @@ python3 tools/test_detector_model.py --detector trash_bin_detector --conf 0.5 --
 
 | `--detector` | 检测目标 |
 |---|---|
-| `people_detector` | 人员；按实车配置显示 `good`（社区人员）、`bad`（外来人员） |
+| `people_detector` | 人员；按实车配置显示 `community_person`（社区人员）、`outsider`（外来人员） |
 | `traffic_light_detector` | 红、黄、绿交通灯 |
 | `fire_detector` | 火焰 |
+| `obstacle_detector` | 障碍物 |
 | `trash_bin_detector` | 垃圾桶颜色及开闭状态 |
 | `waste_detector` | 垃圾类别 |
 | `bicycle_detector` | 电动车站立、倒伏 |
@@ -331,7 +334,7 @@ python3 tools/test_detector_model.py --detector trash_bin_detector --conf 0.5 --
 ```bash
 python3 tools/test_detector_model.py --config /绝对路径/detectors.yaml --detector trash_bin_detector
 # 临时覆盖模型文件，类别和阈值仍来自选定配置
-python3 tools/test_detector_model.py --detector people_detector --model /绝对路径/people.onnx
+python3 tools/test_detector_model.py --detector people_detector --model /绝对路径/person.onnx
 # 无需 ROS 或相机的图片预览
 python3 tools/test_detector_model.py --detector people_detector --image ../yolo_train/datasets/person/val/images/0011.jpg
 ```

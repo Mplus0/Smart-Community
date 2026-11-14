@@ -1,3 +1,7 @@
+# Resolve path from the repository root when using Ultralytics.
+path: yolo_train/datasets/trashbin_new
+train: train/images
+val: val/images
 nc: 8
 names:
   0: blue_close

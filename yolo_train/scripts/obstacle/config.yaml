@@ -1,0 +1,14 @@
+# Paths are relative to yolo_train/.
+model: ../models/yolo26n.pt
+data: datasets/obstacle/data.yaml
+output:
+  project: results/obstacle
+  name: yolo26n
+train:
+  epochs: 100
+  imgsz: 640
+  batch: 16
+  workers: 4
+  patience: 30
+  seed: 42
+  deterministic: true

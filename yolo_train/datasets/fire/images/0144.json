@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8469855189323425,
+      "points": [
+        [
+          1120.1808471679688,
+          454.31982421875
+        ],
+        [
+          1173.1290893554688,
+          454.31982421875
+        ],
+        [
+          1173.1290893554688,
+          522.1204833984375
+        ],
+        [
+          1120.1808471679688,
+          522.1204833984375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8393970131874084,
+      "points": [
+        [
+          1115.5989990234375,
+          624.4830322265625
+        ],
+        [
+          1168.489013671875,
+          624.4830322265625
+        ],
+        [
+          1168.489013671875,
+          693.4471435546875
+        ],
+        [
+          1115.5989990234375,
+          693.4471435546875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8378947973251343,
+      "points": [
+        [
+          947.50927734375,
+          629.5207214355469
+        ],
+        [
+          998.4755859375,
+          629.5207214355469
+        ],
+        [
+          998.4755859375,
+          697.2058410644531
+        ],
+        [
+          947.50927734375,
+          697.2058410644531
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0144.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

@@ -61,12 +61,12 @@ def validate_route(route):
 
 def people_counts(objects, width, height, settings):
     """Retain legacy 45% and 40% ROI ratios, scaled to actual image dimensions."""
-    people = [d for d in objects if d.label in ('good', 'bad')]
+    people = [d for d in objects if d.label in ('community_person', 'outsider')]
     counts = Counter(d.label for d in people if d.box[3] >= height * settings['person_y_ratio'])
     roi = [d.box for d in people if d.box[1] >= height * settings['person_y_ratio'] and d.box[2] >= width * settings['person_x_ratio']]
     bounds = None if not roi else (min(b[0] for b in roi), min(b[1] for b in roi),
                                   max(b[2] for b in roi), max(b[3] for b in roi))
-    return counts['good'] + counts['bad'], counts['bad'], bounds
+    return counts['community_person'] + counts['outsider'], counts['outsider'], bounds
 
 
 def illegal_parking_count(objects, people_bounds, width, height, settings):

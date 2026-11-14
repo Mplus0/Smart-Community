@@ -69,7 +69,7 @@ class ConfigurationTests(unittest.TestCase):
         import xml.etree.ElementTree as E
         tree = E.parse(ROOT/'src/community_perception/launch/main_detector.launch')
         includes = tree.findall('.//include')
-        self.assertEqual(len(includes), 6)
+        self.assertEqual(len(includes), 7)
         for include in includes:
             args = {a.get('name'):a.get('value') for a in include.findall('arg')}
             self.assertEqual(args['profile'], 'mission')
@@ -78,7 +78,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_rule_yaml_changes_are_used_without_changing_defaults(self):
         from rules import people_counts as count_people
-        objects = [Detection('good', (300, 200, 400, 240))]
+        objects = [Detection('community_person', (300, 200, 400, 240))]
         self.assertEqual(count_people(objects, 640, 480, SETTINGS)[0], 1)
         changed = dict(SETTINGS, person_y_ratio=0.9)
         self.assertEqual(count_people(objects, 640, 480, changed)[0], 0)
@@ -91,17 +91,17 @@ class ConfigurationTests(unittest.TestCase):
 
 class RulesTests(unittest.TestCase):
     def test_interleaved_classes_use_object_order(self):
-        response = SimpleNamespace(detected_classes=['good', 'bad', 'good'],
+        response = SimpleNamespace(detected_classes=['community_person', 'outsider', 'community_person'],
             confidences=[0.9, 0.8, 0.7], bboxes=[0, 0, 10, 10, 20, 0, 30, 10, 40, 0, 50, 10],
-            class_names=['good', 'bad'], class_counts=[2, 1])
+            class_names=['community_person', 'outsider'], class_counts=[2, 1])
         self.assertEqual([(d.label, d.box[0]) for d in detections(response)],
-                         [('good', 0), ('bad', 20), ('good', 40)])
+                         [('community_person', 0), ('outsider', 20), ('community_person', 40)])
         response.bboxes.pop()
         with self.assertRaises(ValueError):
             detections(response)
 
     def test_roi_scales_and_clears_previous_people(self):
-        full = [Detection('good', (600, 500, 800, 800)), Detection('bad', (600, 0, 800, 300))]
+        full = [Detection('community_person', (600, 500, 800, 800)), Detection('outsider', (600, 0, 800, 300))]
         half = [Detection(d.label, tuple(v/2 for v in d.box)) for d in full]
         self.assertEqual(people_counts(full, 1280, 960)[:2], (1, 0))
         self.assertEqual(people_counts(half, 640, 480)[:2], (1, 0))
@@ -222,7 +222,7 @@ class WaypointTasksTests(unittest.TestCase):
                 with self.subTest(kind=kind, status=expected):
                     services, speech = Mock(), Mock()
                     def detect(name, frame):
-                        label = {'people_detector': 'good', 'bicycle_detector': 'stand',
+                        label = {'people_detector': 'community_person', 'bicycle_detector': 'stand',
                                  'fire_detector': 'fire', 'trash_bin_detector': 'red_open',
                                  'waste_detector': 'hazardous1'}[name]
                         return SimpleNamespace(detected_classes=[label] if expected == 'SUCCESS' else [],

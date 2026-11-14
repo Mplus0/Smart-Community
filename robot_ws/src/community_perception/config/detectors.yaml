@@ -1,16 +1,15 @@
 # 模型类别顺序与原权重一致；mission_confidence 保留总入口阈值。
 detectors:
   people_detector:
-    model_path: $(find community_perception)/models/people.onnx
+    model_path: $(find community_perception)/models/person.onnx
     model_name: people_detector
     conf_threshold: 0.5
     iou_threshold: 0.4
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/people
-    # community_person -> good; outsider -> bad (mission business labels).
     class_names:
-    - good
-    - bad
+    - community_person
+    - outsider
     save_classes:
     - 0
     - 1
@@ -44,7 +43,7 @@ detectors:
     - 0
     service_name: /fire_detector/detect
   trash_bin_detector:
-    model_path: $(find community_perception)/models/tong.onnx
+    model_path: $(find community_perception)/models/trashbin.onnx
     model_name: trash_bin_detector
     conf_threshold: 0.5
     iou_threshold: 0.4
@@ -53,8 +52,8 @@ detectors:
     class_names:
     - blue_close
     - blue_open
-    - gray_close
-    - gray_open
+    - grey_close
+    - grey_open
     - green_close
     - green_open
     - red_close
@@ -165,7 +164,20 @@ detectors:
     - 0
     - 1
     service_name: /bicycle_detector/detect
+  obstacle_detector:
+    model_path: $(find community_perception)/models/obstacle.onnx
+    model_name: obstacle_detector
+    conf_threshold: 0.5
+    iou_threshold: 0.4
+    save_enabled: false
+    save_dir: $(env HOME)/.ros/community/detections/obstacle
+    class_names:
+    - obstacle
+    save_classes:
+    - 0
+    service_name: /obstacle_detector/detect
 mission_confidence:
+  obstacle_detector: 0.5
   people_detector: 0.75
   traffic_light_detector: 0.75
   trash_bin_detector: 0.75

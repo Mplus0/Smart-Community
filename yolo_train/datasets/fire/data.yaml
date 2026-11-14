@@ -1,0 +1,6 @@
+# Resolve path from the repository root when using Ultralytics.
+path: yolo_train/datasets/fire
+train: train/images
+val: val/images
+names:
+  0: fire

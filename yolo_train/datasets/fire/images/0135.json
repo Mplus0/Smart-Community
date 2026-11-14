@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8480235934257507,
+      "points": [
+        [
+          973.4895629882812,
+          630.2254028320312
+        ],
+        [
+          1028.4091186523438,
+          630.2254028320312
+        ],
+        [
+          1028.4091186523438,
+          706.0299682617188
+        ],
+        [
+          973.4895629882812,
+          706.0299682617188
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8443868160247803,
+      "points": [
+        [
+          1159.5904541015625,
+          446.71710205078125
+        ],
+        [
+          1212.4859619140625,
+          446.71710205078125
+        ],
+        [
+          1212.4859619140625,
+          518.9276733398438
+        ],
+        [
+          1159.5904541015625,
+          518.9276733398438
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8365123271942139,
+      "points": [
+        [
+          1150.0680541992188,
+          625.0859985351562
+        ],
+        [
+          1210.1958618164062,
+          625.0859985351562
+        ],
+        [
+          1210.1958618164062,
+          701.8416137695312
+        ],
+        [
+          1150.0680541992188,
+          701.8416137695312
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0135.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

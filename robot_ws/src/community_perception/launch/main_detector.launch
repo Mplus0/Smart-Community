@@ -16,6 +16,7 @@
     <arg name="enable_trash_bin" default="true" />
     <arg name="enable_waste" default="true" />
     <arg name="enable_fire" default="true" />
+    <arg name="enable_obstacle" default="true" />
     <arg name="enable_bicycle" default="true" />
     
     
@@ -82,4 +83,13 @@
     </group>
     
 
+    <group if="$(arg enable_obstacle)">
+        <include file="$(find community_perception)/launch/obstacle_detector.launch">
+            <arg name="profile" value="mission"/>
+            <arg name="conf_threshold" value="$(arg conf_threshold)"/>
+            <arg name="iou_threshold" value="$(arg iou_threshold)"/>
+            <arg name="save_enabled" value="$(arg save_enabled)"/>
+            <arg name="save_dir" value="$(arg save_dir)/obstacle"/>
+        </include>
+    </group>
 </launch>

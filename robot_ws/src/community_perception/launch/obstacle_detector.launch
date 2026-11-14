@@ -1,0 +1,16 @@
+<launch>
+  <arg name="profile" default="standalone"/>
+  <arg name="conf_threshold" default=""/>
+  <arg name="iou_threshold" default=""/>
+  <arg name="save_enabled" default=""/>
+  <arg name="save_dir" default=""/>
+  <node name="obstacle_detector" pkg="community_perception" type="yolo_detector_service.py" output="screen">
+    <rosparam command="load" file="$(find community_perception)/config/detectors.yaml" subst_value="true"/>
+    <param name="profile" value="$(arg profile)"/>
+    <param name="model_name" value="obstacle_detector"/>
+    <param if="$(eval arg('conf_threshold') != '')" name="conf_threshold" type="double" value="$(arg conf_threshold)"/>
+    <param if="$(eval arg('iou_threshold') != '')" name="iou_threshold" type="double" value="$(arg iou_threshold)"/>
+    <param if="$(eval arg('save_enabled') != '')" name="save_enabled" type="bool" value="$(arg save_enabled)"/>
+    <param if="$(eval arg('save_dir') != '')" name="save_dir" type="str" value="$(arg save_dir)"/>
+  </node>
+</launch>

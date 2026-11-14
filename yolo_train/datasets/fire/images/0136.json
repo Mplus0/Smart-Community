@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8607033491134644,
+      "points": [
+        [
+          1145.1853637695312,
+          624.5839233398438
+        ],
+        [
+          1198.7338256835938,
+          624.5839233398438
+        ],
+        [
+          1198.7338256835938,
+          691.7041625976562
+        ],
+        [
+          1145.1853637695312,
+          691.7041625976562
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8570876121520996,
+      "points": [
+        [
+          977.0826416015625,
+          628.5049438476562
+        ],
+        [
+          1027.1976928710938,
+          628.5049438476562
+        ],
+        [
+          1027.1976928710938,
+          695.7559204101562
+        ],
+        [
+          977.0826416015625,
+          695.7559204101562
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8397761583328247,
+      "points": [
+        [
+          1149.0851440429688,
+          454.5260009765625
+        ],
+        [
+          1201.6353149414062,
+          454.5260009765625
+        ],
+        [
+          1201.6353149414062,
+          521.2694091796875
+        ],
+        [
+          1149.0851440429688,
+          521.2694091796875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0136.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

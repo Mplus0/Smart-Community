@@ -1,0 +1,99 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "fire",
+      "score": 0.8539472222328186,
+      "points": [
+        [
+          1020.6927795410156,
+          648.2008666992188
+        ],
+        [
+          1076.7113342285156,
+          648.2008666992188
+        ],
+        [
+          1076.7113342285156,
+          723.5018920898438
+        ],
+        [
+          1020.6927795410156,
+          723.5018920898438
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8320521712303162,
+      "points": [
+        [
+          846.4361572265625,
+          471.5721130371094
+        ],
+        [
+          900.440185546875,
+          471.5721130371094
+        ],
+        [
+          900.440185546875,
+          543.8064880371094
+        ],
+        [
+          846.4361572265625,
+          543.8064880371094
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "fire",
+      "score": 0.8031484484672546,
+      "points": [
+        [
+          844.4285888671875,
+          649.9048461914062
+        ],
+        [
+          901.3551635742188,
+          649.9048461914062
+        ],
+        [
+          901.3551635742188,
+          726.521484375
+        ],
+        [
+          844.4285888671875,
+          726.521484375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0095.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

@@ -1,0 +1,131 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "review_status": "pending",
+      "label": "grey_open",
+      "score": null,
+      "points": [
+        [
+          132.0253164556962,
+          298.8607594936709
+        ],
+        [
+          213.9873417721519,
+          298.8607594936709
+        ],
+        [
+          213.9873417721519,
+          373.8607594936709
+        ],
+        [
+          132.0253164556962,
+          373.8607594936709
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "green_close",
+      "score": null,
+      "points": [
+        [
+          226.32911392405063,
+          282.0886075949367
+        ],
+        [
+          303.8607594936709,
+          282.0886075949367
+        ],
+        [
+          303.8607594936709,
+          377.34177215189874
+        ],
+        [
+          226.32911392405063,
+          377.34177215189874
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "blue_close",
+      "score": null,
+      "points": [
+        [
+          320.3164556962025,
+          283.9873417721519
+        ],
+        [
+          395.9493670886076,
+          283.9873417721519
+        ],
+        [
+          395.9493670886076,
+          369.746835443038
+        ],
+        [
+          320.3164556962025,
+          369.746835443038
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "red_close",
+      "score": null,
+      "points": [
+        [
+          412.7215189873418,
+          284.30379746835445
+        ],
+        [
+          492.7848101265822,
+          284.30379746835445
+        ],
+        [
+          492.7848101265822,
+          380.82278481012656
+        ],
+        [
+          412.7215189873418,
+          380.82278481012656
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0008.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640
+}

@@ -1,0 +1,131 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "review_status": "pending",
+      "label": "fire",
+      "score": null,
+      "points": [
+        [
+          809.1525423728814,
+          454.4067796610169
+        ],
+        [
+          875.2542372881356,
+          454.4067796610169
+        ],
+        [
+          875.2542372881356,
+          539.1525423728814
+        ],
+        [
+          809.1525423728814,
+          539.1525423728814
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fire",
+      "score": null,
+      "points": [
+        [
+          1020.1694915254238,
+          447.62711864406776
+        ],
+        [
+          1082.0338983050847,
+          447.62711864406776
+        ],
+        [
+          1082.0338983050847,
+          527.2881355932203
+        ],
+        [
+          1020.1694915254238,
+          527.2881355932203
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fire",
+      "score": null,
+      "points": [
+        [
+          798.9830508474577,
+          691.6949152542373
+        ],
+        [
+          863.3898305084746,
+          691.6949152542373
+        ],
+        [
+          863.3898305084746,
+          784.0677966101695
+        ],
+        [
+          798.9830508474577,
+          784.0677966101695
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "fire",
+      "score": null,
+      "points": [
+        [
+          1006.6101694915254,
+          695.0847457627119
+        ],
+        [
+          1065.084745762712,
+          695.0847457627119
+        ],
+        [
+          1065.084745762712,
+          776.4406779661017
+        ],
+        [
+          1006.6101694915254,
+          776.4406779661017
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0002.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920
+}

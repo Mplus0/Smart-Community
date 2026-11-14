@@ -21,7 +21,7 @@ Smart-Community/
 
 ## 主要功能
 
-- **实车**：串口底盘控制、里程计、雷达/IMU/相机接入、定位导航、六类 YOLO 检测、OCR、倒伏统计、路线调度、语音和录像。
+- **实车**：串口底盘控制、里程计、雷达/IMU/相机接入、定位导航、七类 YOLO 检测、OCR、倒伏统计、路线调度、语音和录像。
 - **仿真**：麦克纳姆底盘与传感器仿真、Cartographer 建图、AMCL 定位、双地图导航和 TEB 规划；人物、车牌及交通灯识别，多航点任务与绿灯等待。
 - **运行控制**：仿真支持集中启动、人工确认后执行比赛和 PyQt5 控制台，保存任务状态、统计及图像证据。任务完成不代表每项识别均成功，应查看结果状态。
 
@@ -84,6 +84,12 @@ source devel/setup.bash --extend
 GUI 入口：`python3 /workspace/simulation_ws/src/tools/gui.py`；不要与终端重复启动同一套环境。详细步骤见 [Docker 说明](docker/README.md) 和 [仿真 README](simulation_ws/README.md)。
 
 ## 模型与训练
+
+新垃圾桶数据集已按约 9:1 划分为训练集 235 张、验证集 26 张，包含 8 个颜色与开闭状态类别。YOLO26n 训练入口为 `python yolo_train/scripts/trashbin_new/train.py`，详见 [训练说明](yolo_train/scripts/trashbin_new/README.md)。
+
+火焰与障碍物检测数据集已按约 9:1 划分训练集和验证集，分别为 209/23 张和 108/12 张；YOLO 标签及配置见 [火焰数据集](yolo_train/datasets/fire/README.md) 与 [障碍物数据集](yolo_train/datasets/obstacle/README.md)。
+
+火焰和障碍物的 YOLO26n 训练入口分别为 `python yolo_train/scripts/fire/train.py` 和 `python yolo_train/scripts/obstacle/train.py`；参数和输出说明见 [火焰训练说明](yolo_train/scripts/fire/README.md) 与 [障碍物训练说明](yolo_train/scripts/obstacle/README.md)。
 
 人员检测训练入口为 `python yolo_train/scripts/person/train.py`，默认使用 YOLO26n，读取已按 9:1 划分的训练集和验证集，结果保存至 `yolo_train/results/person/`。依赖安装、参数调整与权重位置见 [人员训练说明](yolo_train/scripts/person/README.md)。
 

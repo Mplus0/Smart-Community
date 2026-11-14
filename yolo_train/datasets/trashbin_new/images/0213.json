@@ -1,0 +1,128 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "red_close",
+      "score": 0.8487598896026611,
+      "points": [
+        [
+          413.8776550292969,
+          277.28155517578125
+        ],
+        [
+          472.5497131347656,
+          277.28155517578125
+        ],
+        [
+          472.5497131347656,
+          343.39056396484375
+        ],
+        [
+          413.8776550292969,
+          343.39056396484375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "green_open",
+      "score": 0.8336383104324341,
+      "points": [
+        [
+          280.18017578125,
+          286.6435852050781
+        ],
+        [
+          332.4775390625,
+          286.6435852050781
+        ],
+        [
+          332.4775390625,
+          342.4389343261719
+        ],
+        [
+          280.18017578125,
+          342.4389343261719
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "grey_close",
+      "score": 0.8159183263778687,
+      "points": [
+        [
+          212.4285888671875,
+          276.80010986328125
+        ],
+        [
+          268.79656982421875,
+          276.80010986328125
+        ],
+        [
+          268.79656982421875,
+          341.37359619140625
+        ],
+        [
+          212.4285888671875,
+          341.37359619140625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "blue_open",
+      "score": 0.5952710509300232,
+      "points": [
+        [
+          347.24530029296875,
+          290.6793212890625
+        ],
+        [
+          401.805908203125,
+          290.6793212890625
+        ],
+        [
+          401.805908203125,
+          342.509765625
+        ],
+        [
+          347.24530029296875,
+          342.509765625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "0213.jpg",
+  "imageData": null,
+  "imageHeight": 480,
+  "imageWidth": 640,
+  "description": ""
+}

@@ -147,7 +147,7 @@ def process_action(name: str, action: str, body: Start):
         navigation=['/move_base','/amcl','/map_server','/robot_state_publisher','/ekf_localization'],
         mission=['/community_mission'],
         services=['/people_detector','/traffic_light_detector','/fire_detector',
-                  '/trash_bin_detector','/waste_detector','/bicycle_detector',
+                  '/trash_bin_detector','/waste_detector','/bicycle_detector','/obstacle_detector',
                   '/license_plate_ocr_server','/fall_counter_server','/speech_server','/video_recorder_node'])
     if any(n in nodes for n in groups[name]):
         raise ValueError('已有相同功能节点运行，禁止重复启动')
