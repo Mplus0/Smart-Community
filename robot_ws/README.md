@@ -145,6 +145,31 @@ Infra 可在启动导航前选择 DWA / TEB，切换前先停止导航。两种�
 roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test_nav.yaml
 ```
 
+测试地图 `src/community_bringup/maps/square_4p2m.yaml` 为无内部障碍物的正方形：内部净空 4.2 × 4.2 m，分辨率 0.02 m/格，内部 210 × 210 格，外围增加一格厚的占用边框，总尺寸 212 × 212 像素。内部左下角为地图坐标 `(0, 0)`，右上角为 `(4.2, 4.2)`，YAML 原点为 `(-0.02, -0.02)`。默认地图未切换，测试时在已加载工作空间环境的终端执行：
+
+```bash
+TEST_MAP="$(rospack find community_bringup)/maps/square_4p2m.yaml"
+roslaunch community_bringup navigation.launch map:="$TEST_MAP" navigation_map:="$TEST_MAP"
+```
+
+配套导航图为 `square_4p2m_nav.yaml`，沿场地四边内收 8 cm，并填充以下禁行区。尺寸以厘米计，矩形尺寸按“宽 × 高”解释；70 cm 间距均以原始 4.2 m 场地边界为基准。左上矩形紧贴内收后的左、上边界。2 cm 栅格下，99、283、59 cm 分别向上取整为 100、284、60 cm。
+
+| 禁行区 | 实际栅格尺寸 | 地图坐标范围（米） |
+|---|---|---|
+| 左上矩形 | 70 × 340 cm | x: 0.08–0.78，y: 0.72–4.12 |
+| 右上矩形 | 160 × 100 cm；右、上间距均为 70 cm | x: 1.90–3.50，y: 2.50–3.50 |
+| L 型竖条 | 60 × 284 cm；顶部距场地上边界 70 cm | x: 1.30–1.90，y: 0.66–3.50 |
+| L 型底部横条 | 220 × 60 cm；右端距场地右边界 70 cm | x: 1.30–3.50，y: 0.66–1.26 |
+
+L 型两条区域重叠组成“└”；按上述尺寸，竖条右侧与右上矩形左侧相接，没有通道。使用配套导航图时运行：
+
+```bash
+TEST_MAP_DIR="$(rospack find community_bringup)/maps"
+roslaunch community_bringup navigation.launch map:="$TEST_MAP_DIR/square_4p2m.yaml" navigation_map:="$TEST_MAP_DIR/square_4p2m_nav.yaml"
+```
+
+实车定位需设置正确的初始位姿；原地图的航点不能直接沿用。该地图尚未进行实车定位与导航验证。
+
 `community.launch` 和 `finals.launch` 同样支持 `map`、`navigation_map` 参数。RViz 添加 Map 显示并选择 `/navigation_map` 可查看导航原图。
 
 保持建图或定位运行，将小车停在目标点后记录航点和任务（保存为新文件）：
