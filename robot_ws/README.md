@@ -49,17 +49,21 @@ ssh mowen
 
 ```bash
 source /opt/ros/noetic/setup.bash
+# 小车已安装的 Cartographer 环境，需先于 robot_ws 加载
+source /home/mowen/cartographer_ws/install_isolated/setup.bash
 cd /home/mowen/workspace/Smart-Community/robot_ws
-# 已编译的工作空间加载环境
-source devel/setup.bash
+# 保留 Cartographer 环境，叠加已编译的实车工作空间
+source devel/setup.bash --extend
 ```
 
 首次部署时若尚无 `devel/setup.bash`，先跳过该行。首次部署或修改 ROS 功能包后编译：
 
 ```bash
 catkin_make
-source devel/setup.bash
+source devel/setup.bash --extend
 ```
+
+实车 Cartographer 安装于 `/home/mowen/cartographer_ws/install_isolated`。可用 `rospack find cartographer_ros` 检查环境；若启动建图时提示找不到该包，按上述顺序重新加载，并保留 `--extend`。
 
 ## 键盘建图与导航
 
@@ -123,17 +127,15 @@ rosparam get /move_base/base_local_planner
 rostopic info /move_base/local_plan
 ```
 
-TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，使用 `/odom`、现有 `base_link` 车体轮廓及全向运动约束；前进/后退/横移速度上限分别为 0.18/0.10/0.10 m/s，合成平移速度上限为 0.18 m/s。到点容差沿用 0.08 m / 0.15 rad。初始配置关闭多拓扑候选搜索，保留代价地图障碍检测及整条局部轨迹可行性检查。参数数值不是实际避障距离或速度的保证，需低速实测绕障、横移、倒车和停车。
+TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，使用 `/odom`、现有 `base_link` 车体轮廓及全向运动约束；前进/后退/横移速度上限与 DWA 对齐为 0.27/0.27/0.13 m/s，合成平移速度上限仍为 0.18 m/s，最大角速度为 0.5 rad/s。平移加速度上限为 0.5 m/s²，角加速度按实车 DWA 当前生效的 `acc_lim_theta` 对齐为 3.2 rad/s²（DWA 文件中的旧键 `acc_lim_th: 2` 不代表该生效值）。到点容差沿用 0.08 m / 0.15 rad。初始配置关闭多拓扑候选搜索，保留代价地图障碍检测及整条局部轨迹可行性检查。参数数值不是实际避障距离或速度的保证，需低速实测绕障、横移、倒车和停车。
 
 Infra 可在启动导航前选择 DWA / TEB，切换前先停止导航。两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 Infra 和 RViz 显示。升级后需重建 Infra 前端并重启后端。本次配置尚未在实车加载 TEB 插件或验证运动效果。
 
 ### 定位地图与导航地图
 
-默认使用 `src/community_bringup/maps/map.yaml`（`map.pgm`）进行 AMCL 定位，使用 `map_nav.yaml`（`map_nav.pgm`）进行导航。导航地图已沿原有内侧墙边界填充禁行区：左侧内收 70 cm、上方和下方各内收 10 cm；右侧按 12 cm 要求向上取整为 3 格（15 cm）。左下角保留 70 × 70 cm 的原始空白通行区（原图像素列 1994–2007、行 1993–2006，索引从 0 开始），原墙体与障碍物保留。原地图发布到 `/map`，导航地图发布到 `/navigation_map`，全局和局部代价地图均加载导航地图静态层，并保留激光障碍层与原有膨胀参数。
+默认使用 `src/community_bringup/maps/map.yaml`（`map.pgm`）进行 AMCL 定位，使用 `map_nav.yaml`（`map_nav.pgm`）进行导航。两张图均为 245 × 249 像素，分辨率为 2 cm/格。定位图发布到 `/map`，导航图发布到 `/navigation_map`，供全局和局部代价地图的静态层使用。
 
-右上区域另有矩形禁行区：右上角距内收后的上边界 70 cm、右边界 75 cm；要求宽 96 cm、高 157 cm，按 5 cm 栅格向上取整为 100 × 160 cm（原图像素列 2042–2061、行 1942–1973，索引从 0 开始）。
-
-中间另有“└”形禁行区，左下角距原始左墙内侧 130 cm、原始底墙内侧 70 cm。左边高 275 cm，竖条宽 58 cm 向上取整为 60 cm；底边长 213 cm 向上取整为 215 cm、厚 55 cm，内侧竖边 220 cm、横边 155 cm。栅格边缘顶点依次为 `(2020, 1939)`、`(2032, 1939)`、`(2032, 1983)`、`(2063, 1983)`、`(2063, 1994)`、`(2020, 1994)`（原图左上角为坐标原点，x 向右、y 向下）。
+导航图以原始墙面为基准，左侧内收 70 cm、右侧 12 cm、上下各 10 cm，左下角保留 70 × 70 cm 通行区。右上矩形距内收后的上边界 70 cm、右边界 75 cm，宽 96 cm、高 157 cm（按栅格取 158 cm）。中间“└”形区域的左下角距原始左墙 130 cm、底墙 70 cm；竖条宽 58 cm、高 275 cm（取 276 cm），底部横条长 213 cm（取 214 cm）、厚 55 cm（取 56 cm）。
 
 设置固定禁行区域时，只在 `map_nav.pgm` 上用纯黑色实心填充，保留原图；不要改变图片尺寸、分辨率、原点或方向。修改后重启导航，在 RViz 中检查全局、局部代价地图及路径，并在实车低速条件下验证绕行效果。
 
@@ -368,7 +370,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认定位地图 `src/community_bringup/maps/map.yaml` 使用 2026-11-11 实车保存的 `community_test` 地图，导航地图为同目录下的 `map_nav.yaml`，分辨率均为 0.05 m/像素。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配，且不落在禁行区域内。
+默认定位地图 `src/community_bringup/maps/map.yaml` 来自实车 `community_test`，同目录下的 `map_nav.yaml` 来自配套的 `community_test_nav`。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配，且不落在禁行区域内。
 
 | 位置 | 用途 |
 |---|---|
