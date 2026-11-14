@@ -1,0 +1,72 @@
+{
+  "basic": {
+    "project": "D:/智慧社区项目/yolo/trashbin/runs/detect",
+    "name": "trashbin_color_lid_yolo11n_cpu_v2",
+    "env": "D:/miniconda_set/envs/x-anylabeling/python.exe",
+    "model": "C:/Users/69896/xanylabeling_data/trainer/ultralytics/weights/yolo11n.pt",
+    "data": "D:/智慧社区项目/yolo/trashbin/trashbin_new/data.yaml",
+    "device": "cpu",
+    "dataset_ratio": 0.8,
+    "pose_config": ""
+  },
+  "train": {
+    "epochs": 100,
+    "batch": 4,
+    "imgsz": 640,
+    "workers": 0,
+    "single_cls": false,
+    "classes": null
+  },
+  "strategy": {
+    "time": 0.0,
+    "patience": 20,
+    "close_mosaic": 10,
+    "optimizer": "auto",
+    "cos_lr": false,
+    "amp": false,
+    "multi_scale": false
+  },
+  "learning_rate": {
+    "lr0": 0.01,
+    "lrf": 0.01,
+    "momentum": 0.937,
+    "weight_decay": 0.0005
+  },
+  "warmup": {
+    "warmup_epochs": 3.0,
+    "warmup_momentum": 0.8,
+    "warmup_bias_lr": 0.1
+  },
+  "augment": {
+    "hsv_h": 0.0,
+    "hsv_s": 0.2,
+    "hsv_v": 0.2,
+    "degrees": 0.0,
+    "translate": 0.1,
+    "scale": 0.3,
+    "shear": 0.0,
+    "perspective": 0.0
+  },
+  "regularization": {
+    "dropout": 0.0,
+    "fraction": 1.0,
+    "rect": false
+  },
+  "loss_weights": {
+    "box": 7.5,
+    "cls": 0.5,
+    "dfl": 1.5,
+    "pose": 12.0,
+    "kobj": 2.0
+  },
+  "checkpoint": {
+    "save_period": -1,
+    "val": true,
+    "plots": true,
+    "save": true,
+    "resume": false,
+    "cache": false,
+    "skip_empty_files": true,
+    "only_checked_files": false
+  }
+}

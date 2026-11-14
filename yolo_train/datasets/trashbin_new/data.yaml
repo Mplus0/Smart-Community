@@ -1,0 +1,10 @@
+nc: 8
+names:
+  0: blue_close
+  1: blue_open
+  2: grey_close
+  3: grey_open
+  4: green_close
+  5: green_open
+  6: red_close
+  7: red_open
