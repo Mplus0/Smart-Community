@@ -11,15 +11,16 @@ TebLocalPlannerROS:
   allow_init_with_backwards_motion: false
   feasibility_check_no_poses: -1
 
-  # Omnidirectional chassis; below the existing DWA speed limits.
-  max_vel_x: 0.18
-  max_vel_x_backwards: 0.10
-  max_vel_y: 0.10
+  # Omnidirectional chassis; match the active DWA velocity/acceleration limits.
+  max_vel_x: 0.27
+  max_vel_x_backwards: 0.27
+  max_vel_y: 0.13
   max_vel_trans: 0.18
   max_vel_theta: 0.5
   acc_lim_x: 0.5
   acc_lim_y: 0.5
-  acc_lim_theta: 2.0
+  # DWA currently uses acc_lim_theta=3.2, not the legacy acc_lim_th=2 key.
+  acc_lim_theta: 3.2
   min_turning_radius: 0.0
   cmd_angle_instead_rotvel: false
   weight_kinematics_nh: 0.0

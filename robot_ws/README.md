@@ -343,23 +343,28 @@ python3 tools/test_detector_model.py --detector people_detector --image ../yolo_
 
 ### 图片采集
 
-`tools/collect_dataset.py` 保存相机原图，支持浏览器拍照和终端采集；不会自动生成目标框标注或划分数据集。
+`tools/collect_dataset.py` 每个进程固定使用 `--camera` 指定的相机，网页显示相机名称并提供实时画面和拍照按钮。两台 USB 相机在两个终端分别启动，可同时打开各自网页。
 
-保持相机运行，另开终端启动浏览器预览和拍照：
-
-```bash
-python3 tools/collect_dataset.py trashbin --datasets-dir ../yolo_train/datasets --web-port 8081 --web-host 0.0.0.0 --web-only
-```
-
-浏览器访问 `http://小车IP:8081/`，点击“拍照保存”。原图保存至 `yolo_train/datasets/trashbin/images/`；将 `trashbin` 替换为需要的数据集名称。默认订阅 `/usb_cam/image_raw`，可通过 `--topic` 修改。
-
-终端拍照模式：
+在 `robot_ws` 目录中执行：
 
 ```bash
-python3 tools/collect_dataset.py trashbin --datasets-dir ../yolo_train/datasets --no-preview
+# 终端 1：DJI，默认端口 8081
+python3 tools/collect_dataset.py trashbin_dji --camera dji --web-only --web-host 0.0.0.0
+# 终端 2：Orbbec 彩色，默认端口 8082
+python3 tools/collect_dataset.py trashbin_orbbec --camera orbbec --web-only --web-host 0.0.0.0
 ```
 
-回车保存，输入 `q` 后回车退出。各网页工具使用不同端口；Ctrl+C 关闭。
+分别访问 `http://小车IP:8081/` 和 `http://小车IP:8082/`。使用 VS Code SSH 端口转发时，转发 8081、8082，再打开 `http://localhost:8081/` 和 `http://localhost:8082/`。可用 `--web-port` 覆盖默认端口，两个进程必须使用不同端口。
+
+原图分别保存至 `yolo_train/datasets/trashbin_dji/images/` 和 `yolo_train/datasets/trashbin_orbbec/images/`；可替换数据集名称或用 `--datasets-dir` 指定根目录。DJI 需选择 USB 网络摄像头模式。启动前停止占用对应相机的旧采集程序或相机节点；两个终端各自按 Ctrl+C 退出。
+
+已有 ROS 相机话题时使用 `--camera ros --topic /usb_cam/image_raw --web-only`，默认端口 8080。终端回车拍照模式：
+
+```bash
+python3 tools/collect_dataset.py trashbin --camera ros --no-preview
+```
+
+回车保存，输入 `q` 后回车退出。此工具不生成目标框标注或划分数据集。
 
 ## 常用配置与结果
 

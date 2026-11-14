@@ -46,10 +46,7 @@ def open_usb_camera(source, width=1920, height=1080, fps=30):
 
 
 class Preview:
-    def __init__(self, zoom=1.0, sharpness=0.0, jpeg_quality=95):
-        self.zoom = zoom
-        self.sharpness = sharpness
-        self.jpeg_quality = jpeg_quality
+    def __init__(self):
         self.condition = threading.Condition()
         self.stopped = threading.Event()
         self.frame = None
@@ -57,22 +54,7 @@ class Preview:
 
     def publish(self, image):
         try:
-            # Software crop/resize and unsharp masking; never controls the lens.
-            if self.zoom > 1.0:
-                height, width = image.shape[:2]
-                crop_width = max(1, round(width / self.zoom))
-                crop_height = max(1, round(height / self.zoom))
-                left = (width - crop_width) // 2
-                top = (height - crop_height) // 2
-                image = cv2.resize(
-                    image[top:top + crop_height, left:left + crop_width],
-                    (width, height), interpolation=cv2.INTER_LINEAR)
-            if self.sharpness > 0.0:
-                blurred = cv2.GaussianBlur(image, (0, 0), 1.0)
-                image = cv2.addWeighted(
-                    image, 1.0 + self.sharpness, blurred, -self.sharpness, 0)
-            ok, encoded = cv2.imencode(
-                ".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, self.jpeg_quality])
+            ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 80])
             if not ok:
                 return
         except cv2.error as exc:
@@ -108,27 +90,11 @@ def main():
     parser.add_argument("--topic", default="/usb_cam/image_raw")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--host", default="0.0.0.0", help="HTTP listen address (default: all interfaces)")
-    parser.add_argument("--zoom", type=float, default=None,
-                        help="Software zoom 1-2 (DJI default: 2; others: 1)")
-    parser.add_argument("--sharpness", type=float, default=None,
-                        help="Software sharpening 0-2; 0 disables (DJI default: 0.5; others: 0)")
-    parser.add_argument("--jpeg-quality", "--preview-quality", type=int, default=95,
-                        help="Preview JPEG quality 1-100 (default: 95; higher uses more bandwidth)")
     # Leave ROS remapping arguments available to rospy in ROS mode.
     args, remaining = parser.parse_known_args()
     if args.camera != "ros" and remaining:
         parser.error("unrecognized arguments: " + " ".join(remaining))
-    if args.zoom is None:
-        args.zoom = 2.0 if args.camera == "dji" else 1.0
-    if args.sharpness is None:
-        args.sharpness = 0.5 if args.camera == "dji" else 0.0
-    if not 1.0 <= args.zoom <= 2.0:
-        parser.error("--zoom must be between 1 and 2")
-    if not 0.0 <= args.sharpness <= 2.0:
-        parser.error("--sharpness must be between 0 and 2")
-    if not 1 <= args.jpeg_quality <= 100:
-        parser.error("--jpeg-quality must be between 1 and 100")
-    preview = Preview(args.zoom, args.sharpness, args.jpeg_quality)
+    preview = Preview()
     subscriber = camera = worker = None
     rospy = None
     if args.camera == "ros":
@@ -165,10 +131,7 @@ def main():
             if self.path == "/":
                 body = (b'<!doctype html><meta name="viewport" content="width=device-width">'
                         b'<title>Camera preview</title><h2>Camera preview</h2>'
-                        b'<img src="/stream" style="max-width:100%;height:auto">'
-                        + ("<p>Software zoom: {}x | Sharpening: {} | JPEG quality: {}</p>"
-                           "<p>Digital zoom loses detail; sharpening cannot restore blurred detail.</p>"
-                           .format(args.zoom, args.sharpness, args.jpeg_quality)).encode("utf-8"))
+                        b'<img src="/stream" style="max-width:100%;height:auto">')
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))
@@ -204,9 +167,6 @@ def main():
         server = ThreadingHTTPServer((args.host, args.port), Handler)
         server.daemon_threads = True
         print("Camera: {}  Listening: {}:{}".format(source, args.host, args.port), flush=True)
-        print("Software zoom: {}x; sharpening: {}; JPEG quality: {}".format(
-            args.zoom, args.sharpness, args.jpeg_quality), flush=True)
-        print("Software processing only; zoom loses detail and sharpening cannot restore blur.", flush=True)
         print("Preview: http://<robot-ip>:{}/ (use the robot's LAN IP)".format(args.port), flush=True)
         server.serve_forever(poll_interval=0.5)
     except KeyboardInterrupt:
