@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""从 ROS 图像话题或 USB 相机采集图像，每个进程固定一台相机，支持独立网页预览和拍照。"""
+"""从 ROS 图像话题或 USB 相机采集图片和视频，每个进程固定一台相机。"""
 
 import argparse
 import json
@@ -34,12 +34,14 @@ button:disabled{opacity:.5;cursor:default}p{line-height:1.7;overflow-wrap:anywhe
 <p id="status" role="status">正在连接相机…</p>
 <div class="view"><img id="preview" alt="相机实时画面" hidden></div>
 <div class="bar"><button id="capture" disabled>拍照保存</button><span>本次已保存 <b id="count">0</b> 张</span></div>
+<div class="bar"><button id="record" disabled>开始录像</button><span id="recordStatus"></span></div>
 <p id="result" role="status"></p>
 <p id="folder"></p>
 </main>
 <script>
 const preview = document.getElementById('preview');
 const capture = document.getElementById('capture');
+const record = document.getElementById('record');
 const statusText = document.getElementById('status');
 const result = document.getElementById('result');
 let current = null;
@@ -55,6 +57,8 @@ preview.onerror = clearPreview;
 function controls() {
  capture.disabled = busy || !current || !current.camera_ready;
  capture.textContent = busy ? '正在保存…' : '拍照保存';
+ record.disabled = busy || !current || (!current.recording && !current.camera_ready);
+ record.textContent = current?.recording ? '停止录像' : '开始录像';
 }
 
 function show(data) {
@@ -63,6 +67,8 @@ function show(data) {
  statusText.textContent = data.label + ' · ' + (data.camera_ready ? data.resolution : data.message);
  document.getElementById('count').textContent = data.count;
  document.getElementById('folder').textContent = data.folder;
+ document.getElementById('recordStatus').textContent = data.record_error ||
+  (data.recording ? '录像中 · ' : '已停止 · ') + (data.video_filename || '尚未录像');
  if (data.camera_ready && !preview.hasAttribute('src')) {
   preview.src = '/stream.mjpg?generation=' + data.generation;
   preview.hidden = false;
@@ -87,7 +93,7 @@ async function request(path, payload) {
   return data;
  } catch (error) {
   if (error.name === 'AbortError') throw Error(payload
-   ? '拍照响应超时，请检查网络；照片可能已保存，请先核对保存数量'
+   ? '操作响应超时，请检查网络；操作可能已完成，请先核对页面状态和保存文件'
    : '连接超时，请检查网络和端口转发');
   throw error;
  } finally {
@@ -132,6 +138,12 @@ capture.onclick = () => act(async () => {
  const data = await request('/capture', {generation: current.generation});
  result.textContent = '已保存 ' + data.filename;
  document.getElementById('count').textContent = data.count;
+});
+record.onclick = () => act(async () => {
+ const data = await request(current.recording ? '/record/stop' : '/record/start',
+  {generation: current.generation});
+ show(data);
+ result.textContent = data.recording ? '已开始录像' : '录像已停止并保存';
 });
 
 poll();
@@ -278,7 +290,86 @@ class CameraSource:
         self.worker.join(timeout=3)
 
 
-def start_web_preview(args, source, save, get_status, stopped):
+class VideoRecorder:
+    """按固定帧率采样最新画面，独立于网页预览；锁保护写帧与关闭操作。"""
+
+    def __init__(self, source, folder, fps):
+        self.source, self.folder, self.fps = source, folder, fps
+        self.lock = threading.Lock()
+        self.writer = None
+        self.filename = ""
+        self.error = ""
+        self.closed = threading.Event()
+        self.worker = threading.Thread(target=self.run, daemon=True)
+        self.worker.start()
+
+    def start(self, generation=None):
+        import cv2
+        with self.lock:
+            if self.closed.is_set():
+                raise RuntimeError("采集正在退出")
+            if self.writer is not None:
+                return
+            image, _, _ = self.source.image(generation)
+            self.folder.mkdir(parents=True, exist_ok=True)
+            filename = datetime.now().strftime("%Y%m%d_%H%M%S_%f") + ".avi"
+            size = (image.shape[1], image.shape[0])
+            writer = cv2.VideoWriter(str(self.folder / filename),
+                                     cv2.VideoWriter_fourcc(*"MJPG"), self.fps, size)
+            if not writer.isOpened():
+                writer.release()
+                raise RuntimeError("无法创建录像文件，请检查目录与 MJPEG 编码支持")
+            try:
+                writer.write(image)
+            except Exception:
+                writer.release()
+                raise
+            self.writer, self.size = writer, size
+            self.filename, self.error = filename, ""
+            self.next_frame = time.monotonic() + 1.0 / self.fps
+            print("开始录像：{}".format(self.folder / filename), flush=True)
+
+    def stop_locked(self):
+        if self.writer is not None:
+            self.writer.release()
+            self.writer = None
+            print("录像已保存：{}".format(self.folder / self.filename), flush=True)
+
+    def stop(self):
+        with self.lock:
+            self.stop_locked()
+
+    def status(self):
+        with self.lock:
+            return {"recording": self.writer is not None,
+                    "video_filename": self.filename, "record_error": self.error}
+
+    def run(self):
+        import cv2
+        while not self.closed.wait(min(0.05, 1.0 / self.fps)):
+            with self.lock:
+                if self.writer is None or time.monotonic() < self.next_frame:
+                    continue
+                try:
+                    image, _, _ = self.source.image()
+                    if (image.shape[1], image.shape[0]) != self.size:
+                        raise RuntimeError("相机分辨率变化，请重新开始录像")
+                    self.writer.write(image)
+                    self.next_frame += 1.0 / self.fps
+                    # 写盘跟不上时跳过积压时刻，避免忙循环补写。
+                    self.next_frame = max(self.next_frame, time.monotonic())
+                except (RuntimeError, OSError, cv2.error) as exc:
+                    self.error = "录像停止：{}".format(exc)
+                    self.stop_locked()
+                    print(self.error, flush=True)
+
+    def close(self):
+        self.closed.set()
+        self.worker.join()
+        self.stop()
+
+
+def start_web_preview(args, source, save, get_status, stopped, recorder):
     import cv2
 
     class Handler(BaseHTTPRequestHandler):
@@ -353,7 +444,7 @@ def start_web_preview(args, source, save, get_status, stopped):
         def do_POST(self):
             path = urlsplit(self.path).path
             try:
-                if path != "/capture":
+                if path not in ("/capture", "/record/start", "/record/stop"):
                     self.reply(404, "text/plain", b"Not found")
                     return
                 if self.headers.get("Content-Type", "").split(";")[0].strip() != "application/json":
@@ -375,7 +466,14 @@ def start_web_preview(args, source, save, get_status, stopped):
                     self.json_reply(400, {"error": "无效相机状态"})
                     return
                 try:
-                    saved = save(generation)
+                    if path == "/capture":
+                        saved = save(generation)
+                    else:
+                        if path == "/record/start":
+                            recorder.start(generation)
+                        else:
+                            recorder.stop()
+                        saved = get_status()
                 except (OSError, RuntimeError, cv2.error) as exc:
                     self.json_reply(503, {"error": str(exc)})
                 else:
@@ -405,6 +503,7 @@ def parse_args():
     parser.add_argument("--preview-width", type=int, default=960, help="网页预览最大宽度，默认 960；不改变拍照分辨率")
     parser.add_argument("--preview-fps", type=int, default=8, help="网页预览帧率上限，默认 8")
     parser.add_argument("--preview-quality", type=int, default=65, help="网页 JPEG 质量 1～100，默认 65；不改变拍照质量")
+    parser.add_argument("--record-fps", type=int, default=10, help="录像帧率 1～30，默认 10；原始分辨率 MJPEG AVI，无音频")
     args = parser.parse_args()
     if args.web_port is None:
         args.web_port = {"dji": 8081, "orbbec": 8082, "ros": 8080}[args.camera] if args.web_only else 0
@@ -416,6 +515,8 @@ def parse_args():
         parser.error("网页端口必须在 1～65535 范围内，0 表示关闭")
     if args.preview_width < 1 or not 1 <= args.preview_fps <= 30 or not 1 <= args.preview_quality <= 100:
         parser.error("预览宽度必须为正数，帧率必须为 1～30，JPEG 质量必须为 1～100")
+    if not 1 <= args.record_fps <= 30:
+        parser.error("录像帧率必须为 1～30")
     if args.web_only and not args.web_port:
         parser.error("--web-only 需要同时指定 --web-port")
     if args.web_only:
@@ -444,6 +545,7 @@ def main():
     stopped = threading.Event()
     save_lock = threading.Lock()
     source = CameraSource(args, stopped)
+    recorder = VideoRecorder(source, folder.parent / "videos", args.record_fps)
     count = 0
     server = None
     window_created = False
@@ -464,29 +566,38 @@ def main():
     def status():
         data = source.status()
         data.update(count=count, folder=str(folder))
+        data.update(recorder.status())
         return data
 
     print("起始相机：{}\n数据集目录：{}".format(CAMERA_LABELS[args.camera], folder), flush=True)
     try:
         if args.web_port:
-            server = start_web_preview(args, source, save, status, stopped)
+            server = start_web_preview(args, source, save, status, stopped, recorder)
             print("网页：http://{}:{}/".format(args.web_host, args.web_port), flush=True)
         if args.web_only:
             print("网页采集模式，按 Ctrl+C 退出。", flush=True)
             stopped.wait()
         elif args.no_preview:
-            print("回车采集一张最新图像。输入 q 后回车退出。", flush=True)
+            print("回车拍照，输入 r 后回车开始/停止录像，输入 q 后回车退出。", flush=True)
             while not stopped.is_set():
                 command = input().strip().lower()
                 if command == "q":
                     break
+                if command == "r":
+                    try:
+                        if recorder.status()["recording"]:
+                            recorder.stop()
+                        else:
+                            recorder.start()
+                    except (RuntimeError, OSError, cv2.error) as exc:
+                        print("录像失败：{}".format(exc), flush=True)
                 if not command:
                     try:
                         save(timeout=5)
                     except (RuntimeError, OSError, cv2.error) as exc:
                         print("采集失败：{}".format(exc), flush=True)
         else:
-            print("预览窗口按空格或 S 保存图像，按 Q 或 Esc 退出。", flush=True)
+            print("预览窗口按空格或 S 拍照，R 开始/停止录像，Q 或 Esc 退出。", flush=True)
             window = "Dataset capture"
             cv2.namedWindow(window, cv2.WINDOW_NORMAL)
             window_created = True
@@ -501,6 +612,14 @@ def main():
                 key = cv2.waitKey(30) & 0xFF
                 if key in (ord("q"), ord("Q"), 27) or cv2.getWindowProperty(window, cv2.WND_PROP_VISIBLE) == 0:
                     break
+                if key in (ord("r"), ord("R")):
+                    try:
+                        if recorder.status()["recording"]:
+                            recorder.stop()
+                        else:
+                            recorder.start()
+                    except (RuntimeError, OSError, cv2.error) as exc:
+                        print("录像失败：{}".format(exc), flush=True)
                 if key in (ord("s"), ord("S"), 32):
                     try:
                         last_saved = save(after=last_saved)["sequence"]
@@ -513,6 +632,7 @@ def main():
         return 1
     finally:
         stopped.set()
+        recorder.close()
         if server is not None:
             server.shutdown()
             server.server_close()
