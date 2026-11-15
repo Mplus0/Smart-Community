@@ -1,0 +1,18 @@
+# Paths are relative to yolo_train/.
+model: ../models/yolo26n.pt
+data: datasets/traffic_light_real_yolo/data.yaml
+output:
+  project: results/traffic_light_real
+  name: yolo26n
+train:
+  epochs: 100
+  imgsz: 640
+  batch: 16
+  workers: 4
+  patience: 30
+  seed: 42
+  deterministic: true
+  # Preserve traffic-light colour semantics.
+  hsv_h: 0.0
+  hsv_s: 0.0
+  hsv_v: 0.1
