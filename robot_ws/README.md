@@ -97,9 +97,9 @@ roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yam
 
 本地 RViz 启动方式见下一节。RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，再使用 `2D Nav Goal` 测试导航。建图与导航不同时运行。
 
-### TEB 局部规划（可选）
+### TEB 局部规划（默认）
 
-导航默认保留 DWA，可通过 `local_planner:=teb` 切换为 TEB。先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
+导航默认使用 TEB，`navigation.launch`、`community.launch` 及调用后者的 `finals.launch` 均生效。可通过 `local_planner:=dwa` 在前两个入口切换为 DWA。先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
 
 ```bash
 sudo apt update
@@ -114,7 +114,8 @@ rospack find teb_local_planner
 保持硬件运行，停止已有导航及建图后启动（无需重启硬件）：
 
 ```bash
-roslaunch community_bringup navigation.launch local_planner:=teb
+roslaunch community_bringup navigation.launch
+# 显式选择 TEB：roslaunch community_bringup navigation.launch local_planner:=teb
 # 使用新地图时同时指定 map:=... 和 navigation_map:=...
 # 恢复 DWA：停止当前导航，再使用 local_planner:=dwa 启动
 ```
@@ -129,39 +130,41 @@ rostopic info /move_base/local_plan
 
 TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，使用 `/odom`、现有 `base_link` 车体轮廓及全向运动约束；前进/后退/横移速度上限与 DWA 对齐为 0.27/0.27/0.13 m/s，合成平移速度上限仍为 0.18 m/s，最大角速度为 0.5 rad/s。平移加速度上限为 0.5 m/s²，角加速度按实车 DWA 当前生效的 `acc_lim_theta` 对齐为 3.2 rad/s²（DWA 文件中的旧键 `acc_lim_th: 2` 不代表该生效值）。到点容差沿用 0.08 m / 0.15 rad。初始配置关闭多拓扑候选搜索，保留代价地图障碍检测及整条局部轨迹可行性检查。参数数值不是实际避障距离或速度的保证，需低速实测绕障、横移、倒车和停车。
 
-两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 RViz 显示。本次配置尚未在实车加载 TEB 插件或验证运动效果。
+两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 RViz 显示。已在实车确认 TEB 插件加载并运行导航，定位、绕障及通行稳定性仍需现场验证。
 
 ### 定位地图与导航地图
 
-默认使用 `src/community_bringup/maps/map.yaml`（`map.pgm`）进行 AMCL 定位，使用 `map_nav.yaml`（`map_nav.pgm`）进行导航。两张图均为 245 × 249 像素，分辨率为 2 cm/格。定位图发布到 `/map`，导航图发布到 `/navigation_map`，供全局和局部代价地图的静态层使用。
+默认使用扫描地图 `src/community_bringup/maps/map.yaml`（`map.pgm`）同时进行 AMCL 定位和导航，`navigation_map` 默认跟随 `map` 参数。扫描图为 245 × 249 像素，分辨率为 2 cm/格，同一份数据分别发布到 `/map`（定位）和 `/navigation_map`（全局、局部代价地图静态层）。默认不加载含人工禁行区的 `map_nav.yaml`；激光障碍物检测和避障仍保留。
 
-导航图以原始墙面为基准，左侧内收 70 cm、右侧 12 cm、上下各 10 cm，左下角保留 70 × 70 cm 通行区。右上矩形距内收后的上边界 70 cm、右边界 75 cm，宽 96 cm、高 157 cm（按栅格取 158 cm）。中间“└”形区域的左下角距原始左墙 130 cm、底墙 70 cm；竖条宽 58 cm、高 275 cm（取 276 cm），底部横条长 213 cm（取 214 cm）、厚 55 cm（取 56 cm）。
+默认地图已按实际扫描结果拟合拉直外墙、清理孤立小噪点，并保留内部较大回波；导航图同时填平禁行区内的小孔、整理边缘。4.2 米仅作场地尺寸参考，未强制缩放或旋转扫描图；墙体中心线拟合边长约为 4.28–4.32 米。两图尺寸、分辨率和原点 `(-0.606413, -0.903932)` 均保持不变，航点未修改。更新后需重启导航加载，定位及通行效果仍需实车验证。
+
+保留的可选人工导航图 `map_nav.yaml` 以原始墙面为基准，左侧内收 70 cm、右侧 12 cm、上下各 10 cm，左下角保留 70 × 70 cm 通行区。右上矩形距内收后的上边界 70 cm、右边界 75 cm，宽 96 cm、高 157 cm（按栅格取 158 cm）。中间“└”形区域的左下角距原始左墙 130 cm、底墙 70 cm；竖条宽 58 cm、高 275 cm（取 276 cm），底部横条长 213 cm（取 214 cm）、厚 55 cm（取 56 cm）。
 
 设置固定禁行区域时，只在 `map_nav.pgm` 上用纯黑色实心填充，保留原图；不要改变图片尺寸、分辨率、原点或方向。修改后重启导航，在 RViz 中检查全局、局部代价地图及路径，并在实车低速条件下验证绕行效果。
 
-更换地图时需同时指定两份处于相同坐标系、具有相同尺寸、分辨率和原点的地图，避免定位与规划错位。未绘制禁行区域时，两参数可指向同一份 YAML（如上例）；已有独立导航地图时使用：
+只使用扫描图时直接运行 `roslaunch community_bringup navigation.launch`；更换扫描图只需指定 `map:=/绝对路径/地图.yaml`。需要独立人工导航图时再显式指定 `navigation_map`，两图须处于相同坐标系，具有相同尺寸、分辨率和原点，避免定位与规划错位：
 
 ```bash
 roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test_nav.yaml
 ```
 
-测试地图 `src/community_bringup/maps/square_4p2m.yaml` 为无内部障碍物的正方形：内部净空 4.2 × 4.2 m，分辨率 0.02 m/格，内部 210 × 210 格，外围增加一格厚的占用边框，总尺寸 212 × 212 像素。内部左下角为地图坐标 `(0, 0)`，右上角为 `(4.2, 4.2)`，YAML 原点为 `(-0.02, -0.02)`。默认地图未切换，测试时在已加载工作空间环境的终端执行：
+测试地图 `src/community_bringup/maps/square_4p2m.yaml` 为无内部障碍物的正方形：内部净空 4.2 × 4.2 m，分辨率 0.02 m/格，内部 210 × 210 格，外围增加一格厚的占用边框，总尺寸 212 × 212 像素。坐标原点设在配套导航图左下角停车预留区的中心：该白色预留区相对场地左下角为 `x: 0.10–0.70 m、y: 0.10–0.80 m`，中心为 `(0.40, 0.45)`。两张地图的 YAML 原点均为 `(-0.42, -0.47)`，场地内部左下角为 `(-0.40, -0.45)`、右上角为 `(3.80, 3.75)`。默认地图未切换，测试时在已加载工作空间环境的终端执行：
 
 ```bash
 TEST_MAP="$(rospack find community_bringup)/maps/square_4p2m.yaml"
 roslaunch community_bringup navigation.launch map:="$TEST_MAP" navigation_map:="$TEST_MAP"
 ```
 
-配套导航图为 `square_4p2m_nav.yaml`，按手绘图绘制，沿场地四边设置 10 cm 禁行带，并填充以下禁行区。尺寸以厘米计，按“宽 × 高”解释；坐标原点为场地左下角，70 cm 间距均以原始 4.2 m 场地边界为基准。空白定位图保持不变。2 cm 栅格下，禁行区边界向外取整，实际范围如下。
+配套导航图为 `square_4p2m_nav.yaml`，沿场地四边设置 10 cm 禁行带。两张测试地图均已按原手绘布局绕场地中心逆时针旋转 90°，随后将原点平移到停车预留区中心，尺寸和分辨率不变；原手绘布局以场地左下角为原点的坐标转换为 `x_new = 3.8 - y_old`、`y_new = x_old - 0.45`。空白定位图因四边对称，旋转后外观不变。尺寸以厘米计，按“宽 × 高”解释；2 cm 栅格下，当前禁行区实际范围如下。
 
 | 禁行区 | 实际栅格尺寸 | 地图坐标范围（米） |
 |---|---|---|
-| 顶部矩形 | 340 × 70 cm；贴场地上、右边界 | x: 0.80–4.20，y: 3.50–4.20 |
-| 右下矩形 | 160 × 100 cm（标注 160 × 99）；右、下间距均为 70 cm | x: 1.90–3.50，y: 0.70–1.70 |
-| L 型顶部横条 | 284 × 60 cm（标注 283 × 60）；右端距右边界 70 cm | x: 0.66–3.50，y: 2.30–2.90 |
-| L 型左侧竖条 | 60 × 220 cm（标注 59 × 220）；底端距下边界 70 cm | x: 0.66–1.26，y: 0.70–2.90 |
+| 左侧矩形 | 70 × 340 cm；贴场地左、上边界 | x: -0.40–0.30，y: 0.35–3.75 |
+| 右上矩形 | 100 × 160 cm；右、上间距均为 70 cm | x: 2.10–3.10，y: 1.45–3.05 |
+| L 型左侧竖条 | 60 × 284 cm | x: 0.90–1.50，y: 0.21–3.05 |
+| L 型底部横条 | 220 × 60 cm | x: 0.90–3.10，y: 0.21–0.81 |
 
-L 型两条区域重叠组成“┌”，整体高度为 220 cm；横条与右下矩形间的净空为 60 cm，顶部矩形与横条间的净空也为 60 cm。使用配套导航图时运行：
+L 型两条区域重叠组成“└”，整体宽度为 220 cm；竖条与左右两侧矩形间的水平净空均为 60 cm。旋转后需重新设置初始位姿，旧航点不可直接沿用。使用配套导航图时运行：
 
 ```bash
 TEST_MAP_DIR="$(rospack find community_bringup)/maps"
@@ -183,6 +186,29 @@ python3 tools/record_waypoints.py --output ~/maps/route.yaml
 ```bash
 roslaunch community_mission mission.launch route:=$HOME/maps/route.yaml
 ```
+
+### 按场地图生成新扫描地图的禁行区
+
+`tools/generate_forbidden_map.py` 从随附的 `maps/field_reference.png` 白线计算三个禁行区，不读取仿真手点坐标。参考原图与 Gazebo 地面纹理一致，整图对应 4.2 × 4.2 米，内侧白框约为 4.0 米。方向按停车区在左、起始停车位在左下解释。
+
+先保存新的扫描地图，再确定场地左下、右下、右上、左上四角在扫描图 `map` 坐标系中的位置。角点应对应实际 4.2 米场地边界，而非参考图内侧白框；以起始停车位确认四角方向。四角仅用于一次场地标定，禁行区顶点由图片自动计算。将下面的 `X0 Y0 ... X3 Y3` 替换为实际角点坐标（米）：
+
+```bash
+python3 tools/generate_forbidden_map.py \
+  --map "$HOME/maps/community_new.yaml" \
+  --output "$HOME/maps/community_new_nav" \
+  --corners X0 Y0 X1 Y1 X2 Y2 X3 Y3
+```
+
+脚本只拟合旋转和平移，不缩放或旋转扫描图；默认角点最大标定误差超过 8 cm 时拒绝生成。输出新的导航图 `.pgm/.yaml`、禁行区及标定记录 `_zones.yaml`、角点和区域轮廓预览 `_preview.png`，不覆盖已有输出，不修改航点或自动启动导航。核对预览及实测禁行边界后显式加载：
+
+```bash
+roslaunch community_bringup navigation.launch \
+  map:="$HOME/maps/community_new.yaml" \
+  navigation_map:="$HOME/maps/community_new_nav.yaml"
+```
+
+场地布局或尺寸与参考图片不同，需先核对实际区域；脚本不会自动识别道具或推断正方形朝向。离线几何检查：`python3 tools/test_generate_forbidden_map.py -v`。实际定位、避障和通行效果仍需实车验证。
 
 ## Ubuntu 本地 RViz 调试
 
@@ -414,7 +440,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认定位地图 `src/community_bringup/maps/map.yaml` 来自实车 `community_test`，同目录下的 `map_nav.yaml` 来自配套的 `community_test_nav`。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配，且不落在禁行区域内。
+默认定位和导航均使用 `src/community_bringup/maps/map.yaml`，来自实车 `community_test`；同目录下的 `map_nav.yaml` 来自配套的 `community_test_nav`，仅在显式指定时使用。更换地图后，巡检前需核对 `route.yaml` 中的航点是否与新地图坐标匹配，且不落在障碍物或禁行区域内。
 
 | 位置 | 用途 |
 |---|---|

@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <launch>
   <arg name="map" default="$(find community_bringup)/maps/map.yaml" />
-  <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml" />
-  <arg name="local_planner" default="dwa" doc="dwa or teb" />
-  <!-- 原地图保留 /map 和 /static_map，供 AMCL 定位使用。 -->
+  <arg name="navigation_map" default="$(arg map)" />
+  <arg name="local_planner" default="teb" doc="dwa or teb" />
+  <!-- 定位与规划默认共用扫描地图；navigation_map 仅用于显式指定独立导航图。 -->
   <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />
   <group ns="navigation">
     <node pkg="map_server" type="map_server" name="map_server" args="$(arg navigation_map)">
