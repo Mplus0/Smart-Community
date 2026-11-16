@@ -210,7 +210,6 @@ class Mission:
             raise RuntimeError('move_base is unavailable')
         if not self.navigation_only:
             self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
-            self.speech.put('我要验牌')
         else:
             rospy.loginfo('[导航验收] 只导航模式，跳过全部航点任务及红绿灯等待')
         self.transition('NAVIGATE', '导航服务已就绪')
@@ -238,7 +237,7 @@ class Mission:
         elif task_type == 'traffic_light':
             self.wait_traffic()
         elif task_type == 'announcement':
-            self.results.execute('announcement', point, self.announce)
+            pass  # 暂停播报任务，保留 announce() 供后续接入。
         elif task_type == 'record_start':
             self.results.execute('record_start', point, self.start_recording,
                                  paths=[self.video_path])
@@ -291,8 +290,6 @@ class Mission:
             rospy.loginfo('[路线] wp_04 分支=%s，后续航点=%s',
                           self.obstacle_mode, ' -> '.join(order))
         if self.index + 1 == len(self.route['points']):
-            if self.speech is not None and not self.speech.drain():
-                rospy.logwarn('[任务] Speech queue did not finish before its deadline')
             self.transition('FINISH', '全部航点完成')
         else:
             self.index += 1

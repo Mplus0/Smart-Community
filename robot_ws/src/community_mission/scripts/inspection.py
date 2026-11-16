@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import time
 
 from rules import (detections, people_counts, illegal_parking_count,
-                    trash_announcement, vehicle_counts, vehicle_announcement)
+                    trash_announcement)
 
 
 class Inspection:
@@ -30,10 +30,6 @@ class Inspection:
         illegal = illegal_parking_count(vehicles, bounds, image.width, image.height, self.settings)
         self.illegal[street] += illegal
         self.people_points.add(point['id'])
-        if self.people_points == {p['id'] for p in self.route['points'] if p['task'] == 'person'}:
-            self.speech.put(f'社区内共有{sum(self.people.values())}人，其中A街人数{self.people["A"]}人，'
-                            f'B街人数{self.people["B"]}人，发现{self.outside["A"]}名非社区人员在A街，'
-                            f'发现{self.outside["B"]}名非社区人员在B街，图片已保存')
 
         return dict(area=street, people=total, outside=outside, illegal_parking=illegal)
 
@@ -45,8 +41,6 @@ class Inspection:
         lot = point['parking_lot']
         plate = response.plate_texts[0].strip() if response.plate_texts else ''
         self.plates[lot] = plate or '未检测到车牌'
-        if len(plate) >= 2:
-            self.speech.put(f'{lot}号停车场车牌为'+' '.join(plate))
 
         return dict(parking_lot=lot, plate=plate)
 
@@ -63,7 +57,6 @@ class Inspection:
             building = response.plate_texts[0] if response.plate_texts else building
         except Exception as error:
             ocr_error = str(error)
-        self.speech.put(f'{building}发现火灾隐患{count}处')
 
         return dict(fire_count=count, building=building, ocr_error=ocr_error)
 
@@ -71,21 +64,16 @@ class Inspection:
         bins = detections(self.services.detect('trash_bin_detector', image))
         waste = detections(self.services.detect('waste_detector', image))
         announcement = trash_announcement(bins, waste, image.width, self.settings)
-        self.speech.put(announcement)
         return dict(announcement=announcement, bins=[d.label for d in bins], waste=[d.label for d in waste])
 
     def inspect_vehicle_photo(self, point, image):
         objects = detections(self.services.detect('bicycle_detector', image))
         self.vehicle_frames.append((objects, image.width, image.height))
-        if len(self.vehicle_frames) == sum(p['task'] == 'vehicle_photo' for p in self.route['points']):
-            stand, fall = vehicle_counts(self.vehicle_frames, self.settings)
-            self.speech.put(vehicle_announcement(self.illegal, stand, fall))
 
         return dict(detected_classes=[d.label for d in objects])
 
     def inspect_video(self, point, path):
         result = self.services.count_video(path)
-        self.speech.put(vehicle_announcement(self.illegal, result.stand_count, result.fall_count))
 
         return dict(stand_count=result.stand_count, fall_count=result.fall_count)
 

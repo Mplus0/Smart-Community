@@ -129,7 +129,7 @@ rostopic info /move_base/local_plan
 
 TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，使用 `/odom`、现有 `base_link` 车体轮廓及全向运动约束；前进/后退/横移速度上限与 DWA 对齐为 0.27/0.27/0.13 m/s，合成平移速度上限仍为 0.18 m/s，最大角速度为 0.5 rad/s。平移加速度上限为 0.5 m/s²，角加速度按实车 DWA 当前生效的 `acc_lim_theta` 对齐为 3.2 rad/s²（DWA 文件中的旧键 `acc_lim_th: 2` 不代表该生效值）。到点容差沿用 0.08 m / 0.15 rad。初始配置关闭多拓扑候选搜索，保留代价地图障碍检测及整条局部轨迹可行性检查。参数数值不是实际避障距离或速度的保证，需低速实测绕障、横移、倒车和停车。
 
-Infra 可在启动导航前选择 DWA / TEB，切换前先停止导航。两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 Infra 和 RViz 显示。升级后需重建 Infra 前端并重启后端。本次配置尚未在实车加载 TEB 插件或验证运动效果。
+两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 RViz 显示。本次配置尚未在实车加载 TEB 插件或验证运动效果。
 
 ### 定位地图与导航地图
 
@@ -434,3 +434,5 @@ python3 tools/test_python_migration.py
 ```
 
 识别效果、定位导航和完整巡检流程需要在目标硬件与现场验证。详细说明见 [架构与接口](docs/ARCHITECTURE.md)、[实车验收](docs/ACCEPTANCE.md) 和 [底盘协议说明](docs/BASE_PROTOCOL_REVIEW.md)。
+
+实车巡检流程当前不触发任何语音播报，也不在结束时等待播报队列；语音服务、队列和播报函数保留，供后续接入。
