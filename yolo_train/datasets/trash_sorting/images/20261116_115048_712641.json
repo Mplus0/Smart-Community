@@ -1,0 +1,128 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "hazardous_trash",
+      "score": 0.9407066106796265,
+      "points": [
+        [
+          470.4602966308594,
+          787.061279296875
+        ],
+        [
+          561.4552001953125,
+          787.061279296875
+        ],
+        [
+          561.4552001953125,
+          884.871826171875
+        ],
+        [
+          470.4602966308594,
+          884.871826171875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "hazardous_trash",
+      "score": 0.9369303584098816,
+      "points": [
+        [
+          762.5336151123047,
+          753.4369812011719
+        ],
+        [
+          847.9969482421875,
+          753.4369812011719
+        ],
+        [
+          847.9969482421875,
+          856.3151550292969
+        ],
+        [
+          762.5336151123047,
+          856.3151550292969
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.9116941690444946,
+      "points": [
+        [
+          1362.97265625,
+          790.9789123535156
+        ],
+        [
+          1467.6053466796875,
+          790.9789123535156
+        ],
+        [
+          1467.6053466796875,
+          890.6205139160156
+        ],
+        [
+          1362.97265625,
+          890.6205139160156
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "other_trash",
+      "score": 0.8847795724868774,
+      "points": [
+        [
+          1054.5365295410156,
+          781.4520263671875
+        ],
+        [
+          1156.9602355957031,
+          781.4520263671875
+        ],
+        [
+          1156.9602355957031,
+          882.1739501953125
+        ],
+        [
+          1054.5365295410156,
+          882.1739501953125
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261116_115048_712641.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

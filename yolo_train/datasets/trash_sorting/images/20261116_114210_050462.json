@@ -1,0 +1,127 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "recyclable_trash",
+      "score": 0.8345474004745483,
+      "points": [
+        [
+          778.6014404296875,
+          750.9239501953125
+        ],
+        [
+          862.2425537109375,
+          750.9239501953125
+        ],
+        [
+          862.2425537109375,
+          837.287109375
+        ],
+        [
+          778.6014404296875,
+          837.287109375
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "hazardous_trash",
+      "score": 0.8273931741714478,
+      "points": [
+        [
+          1323.6699829101562,
+          771.14501953125
+        ],
+        [
+          1412.8115844726562,
+          771.14501953125
+        ],
+        [
+          1412.8115844726562,
+          858.0232543945312
+        ],
+        [
+          1323.6699829101562,
+          858.0232543945312
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "other_trash",
+      "score": 0.8249684572219849,
+      "points": [
+        [
+          560.6367645263672,
+          742.7086486816406
+        ],
+        [
+          639.5219879150391,
+          742.7086486816406
+        ],
+        [
+          639.5219879150391,
+          821.9977111816406
+        ],
+        [
+          560.6367645263672,
+          821.9977111816406
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "food_trash",
+      "score": 0.8139060735702515,
+      "points": [
+        [
+          1047.4428405761719,
+          759.164794921875
+        ],
+        [
+          1134.6556091308594,
+          759.164794921875
+        ],
+        [
+          1134.6556091308594,
+          845.2869873046875
+        ],
+        [
+          1047.4428405761719,
+          845.2869873046875
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261116_114210_050462.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920
+}

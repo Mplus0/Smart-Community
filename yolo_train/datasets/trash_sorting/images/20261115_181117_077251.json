@@ -1,0 +1,132 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "review_status": "pending",
+      "label": "hazardous_trash",
+      "score": null,
+      "points": [
+        [
+          761.5625,
+          893.125
+        ],
+        [
+          817.8125,
+          893.125
+        ],
+        [
+          817.8125,
+          952.5
+        ],
+        [
+          761.5625,
+          952.5
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "hazardous_trash",
+      "score": null,
+      "points": [
+        [
+          927.96875,
+          860.3125
+        ],
+        [
+          979.53125,
+          860.3125
+        ],
+        [
+          979.53125,
+          919.6875
+        ],
+        [
+          927.96875,
+          919.6875
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "other_trash",
+      "score": null,
+      "points": [
+        [
+          1091.25,
+          874.375
+        ],
+        [
+          1147.5,
+          874.375
+        ],
+        [
+          1147.5,
+          921.25
+        ],
+        [
+          1091.25,
+          921.25
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "food_trash",
+      "score": null,
+      "points": [
+        [
+          1264.6875,
+          868.90625
+        ],
+        [
+          1313.90625,
+          868.90625
+        ],
+        [
+          1313.90625,
+          925.15625
+        ],
+        [
+          1264.6875,
+          925.15625
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261115_181117_077251.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

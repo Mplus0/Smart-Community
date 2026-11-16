@@ -1,0 +1,132 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "review_status": "pending",
+      "label": "hazardous_trash",
+      "score": null,
+      "points": [
+        [
+          754.6837885243638,
+          875.9664511838116
+        ],
+        [
+          814.1034574208186,
+          875.9664511838116
+        ],
+        [
+          814.1034574208186,
+          922.7902455676538
+        ],
+        [
+          754.6837885243638,
+          922.7902455676538
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "hazardous_trash",
+      "score": null,
+      "points": [
+        [
+          911.8583965730506,
+          847.2149984919786
+        ],
+        [
+          958.1345442389531,
+          847.2149984919786
+        ],
+        [
+          958.1345442389531,
+          892.9434994399414
+        ],
+        [
+          911.8583965730506,
+          892.9434994399414
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "other_trash",
+      "score": null,
+      "points": [
+        [
+          1064.9256542371897,
+          846.6673517740389
+        ],
+        [
+          1113.392388774851,
+          846.6673517740389
+        ],
+        [
+          1113.392388774851,
+          902.8011403628557
+        ],
+        [
+          1064.9256542371897,
+          902.8011403628557
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "review_status": "pending",
+      "label": "food_trash",
+      "score": null,
+      "points": [
+        [
+          1233.6008433626098,
+          845.5720583381596
+        ],
+        [
+          1277.6864041567537,
+          845.5720583381596
+        ],
+        [
+          1277.6864041567537,
+          897.3246731834589
+        ],
+        [
+          1233.6008433626098,
+          897.3246731834589
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261115_181217_495020.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920,
+  "description": ""
+}

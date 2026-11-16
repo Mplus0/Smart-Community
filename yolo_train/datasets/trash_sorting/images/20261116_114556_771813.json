@@ -1,0 +1,127 @@
+{
+  "version": "4.3.2",
+  "flags": {},
+  "checked": false,
+  "shapes": [
+    {
+      "label": "hazardous_trash",
+      "score": 0.9195371866226196,
+      "points": [
+        [
+          847.8396606445312,
+          726.1224975585938
+        ],
+        [
+          924.4740600585938,
+          726.1224975585938
+        ],
+        [
+          924.4740600585938,
+          811.3668823242188
+        ],
+        [
+          847.8396606445312,
+          811.3668823242188
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "other_trash",
+      "score": 0.897423267364502,
+      "points": [
+        [
+          1094.605224609375,
+          754.6275329589844
+        ],
+        [
+          1183.34619140625,
+          754.6275329589844
+        ],
+        [
+          1183.34619140625,
+          839.6258239746094
+        ],
+        [
+          1094.605224609375,
+          839.6258239746094
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "recyclable_trash",
+      "score": 0.8795059323310852,
+      "points": [
+        [
+          1368.0340576171875,
+          733.9491577148438
+        ],
+        [
+          1458.7005615234375,
+          733.9491577148438
+        ],
+        [
+          1458.7005615234375,
+          823.4765625
+        ],
+        [
+          1368.0340576171875,
+          823.4765625
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    },
+    {
+      "label": "food_trash",
+      "score": 0.8540332317352295,
+      "points": [
+        [
+          585.4703063964844,
+          747.8857727050781
+        ],
+        [
+          667.2886962890625,
+          747.8857727050781
+        ],
+        [
+          667.2886962890625,
+          834.0390930175781
+        ],
+        [
+          585.4703063964844,
+          834.0390930175781
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "difficult": false,
+      "shape_type": "rectangle",
+      "flags": {},
+      "attributes": {},
+      "kie_linking": []
+    }
+  ],
+  "imagePath": "20261116_114556_771813.jpg",
+  "imageData": null,
+  "imageHeight": 1080,
+  "imageWidth": 1920
+}
