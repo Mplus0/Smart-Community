@@ -1,0 +1,13 @@
+<launch>
+  <!-- 已有红外采集节点时保持 false，避免重复打开设备。 -->
+  <arg name="start_camera" default="false"/>
+  <arg name="threshold" default="40.0"/>
+  <arg name="confirm_frames" default="3"/>
+  <arg name="temperature_topic" default="/thermal_camera/temperature"/>
+  <include if="$(arg start_camera)" file="$(find community_perception)/launch/thermal_camera.launch"/>
+  <node name="building_d_temperature" pkg="community_perception" type="building_d_temperature.py" output="screen">
+    <param name="threshold" value="$(arg threshold)"/>
+    <param name="confirm_frames" value="$(arg confirm_frames)"/>
+    <param name="temperature_topic" value="$(arg temperature_topic)"/>
+  </node>
+</launch>

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Preview ROS or a selected USB camera in a browser (CAMERA=ros/dji/orbbec)."""
 import argparse
+import html
+import json
 import os
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -88,6 +90,8 @@ def main():
     parser.add_argument("--height", type=int)
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--topic", default="/usb_cam/image_raw")
+    parser.add_argument("--title", default="Camera preview")
+    parser.add_argument("--result-topic", help="Optional ROS std_msgs/String result topic")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--host", default="0.0.0.0", help="HTTP listen address (default: all interfaces)")
     # Leave ROS remapping arguments available to rospy in ROS mode.
@@ -95,7 +99,8 @@ def main():
     if args.camera != "ros" and remaining:
         parser.error("unrecognized arguments: " + " ".join(remaining))
     preview = Preview()
-    subscriber = camera = worker = None
+    subscriber = result_subscriber = camera = worker = None
+    result = {"text": "等待检测结果"}
     rospy = None
     if args.camera == "ros":
         import rospy
@@ -103,6 +108,13 @@ def main():
         from sensor_msgs.msg import Image
         bridge = CvBridge()
         rospy.init_node("camera_web_preview", anonymous=True, disable_signals=True)
+        if args.result_topic:
+            from std_msgs.msg import String
+
+            def receive_result(message):
+                result["text"] = message.data
+
+            result_subscriber = rospy.Subscriber(args.result_topic, String, receive_result, queue_size=1)
 
         def receive(message):
             try:
@@ -129,11 +141,28 @@ def main():
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/":
-                body = (b'<!doctype html><meta name="viewport" content="width=device-width">'
-                        b'<title>Camera preview</title><h2>Camera preview</h2>'
-                        b'<img src="/stream" style="max-width:100%;height:auto">')
+                title = html.escape(args.title)
+                body = ('<!doctype html><meta charset="utf-8">'
+                        '<meta name="viewport" content="width=device-width">'
+                        '<title>{0}</title><h2>{0}</h2>'
+                        '<img src="/stream" style="max-width:100%;height:auto">'.format(title))
+                if args.result_topic:
+                    body += ('<p>从左到右：4楼、3楼、2楼、1楼。绿色：正常；黄色：确认中；红色：异常。</p>'
+                             '<pre id="result" style="font-size:20px">等待检测结果</pre>'
+                             '<script>setInterval(async()=>{try{const r=await fetch("/result.json",'
+                             '{cache:"no-store"});const d=await r.json();'
+                             'document.getElementById("result").textContent=d.text;}catch(e){}},500);</script>')
+                body = body.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            elif self.path == "/result.json" and args.result_topic:
+                body = json.dumps(result, ensure_ascii=False).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -179,6 +208,9 @@ def main():
             server.server_close()
         if subscriber:
             subscriber.unregister()
+        if result_subscriber:
+            result_subscriber.unregister()
+        if rospy is not None:
             rospy.signal_shutdown("Preview stopped")
         if worker:
             worker.join(timeout=3)

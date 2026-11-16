@@ -334,6 +334,88 @@ roslaunch community_bringup finals.launch base_protocol:=aa_bb
 
 ## 相机与视觉工具
 
+### Seek 红外热成像采集
+
+`community_perception` 提供独立的 `thermal_camera` 节点。SDK 3.4 的必要文件位于
+`src/community_perception/third_party/seekware/`，支持 Linux x86_64、aarch64 和 armv7l，
+无需额外设置库路径。当前提供采集、温度输出和独立楼宇 D 四分区检测，尚未接入巡检任务。
+已在小车 x86_64 / ROS Noetic 上验证实际采集、温度输出和网页预览；ARM 运行库尚未实机验证。
+
+首次使用，在接入红外相机的电脑上安装 USB 权限规则，然后重新插拔相机：
+
+```bash
+sudo cp src/community_perception/third_party/seekware/udev/10-seekthermal.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+```
+
+系统需有 `libusb-1.0-0`，Python 需有 `numpy`、`rospkg` 和现有 ROS `cv_bridge`。
+更新后执行 `catkin_make --pkg community_perception`，重新加载 `source devel/setup.bash`。
+关闭厂家示例或其他占用红外相机的程序，再独立启动（不需要启动底盘或导航）：
+
+```bash
+roslaunch community_perception thermal_camera.launch
+```
+
+节点每两秒输出中心、最低和最高温度；默认发布上限 9 Hz，可用 `publish_rate:=15` 调整，实际频率受设备限制。
+读取失败时退出并关闭设备，排除故障后重新启动。
+
+| 话题 | 类型与内容 |
+| --- | --- |
+| `/thermal_camera/image_raw` | `sensor_msgs/Image`，`bgr8` 热成像伪彩色画面 |
+| `/thermal_camera/temperature` | `sensor_msgs/Image`，`32FC1`，逐像素摄氏度，与画面同尺寸、同时间戳 |
+| `/thermal_camera/temperature_stats` | `std_msgs/Float32MultiArray`，依次为中心 6×6 区域温度、最低温度、最高温度（℃） |
+
+不支持测温的设备可能返回 NaN，不能将其作为有效温度。伪彩色亮度也不能代替温度值。
+新开终端并加载环境，可查看统计或复用网页预览（默认端口 8765）：
+
+```bash
+rostopic echo /thermal_camera/temperature_stats
+python3 tools/camera_web_preview.py --camera ros --topic /thermal_camera/image_raw --port 8765
+```
+
+浏览器访问 `http://小车IP:8765/`。`Ctrl+C` 停止节点或预览；本功能不控制小车运动、不自动保存图像。
+
+### 楼宇 D 楼层温度检测（初版）
+
+保持红外采集运行，另开终端加载工作空间后启动：
+
+```bash
+roslaunch community_perception building_d_temperature.launch
+```
+
+若尚未启动红外采集，可用 `start_camera:=true` 一并启动，避免重复打开设备。
+检测使用 `/thermal_camera/temperature` 的摄氏度矩阵，将完整画面从左到右四等分，
+依次对应 **4、3、2、1 楼**。以每区有效像素的最高温度为准，严格大于 **40℃** 且连续
+**3 帧**超温时输出 `楼宇D x楼温度异常`，多层异常分别输出，任一帧不再超温即解除该层异常。
+可通过 `threshold:=40.0 confirm_frames:=3` 调整；`confirm_frames:=1` 为单帧判断。
+分区边界按 `floor(i × 图像宽度 / 4)` 取整，206 像素宽时为 0、51、103、154、206。
+
+结果发布为 `/building_d_temperature/result`（`std_msgs/String`），终端在状态变化时输出结果，
+每两秒输出各层最高温度。确认期间显示“超温确认中”；无有效温度显示“数据无效”，
+超过 3 秒未收到可解析的温度帧显示“数据超时”，恢复后重新累计确认帧。
+NaN 和无穷值不参与判断。全画面参与检测，背景热源也可能触发对应分区，需将楼宇与分区对齐。
+节点仅输出检测结果，不控制运动、不进行语音播报。
+
+```bash
+rostopic echo /building_d_temperature/result
+```
+
+网页可视化：检测节点同时发布 `/building_d_temperature/image`，按温度矩阵生成完整热图，
+叠加楼层分区、最高温度和状态（绿色正常、黄色确认中、红色异常、灰色无有效数据）。
+画面放大四倍显示，不改变检测分区或温度。断流超过 3 秒时显示 `DATA TIMEOUT`，避免继续显示旧结果。
+保持检测运行，另开终端执行：
+
+```bash
+python3 tools/camera_web_preview.py --camera ros \
+  --topic /building_d_temperature/image \
+  --result-topic /building_d_temperature/result \
+  --title '楼宇D楼层温度检测' --port 8766
+```
+
+浏览器访问 `http://小车IP:8766/`，画面下方显示中文检测结果。
+此热图按当前帧有效温度范围映射颜色，异常判断仍以 40℃ 阈值为准。
+原始热成像预览可继续使用 8765 端口。`Ctrl+C` 停止网页服务。
+
 ### 单独启动相机
 
 终端 1 启动 ROS Master 并保持运行；已有 `roscore` 或 `roslaunch` 提供 Master 时跳过：

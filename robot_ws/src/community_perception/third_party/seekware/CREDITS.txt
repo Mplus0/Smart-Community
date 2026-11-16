@@ -1,0 +1,55 @@
+libusb is a library for USB device access from Linux, macOS,
+Windows, OpenBSD/NetBSD and Haiku userspace.
+It is written in C (Haiku backend in C++) and licensed under the GNU
+Lesser General Public License version 2.1 or, at your option, any later
+version.
+
+libusb is abstracted internally in such a way that it can hopefully
+be ported to other operating systems. Please see the [PORTING](PORTING)
+file for more information.
+
+libusb homepage:
+http://libusb.info/
+
+Developers will wish to consult the API documentation:
+http://api.libusb.info
+
+Use the mailing list for questions, comments, etc:
+http://mailing-list.libusb.info
+
+- Hans de Goede <hdegoede@redhat.com>
+- Xiaofan Chen <xiaofanc@gmail.com>
+- Ludovic Rousseau <ludovic.rousseau@gmail.com>
+- Nathan Hjelm <hjelmn@cs.unm.edu>
+- Chris Dickens <christopher.a.dickens@gmail.com>
+
+(Please use the mailing list rather than mailing developers directly)
+
+This SDK package provided by Seek Thermal, Inc. includes an unmodified copy of libusb, a third party library licensed under LGPL, v2.1 or newer (See full LGPLv2.1 license text below)
+To obtain a copy of the libusb source code that was used to build the libusb libraries included you may:
+1) Download a complete copy at the following location: https://github.com/libusb/libusb/releases/download/v1.0.22/libusb-1.0.22.tar.bz2
+2) Download a complete copy directly from the Seek Thermal Developer portal.
+
+The Seekware SDK libraries included in this package are designed to work with libusb at runtime and do not contain a derivative of or any portion of libusb.
+The Seekware SDK libraries are considered a "work that uses the Library" as defined in Paragraph 5 of the LGPL v2.1 libusb license and are therefore licensed independently of libusb. (See LICENSE.txt)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Simple DirectMedia Layer
+Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+
+The Simple DirectMedia Layer (SDL for short) is a cross-platform library
+designed to make it easy to write multi-media software, such as games
+and emulators.
+
+The Simple DirectMedia Layer library source code is available from:
+https://www.libsdl.org/
+
+This library is distributed under the terms of the zlib license:
+http://www.zlib.net/zlib_license.html
+
+This SDK package provided by Seek Thermal, Inc. includes an unmodified copy of SDL2, a third party library licensed under the terms of the terms of the zlib license (See LICENSE.txt)
+
+To obtain a copy of the SDL2 source code that was used to build the SDL2 libraries included in this package you may:
+1) Download a complete copy at the following location: https://www.libsdl.org/release/SDL2-2.0.10.tar.gz
+2) Download a complete copy directly from the Seek Thermal Developer portal.
