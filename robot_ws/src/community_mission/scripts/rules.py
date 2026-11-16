@@ -27,7 +27,7 @@ def validate_route(route):
     if not isinstance(points, list) or not points:
         raise ValueError('points must be a nonempty list')
     ids = set()
-    allowed = {'navigation', 'person', 'plate', 'traffic_light', 'fire', 'trash',
+    allowed = {'navigation', 'person', 'plate', 'traffic_light', 'fire', 'trash', 'obstacle',
                'vehicle_photo', 'announcement', 'record_start', 'record_stop'}
     recording = False
     for point in points:
@@ -44,6 +44,8 @@ def validate_route(route):
         task = point.get('task')
         if not isinstance(task, str) or task not in allowed or 'tasks' in point:
             raise ValueError(f'{name}: task must name one supported task')
+        if task == 'obstacle' and (name != 'wp_04' or not isinstance(route.get('navigation_branches'), dict)):
+            raise ValueError('obstacle task requires wp_04 and navigation_branches')
         if task == 'person' and point.get('area') not in ('A', 'B'):
             raise ValueError(f'{name}: person requires area A or B')
         if task == 'plate' and (type(point.get('parking_lot')) is not int or point['parking_lot'] < 1):
@@ -57,6 +59,22 @@ def validate_route(route):
     if recording:
         raise ValueError('Recording requires a stop task')
     return route
+
+
+def obstacle_route(objects, width, clear_x_ratio):
+    """左侧标志对应直行 clear，中间标志对应绕行 blocked。"""
+    obstacles = [obj for obj in objects if obj.label == 'obstacle']
+    if len(obstacles) != 1:
+        raise ValueError('Expected exactly one obstacle; route cannot be selected')
+    obj = obstacles[0]
+    if (not math.isfinite(obj.confidence) or not 0 < obj.confidence <= 1
+            or not all(math.isfinite(v) for v in obj.box)
+            or obj.box[2] <= obj.box[0] or obj.box[3] <= obj.box[1]):
+        raise ValueError('Invalid obstacle detection; route cannot be selected')
+    center_x_ratio = (obj.box[0] + obj.box[2]) / (2 * width)
+    return dict(mode='clear' if center_x_ratio < clear_x_ratio else 'blocked',
+                center_x_ratio=center_x_ratio, clear_x_ratio=clear_x_ratio,
+                bbox=list(obj.box), confidence=obj.confidence)
 
 
 def people_counts(objects, width, height, settings):

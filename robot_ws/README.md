@@ -274,9 +274,9 @@ roslaunch community_mission mission.launch
 当前阶段使用仅导航模式：启动硬件、定位和导航后，选择以下任一命令，无需启动识别、语音和录像服务。所有航点均只导航，跳过识别、红绿灯等待、播报和录像：
 
 ```bash
-# 有障碍物（默认 blocked）
+# 前方被障碍物阻挡，向左绕行（默认 blocked）
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=blocked
-# 无障碍物
+# 障碍物偏左，前方可直行
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
@@ -329,7 +329,7 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 ### 模型检测浏览器预览
 
-人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。垃圾桶类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。障碍物服务尚未接入自动路线选择，路线仍由 `obstacle_mode` 指定。
+人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。垃圾桶类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。完整巡检在 `wp_04` 调用障碍物服务自动选路；仅导航模式由 `obstacle_mode` 手动指定。
 
 `tools/test_detector_model.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
 
@@ -349,7 +349,7 @@ python3 tools/test_detector_model.py --detector trash_bin_detector --conf 0.5 --
 | `--detector` | 检测目标 |
 |---|---|
 | `people_detector` | 人员；按实车配置显示 `community_person`（社区人员）、`outsider`（外来人员） |
-| `traffic_light_detector` | 红、黄、绿交通灯 |
+| `traffic_light_detector` | 红/黄灯 `stop`、绿灯 `go` |
 | `fire_detector` | 火焰 |
 | `obstacle_detector` | 障碍物 |
 | `trash_bin_detector` | 垃圾桶颜色及开闭状态 |
@@ -413,14 +413,14 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route.yaml` 包含 21 个航点，保留原路线坐标和朝向；补录的火焰检测点为 `wp_09`，B 区人员检测点为 `wp_13`。仅导航模式下，到达 `wp_04` 后按 `obstacle_mode` 手动选择后续顺序，不调用障碍物模型：
+默认 `route.yaml` 包含 21 个航点，保留原路线坐标和朝向；补录的火焰检测点为 `wp_09`，B 区人员检测点为 `wp_13`。完整巡检到达 `wp_04` 后拍照，调用障碍物模型，按标志检测框中心横坐标选择后续顺序；仅导航模式仍按 `obstacle_mode` 手动选择，不调用模型：
 
 - `blocked`（默认）：01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 13 → 11 → 12 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
 - `clear`：01 → 02 → 03 → 04 → 13 → 12 → 11 → 08 → 06 → 05 → 07 → 09 → 10 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
 
-上述编号均为 `wp_XX`。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_14` 起沿公共路线执行，到达 `wp_21` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，仅导航模式下生效。
+上述编号均为 `wp_XX`。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_14` 起沿公共路线执行，到达 `wp_21` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，作为手动参数仅在导航测试模式生效；完整巡检由检测结果决定。
 
-每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 障碍物识别、`wp_11` 仪表盘识别、`wp_12` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；现有完整任务模式仍按 YAML 列表顺序执行，绿灯等待默认上限 30 秒，需连续 3 帧有效绿灯。
+每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 使用 `task: obstacle` 自动选路；`wp_11` 仪表盘识别、`wp_12` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；完整任务模式按检测选择的分支执行各航点任务，绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 
@@ -436,3 +436,7 @@ python3 tools/test_python_migration.py
 识别效果、定位导航和完整巡检流程需要在目标硬件与现场验证。详细说明见 [架构与接口](docs/ARCHITECTURE.md)、[实车验收](docs/ACCEPTANCE.md) 和 [底盘协议说明](docs/BASE_PROTOCOL_REVIEW.md)。
 
 实车巡检流程当前不触发任何语音播报，也不在结束时等待播报队列；语音服务、队列和播报函数保留，供后续接入。
+
+红绿灯航点使用 `community_perception/models/traffic_light.onnx` 两分类模型（0=`stop`、1=`go`）。默认连续 3 帧有效且仅含 `go` 的检测结果才放行，继续下一航点导航；`stop`、空结果、混合结果或无效检测打断连续计数，重复时间戳同样重置计数。连续确认帧数仍由 `green_confirm_frames` 配置，默认 30 秒超时后终止任务。
+
+障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。离线选路回归：在 `robot_ws` 执行 `python -m unittest tools.test_obstacle_route -v`。

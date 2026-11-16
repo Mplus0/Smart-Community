@@ -1,5 +1,6 @@
 # 按节点分组；启动参数优先于 YAML，运动速度保持原值。
 mission:
+  obstacle_clear_x_ratio: 0.35
   image_timeout: 5.0
   server_timeout: 30.0
   ocr_interval: 3.0

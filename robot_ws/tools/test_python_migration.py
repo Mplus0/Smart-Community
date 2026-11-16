@@ -39,6 +39,7 @@ OdometryIntegrator = _env['OdometryIntegrator']
 class ConfigurationTests(unittest.TestCase):
     def test_yolo_profiles_and_explicit_overrides(self):
         config = yaml.safe_load((ROOT/'src/community_perception/config/detectors.yaml').read_text(encoding='utf-8'))
+        self.assertEqual(config['detectors']['traffic_light_detector']['class_names'], ['stop', 'go'])
         tree = ast.parse((ROOT/'src/community_perception/scripts/yolo_detector_service.py').read_text(encoding='utf-8'))
         init = next(n for c in tree.body if isinstance(c, ast.ClassDef) for n in c.body
                     if isinstance(n, ast.FunctionDef) and n.name == '__init__')
@@ -609,14 +610,14 @@ class MissionTests(unittest.TestCase):
     def test_green_count_parameter_and_invalid_detections(self):
         n = self.node
         n.light_timeout, n.image_timeout = 1.0, 0.1
-        for labels, confidence in [([], []), (['yellow_light'], [0.9]),
-                                  (['green_light', 'red_light'], [0.9, 0.9]),
-                                  (['green_light'], [float('nan')])]:
+        for labels, confidence in [([], []), (['stop'], [0.9]),
+                                  (['go', 'stop'], [0.9, 0.9]),
+                                  (['go'], [float('nan')])]:
             with self.subTest(labels=labels, confidence=confidence):
                 stamps = iter(range(1, 100))
                 n.fresh_image = lambda *args: SimpleNamespace(header=SimpleNamespace(
                     stamp=SimpleNamespace(to_nsec=lambda: next(stamps))))
-                green = SimpleNamespace(detected_classes=['green_light'], bboxes=[0, 0, 10, 10], confidences=[0.9])
+                green = SimpleNamespace(detected_classes=['go'], bboxes=[0, 0, 10, 10], confidences=[0.9])
                 invalid = SimpleNamespace(detected_classes=labels, bboxes=[0, 0, 10, 10]*len(labels), confidences=confidence)
                 n.services = Mock()
                 n.services.detect.side_effect = [green, invalid, green, green, green]
@@ -635,8 +636,8 @@ class MissionTests(unittest.TestCase):
         stamps = iter([1, 2, 3, 4, 4, 5, 6, 7])
         n.fresh_image = lambda *args: SimpleNamespace(header=SimpleNamespace(
             stamp=SimpleNamespace(to_nsec=lambda: next(stamps))))
-        labels = iter(['green_light', 'red_light', 'green_light', 'green_light',
-                       'green_light', 'green_light', 'green_light'])
+        labels = iter(['go', 'stop', 'go', 'go',
+                       'go', 'go', 'go'])
         n.services = Mock()
         n.services.detect.side_effect = lambda *args: SimpleNamespace(
             detected_classes=[next(labels)], bboxes=[0, 0, 10, 10], confidences=[0.9])
@@ -652,7 +653,7 @@ class MissionTests(unittest.TestCase):
         n.services = Mock()
         def late(*args):
             time.sleep(0.005)
-            return SimpleNamespace(detected_classes=['green_light'], bboxes=[0, 0, 10, 10], confidences=[0.9])
+            return SimpleNamespace(detected_classes=['go'], bboxes=[0, 0, 10, 10], confidences=[0.9])
         n.services.detect.side_effect = late
         with self.assertRaisesRegex(RuntimeError, 'TRAFFIC_TIMEOUT'): n.wait_for_green()
         n.light_timeout = 1.0
@@ -666,7 +667,7 @@ class MissionTests(unittest.TestCase):
         n.fresh_image = Mock(side_effect=lambda *args: SimpleNamespace(
             header=SimpleNamespace(stamp=SimpleNamespace(to_nsec=lambda: next(stamps)))))
         n.services = Mock()
-        n.services.detect.return_value = SimpleNamespace(detected_classes=['green_light'],
+        n.services.detect.return_value = SimpleNamespace(detected_classes=['go'],
             bboxes=[0, 0, 10, 10], confidences=[0.9])
         n.wait_for_green()
         n.services.detect.return_value = SimpleNamespace(detected_classes=[], bboxes=[], confidences=[])

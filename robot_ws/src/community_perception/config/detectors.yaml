@@ -15,20 +15,18 @@ detectors:
     - 1
     service_name: /people_detector/detect
   traffic_light_detector:
-    model_path: $(find community_perception)/models/light.onnx
+    model_path: $(find community_perception)/models/traffic_light.onnx
     model_name: traffic_light_detector
     conf_threshold: 0.9
     iou_threshold: 0.4
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/traffic_light
     class_names:
-    - red_light
-    - yellow_light
-    - green_light
+    - stop
+    - go
     save_classes:
     - 0
     - 1
-    - 2
     service_name: /traffic_light_detector/detect
   fire_detector:
     model_path: $(find community_perception)/models/fire.onnx

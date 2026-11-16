@@ -22,7 +22,7 @@ points:
   x: 3.4388
   y: 0.3272
   yaw: 1.4763
-  task: navigation  # 障碍物识别占位；当前由 obstacle_mode 手动选择路线
+  task: obstacle  # 根据标志中心横坐标自动选择 clear / blocked
 - id: wp_05
   x: 2.7871
   y: 1.0845
@@ -116,7 +116,7 @@ points:
   yaw: 0.0905
   task: navigation  # 最终停车
 
-# 仅导航测试：wp_01～wp_04 为公共前段；这里只引用 ID，不重复保存坐标。
+# wp_01～wp_04 为公共前段；完整巡检自动选路，仅导航测试由 obstacle_mode 手动选择。
 navigation_branches:
   blocked: [wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, wp_13, wp_11, wp_12, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, wp_21]
   clear: [wp_13, wp_12, wp_11, wp_08, wp_06, wp_05, wp_07, wp_09, wp_10, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, wp_21]

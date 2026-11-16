@@ -13,7 +13,7 @@ from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import Image
 
-from rules import validate_route, detections
+from rules import validate_route, detections, obstacle_route
 from services import Services, SpeechQueue
 from inspection import Inspection
 from result_manager import ResultManager
@@ -32,7 +32,7 @@ class Mission:
         self.obstacle_mode = rospy.get_param('~obstacle_mode', 'blocked')
         if self.obstacle_mode not in ('blocked', 'clear'):
             raise ValueError('obstacle_mode must be blocked or clear')
-        if self.navigation_only and 'navigation_branches' in self.route:
+        if 'navigation_branches' in self.route:
             points = self.route['points']
             branch_index = next(i for i, p in enumerate(points) if p['id'] == 'wp_04')
             expected = {p['id'] for p in points[branch_index + 1:]}
@@ -41,6 +41,9 @@ class Mission:
                 if len(order) != len(expected) or set(order) != expected:
                     raise ValueError(f'{mode}: branch must visit every remaining waypoint once')
         self.runtime = rospy.get_param('~mission')
+        self.obstacle_clear_x_ratio = float(self.runtime['obstacle_clear_x_ratio'])
+        if not 0 < self.obstacle_clear_x_ratio < 1:
+            raise ValueError('obstacle_clear_x_ratio must be between 0 and 1')
         self.goal_timeout = float(rospy.get_param('~goal_timeout', self.runtime['goal_timeout']))
         self.image_timeout = float(rospy.get_param('~image_timeout', self.runtime['image_timeout']))
         self.light_timeout = float(rospy.get_param('~traffic_light_timeout', self.runtime['traffic_light_timeout']))
@@ -172,7 +175,7 @@ class Mission:
     def wait_for_green(self):
         deadline = time.monotonic() + self.light_timeout
         streak, last_stamp = 0, 0
-        rospy.loginfo('[红绿灯] 进入等待：连续 %s 帧绿灯，超时 %.1f 秒',
+        rospy.loginfo('[红绿灯] 进入等待：连续 %s 帧 go，超时 %.1f 秒',
                       self.green_confirm_frames, self.light_timeout)
         while time.monotonic() < deadline:
             self.check_running()
@@ -186,14 +189,14 @@ class Mission:
             self.check_running()
             if time.monotonic() >= deadline:
                 break
-            # Empty/red/yellow/conflicting/invalid detections break the streak.
+            # stop、空结果、混合类别或无效检测打断连续 go 计数。
             green = bool(objects) and all(
-                obj.label == 'green_light' and math.isfinite(obj.confidence) and 0 < obj.confidence <= 1
+                obj.label == 'go' and math.isfinite(obj.confidence) and 0 < obj.confidence <= 1
                 and all(math.isfinite(v) for v in obj.box)
                 and obj.box[2] > obj.box[0] and obj.box[3] > obj.box[1] for obj in objects)
             streak = streak + 1 if green else 0
             if streak >= self.green_confirm_frames:
-                rospy.loginfo('[红绿灯] 连续 %s 帧有效绿灯，允许通行', streak)
+                rospy.loginfo('[红绿灯] 连续 %s 帧有效 go，允许通行', streak)
                 return {'released': True, 'green_streak': streak,
                         'detected_classes': [obj.label for obj in objects]}
         raise RuntimeError('TRAFFIC_TIMEOUT: Traffic light timeout; mission stopped')
@@ -249,9 +252,22 @@ class Mission:
             frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
             if not cv2.imwrite(str(image_path), frame):
                 raise RuntimeError('Failed to save inspection image')
-            self.run_inspection(point, task_type, image, image_path)
+            if task_type == 'obstacle':
+                self.results.execute('obstacle', point, self.select_obstacle_route,
+                                     image, paths=[image_path])
+            else:
+                self.run_inspection(point, task_type, image, image_path)
         self.results.waypoint(point, 'SUCCESS')
         self.transition('NEXT_POINT', '本航点任务完成')
+
+    def select_obstacle_route(self, image):
+        objects = detections(self.services.detect('obstacle_detector', image))
+        self.check_running()
+        result = obstacle_route(objects, image.width, self.obstacle_clear_x_ratio)
+        self.obstacle_mode = result['mode']
+        rospy.loginfo('[障碍物] 中心横坐标比例=%.3f，路线=%s',
+                      result['center_x_ratio'], self.obstacle_mode)
+        return result
 
     def finish_recording(self, point):
         self.results.execute('record_stop', point, self.stop_recording,
@@ -282,7 +298,7 @@ class Mission:
 
     def next_point(self):
         point = self.route['points'][self.index]
-        if (self.navigation_only and point['id'] == 'wp_04'
+        if (point['id'] == 'wp_04' and (self.navigation_only or point['task'] == 'obstacle')
                 and 'navigation_branches' in self.route):
             order = self.route['navigation_branches'][self.obstacle_mode]
             by_id = {p['id']: p for p in self.route['points']}
