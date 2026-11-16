@@ -1,0 +1,254 @@
+[
+  {
+    "map": "map",
+    "waypoint": "wp_01",
+    "old_clearance_m": 0.44,
+    "new_clearance_m": 0.444
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_02",
+    "old_clearance_m": 0.42,
+    "new_clearance_m": 0.42
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_03",
+    "old_clearance_m": 0.432,
+    "new_clearance_m": 0.44
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_04",
+    "old_clearance_m": 0.452,
+    "new_clearance_m": 0.46
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_05",
+    "old_clearance_m": 1.055,
+    "new_clearance_m": 1.168
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_06",
+    "old_clearance_m": 0.939,
+    "new_clearance_m": 1.22
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_07",
+    "old_clearance_m": 0.54,
+    "new_clearance_m": 0.54
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_08",
+    "old_clearance_m": 0.552,
+    "new_clearance_m": 0.572
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_09",
+    "old_clearance_m": 0.564,
+    "new_clearance_m": 0.58
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_10",
+    "old_clearance_m": 0.524,
+    "new_clearance_m": 0.54
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_11",
+    "old_clearance_m": 0.432,
+    "new_clearance_m": 0.44
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_12",
+    "old_clearance_m": 0.48,
+    "new_clearance_m": 0.48
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_13",
+    "old_clearance_m": 0.44,
+    "new_clearance_m": 0.444
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_14",
+    "old_clearance_m": 0.48,
+    "new_clearance_m": 0.5
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_15",
+    "old_clearance_m": 0.62,
+    "new_clearance_m": 0.62
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_16",
+    "old_clearance_m": 0.584,
+    "new_clearance_m": 0.588
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_17",
+    "old_clearance_m": 0.528,
+    "new_clearance_m": 0.528
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_18",
+    "old_clearance_m": 0.54,
+    "new_clearance_m": 0.54
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_19",
+    "old_clearance_m": 0.52,
+    "new_clearance_m": 0.52
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_20",
+    "old_clearance_m": 0.78,
+    "new_clearance_m": 0.788
+  },
+  {
+    "map": "map",
+    "waypoint": "wp_21",
+    "old_clearance_m": 0.38,
+    "new_clearance_m": 0.4
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_01",
+    "old_clearance_m": 0.272,
+    "new_clearance_m": 0.272
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_02",
+    "old_clearance_m": 0.3,
+    "new_clearance_m": 0.3
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_03",
+    "old_clearance_m": 0.32,
+    "new_clearance_m": 0.32
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_04",
+    "old_clearance_m": 0.34,
+    "new_clearance_m": 0.34
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_05",
+    "old_clearance_m": 0.2,
+    "new_clearance_m": 0.212
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_06",
+    "old_clearance_m": 0.312,
+    "new_clearance_m": 0.32
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_07",
+    "old_clearance_m": 0.332,
+    "new_clearance_m": 0.332
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_08",
+    "old_clearance_m": 0.2,
+    "new_clearance_m": 0.2
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_09",
+    "old_clearance_m": 0.18,
+    "new_clearance_m": 0.18
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_10",
+    "old_clearance_m": 0.22,
+    "new_clearance_m": 0.22
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_11",
+    "old_clearance_m": 0.34,
+    "new_clearance_m": 0.34
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_12",
+    "old_clearance_m": 0.36,
+    "new_clearance_m": 0.36
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_13",
+    "old_clearance_m": 0.32,
+    "new_clearance_m": 0.32
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_14",
+    "old_clearance_m": 0.352,
+    "new_clearance_m": 0.352
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_15",
+    "old_clearance_m": 0.276,
+    "new_clearance_m": 0.26
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_16",
+    "old_clearance_m": 0.3,
+    "new_clearance_m": 0.3
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_17",
+    "old_clearance_m": 0.3,
+    "new_clearance_m": 0.288
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_18",
+    "old_clearance_m": 0.3,
+    "new_clearance_m": 0.3
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_19",
+    "old_clearance_m": 0.3,
+    "new_clearance_m": 0.3
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_20",
+    "old_clearance_m": 0.26,
+    "new_clearance_m": 0.26
+  },
+  {
+    "map": "map_nav",
+    "waypoint": "wp_21",
+    "old_clearance_m": 0.3,
+    "new_clearance_m": 0.3
+  }
+]

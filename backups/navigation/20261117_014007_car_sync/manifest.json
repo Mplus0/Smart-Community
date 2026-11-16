@@ -1,0 +1,80 @@
+{
+  "remote_head": "cd613af5459f35340afbbf6389b3c49bf83d89b8",
+  "files": [
+    {
+      "path": "robot_ws/README.md",
+      "sha256": "1c4105440bb2ef26caaada343c5fde18630d9eba8412e7cca1d3f1bdc6f0b50f",
+      "local_state": "different"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/config/navigation/move_base_params.yaml",
+      "sha256": "d147bbeb311adacf9da9e1751b75af9aa977e0038558b60102fea7ccf3130eb8",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/launch/community.launch",
+      "sha256": "d98ec9ef7eb08244f93b90c140688e39fc5c84ffb1d625716bbdb2974a90dc61",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/launch/finals.launch",
+      "sha256": "2944e8b6ee7fa74e1dfaaf861a5963671026e6727a9be30fc938d551632f516e",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/launch/move_base.launch",
+      "sha256": "e1da1be9cc28be84b50e033f55af4fca65fc4552f833688632eb4ce449b86886",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/launch/navigation.launch",
+      "sha256": "5369a4eb592dc39233f47caf42e0703382c9fcc5410291b338c061d22f0d32c0",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/field_reference.png",
+      "sha256": "7b49c53ee65e0b7bcc8c1f42da662e299b0d54e57f69c512dfd4acbb85c70627",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/map.pgm",
+      "sha256": "96962e79241ddfea584ca468c5da199bb220e19aea38d586df9788a2f83e59e1",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/map_nav.pgm",
+      "sha256": "e653b915fe11994bfdea88cc0cb3ce4287971bb62ce57b538b1327a61f39986f",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/square_4p2m.pgm",
+      "sha256": "7c7e8dc0a7fa31a9d90a406306512732b0c8f4bc6abbfd8b8fc8d285fbad2c00",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/square_4p2m.yaml",
+      "sha256": "0318155be7954b0f773f26e54de2544581682b41e9957bc58fca7a59f0126ec6",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/square_4p2m_nav.pgm",
+      "sha256": "4ff816ae1371d80d64ce9bce42370db85a082412623b9917e6320268d5be4eb4",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/src/community_bringup/maps/square_4p2m_nav.yaml",
+      "sha256": "2e4b98f2f692a7c491db170d4daaa95c669561d8533f29a3bb471159cde30004",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/tools/generate_forbidden_map.py",
+      "sha256": "3b671f3fd2d1f96a935a52909355b3468aa980cb31a43b82197d233b3422251c",
+      "local_state": "identical"
+    },
+    {
+      "path": "robot_ws/tools/test_generate_forbidden_map.py",
+      "sha256": "a546f3a38d8253d8c406b25808f10bfbe66ac86ac6ba1b508eb57821fbd486b5",
+      "local_state": "identical"
+    }
+  ]
+}
