@@ -40,6 +40,18 @@ class Mission:
                 order = self.route['navigation_branches'][mode]
                 if len(order) != len(expected) or set(order) != expected:
                     raise ValueError(f'{mode}: branch must visit every remaining waypoint once')
+        self.single_waypoint = rospy.get_param('~single_waypoint', '')
+        if not isinstance(self.single_waypoint, str):
+            raise ValueError('single_waypoint must be a waypoint ID string')
+        if self.single_waypoint:
+            self.index = next((i for i, p in enumerate(self.route['points'])
+                               if p['id'] == self.single_waypoint), None)
+            if self.index is None:
+                raise ValueError('Unknown single_waypoint: ' + self.single_waypoint)
+            point = self.route['points'][self.index]
+            if not self.navigation_only and point['task'] in ('record_start', 'record_stop'):
+                raise ValueError('Single-waypoint recording tasks require a paired route; '
+                                 'use navigation_only:=true to navigate without recording')
         self.runtime = rospy.get_param('~mission')
         self.obstacle_clear_x_ratio = float(self.runtime['obstacle_clear_x_ratio'])
         if not 0 < self.obstacle_clear_x_ratio < 1:
@@ -297,6 +309,9 @@ class Mission:
         self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
 
     def next_point(self):
+        if self.single_waypoint:
+            self.transition('FINISH', '单航点执行完成')
+            return
         point = self.route['points'][self.index]
         if (point['id'] == 'wp_04' and (self.navigation_only or point['task'] == 'obstacle')
                 and 'navigation_branches' in self.route):

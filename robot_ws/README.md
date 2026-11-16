@@ -280,6 +280,21 @@ roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
+### 单航点运行
+
+先启动硬件、定位和导航，确认当前定位；通过 `single_waypoint` 指定 `route.yaml` 中的航点 ID，直接导航到该点，坐标、朝向和任务沿用路线配置：
+
+```bash
+# 只导航到 wp_05，到达后结束；无需识别服务
+roslaunch community_mission mission.launch single_waypoint:=wp_05 navigation_only:=true
+# 导航到 wp_05，执行人员及违停识别后结束；须先启动相机和相关服务
+roslaunch community_mission mission.launch single_waypoint:=wp_05 navigation_only:=false
+# 导航到 wp_04，识别障碍物并记录选路结果，随后结束，不执行后续路线
+roslaunch community_mission mission.launch single_waypoint:=wp_04 navigation_only:=false
+```
+
+不指定 `single_waypoint` 时仍执行完整路线。单点红绿灯任务沿用连续确认及超时规则；人员统计仅代表该点。录像开始/结束任务依赖配对，单点执行会在导航前拒绝，但可使用 `navigation_only:=true` 导航到录像点。结果仍记录全部航点，仅执行的航点更新状态，其余保留 `NOT_EXECUTED`。不要与正在运行的巡检或其他导航目标同时使用。
+
 ### 组合启动
 
 与分层启动二选一，不重复启动硬件或相机节点：
@@ -331,17 +346,17 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。垃圾桶类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。完整巡检在 `wp_04` 调用障碍物服务自动选路；仅导航模式由 `obstacle_mode` 手动指定。
 
-`tools/test_detector_model.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
+`tools/detector_preview.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
 
 保持相机运行，另开终端执行：
 
 ```bash
 # 人员模型（默认）
-python3 tools/test_detector_model.py --detector people_detector --port 8080
+python3 tools/detector_preview.py --detector people_detector --port 8080
 # 或选择垃圾桶模型
-python3 tools/test_detector_model.py --detector trash_bin_detector --port 8080
+python3 tools/detector_preview.py --detector trash_bin_detector --port 8080
 # 覆盖配置阈值及最大推理频率
-python3 tools/test_detector_model.py --detector trash_bin_detector --conf 0.5 --iou 0.4 --fps 10 --port 8080
+python3 tools/detector_preview.py --detector trash_bin_detector --conf 0.5 --iou 0.4 --fps 10 --port 8080
 ```
 
 浏览器访问 `http://小车IP:8080/`，Ctrl+C 退出。切换模型时先停止当前脚本，再使用新的 `--detector` 启动；不同模型同时预览需使用不同端口。
@@ -359,14 +374,14 @@ python3 tools/test_detector_model.py --detector trash_bin_detector --conf 0.5 --
 自定义配置或单张图片测试：
 
 ```bash
-python3 tools/test_detector_model.py --config /绝对路径/detectors.yaml --detector trash_bin_detector
+python3 tools/detector_preview.py --config /绝对路径/detectors.yaml --detector trash_bin_detector
 # 临时覆盖模型文件，类别和阈值仍来自选定配置
-python3 tools/test_detector_model.py --detector people_detector --model /绝对路径/person.onnx
+python3 tools/detector_preview.py --detector people_detector --model /绝对路径/person.onnx
 # 无需 ROS 或相机的图片预览
-python3 tools/test_detector_model.py --detector people_detector --image ../yolo_train/datasets/person/val/images/0011.jpg
+python3 tools/detector_preview.py --detector people_detector --image ../yolo_train/datasets/person/val/images/0011.jpg
 ```
 
-配置沿用 `detectors.yaml` 的 `detectors` 结构；`model_path` 支持绝对路径、相对配置文件的路径及 `$(find community_perception)`。`class_names` 必须按模型类别 ID 顺序填写。支持静态 FP32 输入 `[1,3,H,W]`、原始检测输出 `[1,4+类别数,N]`；YOLO26 应以 `end2end=False, nms=False` 导出。旧入口 `tools/test_person_model.py` 转发到同一通用脚本。
+配置沿用 `detectors.yaml` 的 `detectors` 结构；`model_path` 支持绝对路径、相对配置文件的路径及 `$(find community_perception)`。`class_names` 必须按模型类别 ID 顺序填写。支持静态 FP32 输入 `[1,3,H,W]`、原始检测输出 `[1,4+类别数,N]`；YOLO26 应以 `end2end=False, nms=False` 导出。
 
 ### 图片采集
 
@@ -424,14 +439,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 
-## 开发检查
-
-在工作空间目录执行离线检查：
-
-```bash
-python3 tools/validate_workspace.py
-python3 tools/test_python_migration.py
-```
+## 实车验收
 
 识别效果、定位导航和完整巡检流程需要在目标硬件与现场验证。详细说明见 [架构与接口](docs/ARCHITECTURE.md)、[实车验收](docs/ACCEPTANCE.md) 和 [底盘协议说明](docs/BASE_PROTOCOL_REVIEW.md)。
 
@@ -439,4 +447,4 @@ python3 tools/test_python_migration.py
 
 红绿灯航点使用 `community_perception/models/traffic_light.onnx` 两分类模型（0=`stop`、1=`go`）。默认连续 3 帧有效且仅含 `go` 的检测结果才放行，继续下一航点导航；`stop`、空结果、混合结果或无效检测打断连续计数，重复时间戳同样重置计数。连续确认帧数仍由 `green_confirm_frames` 配置，默认 30 秒超时后终止任务。
 
-障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。离线选路回归：在 `robot_ws` 执行 `python -m unittest tools.test_obstacle_route -v`。
+障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。

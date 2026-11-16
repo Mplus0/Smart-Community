@@ -216,7 +216,7 @@ def main():
         from cv_bridge import CvBridge, CvBridgeError
         from sensor_msgs.msg import Image
 
-        rospy.init_node('test_detector_model', anonymous=True)
+        rospy.init_node('detector_preview', anonymous=True)
         bridge = CvBridge()
     server = PreviewServer((args.host, args.port), args.detector)
     worker = threading.Thread(target=server.serve_forever, daemon=True)
