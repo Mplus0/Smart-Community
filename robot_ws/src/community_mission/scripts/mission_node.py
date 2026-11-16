@@ -94,7 +94,7 @@ class Mission:
             self.bridge = CvBridge()
             self.speech = SpeechQueue(self.services, self.runtime)
             self.inspection = Inspection(self.route, self.services, self.speech, rospy.get_param('~recognition_rules'),
-                                         self.runtime['ocr_interval'])
+                                         self.bridge, self.runtime['ocr_interval'])
             self.subscriber = rospy.Subscriber(rospy.get_param('~image_topic', '/usb_cam/image_raw'),
                                                Image, self.image_callback, queue_size=1, buff_size=2**24)
         rospy.on_shutdown(self.close)
@@ -288,10 +288,45 @@ class Mission:
 
     def run_inspection(self, point, task_type, source, media_path):
         result = self.inspection.execute(point, task_type, source)
-        self.results.record_task(result, paths=[media_path])
+        paths = [media_path]
+        if task_type == 'trash' and result['status'] != 'FAILED':
+            paths.extend(self.save_trash_evidence(source, result['result'], media_path))
+        self.results.record_task(result, paths=paths)
         if result['status'] == 'FAILED':
             raise RuntimeError(f"{point['id']} {task_type}: {result['reason']}")
         return result
+
+    def save_trash_evidence(self, image, result, media_path):
+        if result['roi'] is None:
+            return []
+        frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8').copy()
+        x1, y1, x2, y2 = result['roi']
+        path = Path(media_path)
+        roi_path = path.with_name(path.stem + '_roi.jpg')
+        if not cv2.imwrite(str(roi_path), frame[y1:y2, x1:x2]):
+            raise RuntimeError('Failed to save trash ROI image')
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
+        colors = {'CORRECT': (0, 200, 0), 'INCORRECT': (0, 0, 255), 'UNKNOWN': (0, 165, 255)}
+        for match in result['matches']:
+            bx1, by1, bx2, by2 = map(int, match['bin_bbox'])
+            color = colors[match['status']]
+            cv2.rectangle(frame, (bx1, by1), (bx2, by2), color, 2)
+            cv2.putText(frame, match['bin_label'] + ' ' + match['status'],
+                        (bx1, max(16, by1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
+            for obj in match['garbage']:
+                gx1, gy1, gx2, gy2 = map(int, obj['bbox'])
+                cv2.rectangle(frame, (gx1, gy1), (gx2, gy2), color, 2)
+                cv2.putText(frame, f"{obj['label']} {obj['confidence']:.2f}",
+                            (gx1, max(16, gy1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
+                cv2.line(frame, ((bx1 + bx2) // 2, by2),
+                         ((gx1 + gx2) // 2, (gy1 + gy2) // 2), color, 1)
+        for obj in result['unmatched']:
+            gx1, gy1, gx2, gy2 = map(int, obj['bbox'])
+            cv2.rectangle(frame, (gx1, gy1), (gx2, gy2), colors['UNKNOWN'], 2)
+        result_path = path.with_name(path.stem + '_trash.jpg')
+        if not cv2.imwrite(str(result_path), frame):
+            raise RuntimeError('Failed to save trash result image')
+        return [roi_path, result_path]
 
     def announce(self):
         text = '前方发现禁止直行标识'

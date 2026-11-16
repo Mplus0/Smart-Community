@@ -135,29 +135,60 @@ def vehicle_counts(frames, settings):
 
 
 
-def waste_type(label, settings):
-    return next((kind for prefix, kind in settings['waste_types'].items()
-                 if label.startswith(prefix)), '其他')
-
-
-def trash_announcement(bins, waste, width, settings):
+def trash_roi(bins, width, height, settings):
+    """合并桶框，并保留桶前方放置垃圾的区域。"""
     if not bins:
-        return '未检测到垃圾桶'
-    parts, all_correct = [], True
-    for container in sorted(bins, key=lambda d: d.box[0]+d.box[2]):
-        kind = waste_type(container.label, settings)
-        status = '开启' if 'open' in container.label else '关闭'
-        center = (container.box[0]+container.box[2])/2
-        contents = []
-        for obj in waste:
-            if obj.label not in settings['waste_names']:
-                continue
-            if abs((obj.box[0]+obj.box[2])/2-center) <= width*settings['trash_match_px']/settings['reference_width']:
-                correct = waste_type(obj.label, settings) == kind
-                all_correct = all_correct and correct
-                contents.append(settings['waste_names'][obj.label] + ('投放正确' if correct else '投放错误'))
-        parts.append(f'{kind}垃圾桶状态为{status}，' + ('垃圾为'+'、'.join(contents) if contents else '无垃圾'))
-    return '垃圾桶识别结果：'+'；'.join(parts)+('，所有投放正确' if all_correct else '，存在投放错误')
+        return None
+    bw = max(d.box[2] - d.box[0] for d in bins)
+    bh = max(d.box[3] - d.box[1] for d in bins)
+    return (max(0, math.floor(min(d.box[0] for d in bins) - bw * settings['trash_roi_side'])),
+            max(0, math.floor(min(d.box[1] for d in bins) - bh * settings['trash_roi_top'])),
+            min(width, math.ceil(max(d.box[2] for d in bins) + bw * settings['trash_roi_side'])),
+            min(height, math.ceil(max(d.box[3] for d in bins) + bh * settings['trash_roi_bottom'])))
+
+
+def trash_result(bins, waste, settings):
+    """每个垃圾只归属横向最近的桶；漏检和重复对应不判为正确。"""
+    ordered = sorted(bins, key=lambda d: d.box[0] + d.box[2])
+    matches = [dict(bin_label=d.label, bin_type=settings['bin_types'][d.label.split('_')[0]],
+                    bin_state='开启' if d.label.endswith('_open') else '关闭',
+                    bin_bbox=list(d.box), bin_confidence=d.confidence,
+                    garbage=[], status='UNKNOWN') for d in ordered]
+    unmatched = []
+    for obj in waste:
+        item = dict(label=obj.label, type=settings['waste_types'][obj.label],
+                    bbox=list(obj.box), confidence=obj.confidence)
+        if not ordered:
+            unmatched.append(item)
+            continue
+        cx, cy = (obj.box[0] + obj.box[2]) / 2, (obj.box[1] + obj.box[3]) / 2
+        index = min(range(len(ordered)), key=lambda i: abs(cx - (ordered[i].box[0] + ordered[i].box[2]) / 2))
+        box = ordered[index].box
+        bw, bh = box[2] - box[0], box[3] - box[1]
+        if (abs(cx - (box[0] + box[2]) / 2) <= bw * settings['trash_match_x_ratio']
+                and box[1] + bh * settings['trash_match_y_start'] <= cy
+                <= box[3] + bh * settings['trash_roi_bottom']):
+            matches[index]['garbage'].append(item)
+        else:
+            unmatched.append(item)
+    parts = []
+    for match in matches:
+        garbage = match['garbage']
+        if len(garbage) == 1:
+            match['status'] = 'CORRECT' if garbage[0]['type'] == match['bin_type'] else 'INCORRECT'
+            detail = garbage[0]['type'] + ('垃圾，投放正确' if match['status'] == 'CORRECT' else '垃圾，投放错误')
+        else:
+            detail = '未识别到对应垃圾' if not garbage else '多个垃圾对应，无法确认'
+        parts.append(f"{match['bin_type']}垃圾桶{match['bin_state']}，{detail}")
+    complete = len(matches) == 4 and {m['bin_type'] for m in matches} == set(settings['bin_types'].values())
+    status = ('INCORRECT' if any(m['status'] == 'INCORRECT' for m in matches)
+              else 'CORRECT' if complete and not unmatched and all(m['status'] == 'CORRECT' for m in matches)
+              else 'UNKNOWN')
+    summary = {'CORRECT': '所有投放正确', 'INCORRECT': '存在投放错误', 'UNKNOWN': '识别不完整，无法确认全部投放结果'}[status]
+    text = '垃圾桶识别结果：' + '；'.join(parts) + '；' + summary if matches else '未检测到垃圾桶'
+    return dict(bins=[d.label for d in ordered], waste=[d.label for d in waste],
+                matches=matches, unmatched=unmatched, placement_status=status, announcement=text)
+
 
 
 def vehicle_announcement(illegal, stand, fall):

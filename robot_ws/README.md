@@ -368,7 +368,7 @@ python3 tools/detector_preview.py --detector trash_bin_detector --conf 0.5 --iou
 | `fire_detector` | 火焰 |
 | `obstacle_detector` | 障碍物 |
 | `trash_bin_detector` | 垃圾桶颜色及开闭状态 |
-| `waste_detector` | 垃圾类别 |
+| `waste_detector` | 有害、厨余、其他、可回收四类垃圾 |
 | `bicycle_detector` | 电动车站立、倒伏 |
 
 自定义配置或单张图片测试：
@@ -438,6 +438,16 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 使用 `task: obstacle` 自动选路；`wp_11` 仪表盘识别、`wp_12` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；完整任务模式按检测选择的分支执行各航点任务，绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
+
+### 垃圾桶与垃圾分类
+
+`wp_16` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用新训练导出的 `trash_sorting.onnx`，输入为 1024×1024、等比例缩放补边，检测四类垃圾；其他检测器保持原预处理。模型副本位于 `yolo_train/model/trash_sorting.onnx`。
+
+垃圾框还原到原图坐标后，按横向最近的桶匹配；距离不超过该桶宽度的 `0.6`，并要求垃圾中心位于桶高度 45% 以下至桶底下方半个桶高的范围。每个垃圾最多归属一个桶；一个桶只对应一个垃圾时比较类别。红/绿/灰/蓝桶分别对应有害/厨余/其他/可回收。漏检或多个目标对应同一桶时记录 `UNKNOWN`；类别不一致记录 `INCORRECT`；只有四种桶均对应正确且无未匹配目标时才输出全部 `CORRECT`。桶盖开关单独记录。
+
+ROI 与匹配参数位于 `community_mission/config/recognition_rules.yaml`；置信度位于 `community_perception/config/detectors.yaml`，任务模式下桶为 `0.75`、垃圾为 `0.5`。任务正常返回后，原图、`*_roi.jpg`、带框和匹配连线的 `*_trash.jpg` 保存到本次运行的 `photo/`，JSON 记录 ROI、桶/垃圾框、置信度和匹配结果。橙色表示无法确认，绿色表示对应正确，红色表示投放错误；不触发语音。
+
+更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_16 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
 
 ## 实车验收
 

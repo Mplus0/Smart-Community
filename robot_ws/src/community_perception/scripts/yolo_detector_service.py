@@ -23,6 +23,7 @@ class YOLOv8DetectorService:
         self.model_path = rospy.get_param('~model_path', config['model_path'])
         self.conf_threshold = rospy.get_param('~conf_threshold', confidence)
         self.iou_threshold = rospy.get_param('~iou_threshold', config['iou_threshold'])
+        self.letterbox = rospy.get_param('~letterbox', config.get('letterbox', False))
         self.class_names = dict(enumerate(rospy.get_param('~class_names', config['class_names'])))
 
         self.nc = len(self.class_names)
@@ -182,8 +183,21 @@ class YOLOv8DetectorService:
         class_names = [detection['class_name'] for detection in detections]
         return dict(Counter(class_names))
 
+    def resize_parameters(self, shape):
+        h, w = shape[:2]
+        if not self.letterbox:
+            return self.input_width, self.input_height, 0, 0
+        gain = min(self.input_width / w, self.input_height / h)
+        nw, nh = round(w * gain), round(h * gain)
+        return nw, nh, (self.input_width - nw) // 2, (self.input_height - nh) // 2
+
     def preprocess(self, image):
-        input_img = cv2.resize(image, (self.input_width, self.input_height))
+        nw, nh, left, top = self.resize_parameters(image.shape)
+        input_img = cv2.resize(image, (nw, nh))
+        if self.letterbox:
+            input_img = cv2.copyMakeBorder(input_img, top, self.input_height - nh - top,
+                                          left, self.input_width - nw - left,
+                                          cv2.BORDER_CONSTANT, value=(114, 114, 114))
         input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2RGB)
         input_img = input_img.transpose(2, 0, 1)
         input_tensor = input_img[np.newaxis, :, :, :].astype(np.float32) / 255.0
@@ -197,7 +211,7 @@ class YOLOv8DetectorService:
         class_ids = []
 
         orig_h, orig_w = orig_shape[:2]
-        input_h, input_w = self.input_height, self.input_width
+        input_w, input_h, left, top = self.resize_parameters(orig_shape)
 
         for i in range(outputs.shape[1]):
             detection = outputs[0, i, :]
@@ -207,10 +221,10 @@ class YOLOv8DetectorService:
 
             if max_score >= self.conf_threshold:
                 cx, cy, w, h = detection[0], detection[1], detection[2], detection[3]
-                x1 = int((cx - w / 2) * orig_w / input_w)
-                y1 = int((cy - h / 2) * orig_h / input_h)
-                x2 = int((cx + w / 2) * orig_w / input_w)
-                y2 = int((cy + h / 2) * orig_h / input_h)
+                x1 = int((cx - w / 2 - left) * orig_w / input_w)
+                y1 = int((cy - h / 2 - top) * orig_h / input_h)
+                x2 = int((cx + w / 2 - left) * orig_w / input_w)
+                y2 = int((cy + h / 2 - top) * orig_h / input_h)
 
                 x1 = max(0, min(x1, orig_w - 1))
                 y1 = max(0, min(y1, orig_h - 1))

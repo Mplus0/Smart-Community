@@ -67,86 +67,19 @@ detectors:
     - 7
     service_name: /trash_bin_detector/detect
   waste_detector:
-    model_path: $(find community_perception)/models/waste.onnx
+    model_path: $(find community_perception)/models/trash_sorting.onnx
     model_name: waste_detector
     conf_threshold: 0.5
     iou_threshold: 0.4
+    letterbox: true
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/waste
     class_names:
-    - hazardous1
-    - hazardous2
-    - hazardous3
-    - hazardous4
-    - hazardous5
-    - hazardous6
-    - hazardous7
-    - hazardous8
-    - kitchen1
-    - kitchen2
-    - kitchen3
-    - kitchen4
-    - kitchen5
-    - kitchen6
-    - kitchen7
-    - kitchen8
-    - kitchen9
-    - kitchen10
-    - kitchen11
-    - orther1
-    - orther2
-    - orther3
-    - orther4
-    - orther5
-    - orther6
-    - orther7
-    - orther8
-    - orther9
-    - orther10
-    - recoverable1
-    - recoverable2
-    - recoverable3
-    - recoverable4
-    - recoverable5
-    - recoverable6
-    - recoverable7
-    save_classes:
-    - 0
-    - 1
-    - 2
-    - 3
-    - 4
-    - 5
-    - 6
-    - 7
-    - 8
-    - 9
-    - 10
-    - 11
-    - 12
-    - 13
-    - 14
-    - 15
-    - 16
-    - 17
-    - 18
-    - 19
-    - 20
-    - 21
-    - 22
-    - 23
-    - 24
-    - 25
-    - 26
-    - 27
-    - 28
-    - 29
-    - 30
-    - 31
-    - 32
-    - 33
-    - 34
-    - 35
+    - hazardous_trash
+    - food_trash
+    - other_trash
+    - recyclable_trash
+    save_classes: [0, 1, 2, 3]
     service_name: /waste_detector/detect
   bicycle_detector:
     model_path: $(find community_perception)/models/byc.onnx
@@ -179,6 +112,6 @@ mission_confidence:
   people_detector: 0.75
   traffic_light_detector: 0.75
   trash_bin_detector: 0.75
-  waste_detector: 0.85
+  waste_detector: 0.5
   fire_detector: 0.9
   bicycle_detector: 0.85

@@ -3,14 +3,15 @@ from collections import Counter
 from datetime import datetime, timezone
 import time
 
-from rules import (detections, people_counts, illegal_parking_count,
-                    trash_announcement)
+from rules import (Detection, detections, people_counts, illegal_parking_count,
+                   trash_roi, trash_result)
 
 
 class Inspection:
-    def __init__(self, route, services, speech, settings, ocr_interval=3.0):
+    def __init__(self, route, services, speech, settings, bridge, ocr_interval=3.0):
         self.route, self.services, self.speech = route, services, speech
         self.settings, self.ocr_interval = settings, ocr_interval
+        self.bridge = bridge
         self.people = Counter(A=0, B=0)
         self.outside = Counter(A=0, B=0)
         self.illegal = Counter(A=0, B=0)
@@ -62,9 +63,18 @@ class Inspection:
 
     def inspect_trash(self, point, image):
         bins = detections(self.services.detect('trash_bin_detector', image))
-        waste = detections(self.services.detect('waste_detector', image))
-        announcement = trash_announcement(bins, waste, image.width, self.settings)
-        return dict(announcement=announcement, bins=[d.label for d in bins], waste=[d.label for d in waste])
+        roi = trash_roi(bins, image.width, image.height, self.settings)
+        waste = []
+        if roi is not None:
+            x1, y1, x2, y2 = roi
+            frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
+            cropped = self.bridge.cv2_to_imgmsg(frame[y1:y2, x1:x2].copy(), encoding='bgr8')
+            cropped.header = image.header
+            objects = detections(self.services.detect('waste_detector', cropped))
+            waste = [Detection(d.label, (d.box[0] + x1, d.box[1] + y1,
+                                         d.box[2] + x1, d.box[3] + y1), d.confidence)
+                     for d in objects]
+        return dict(trash_result(bins, waste, self.settings), roi=roi)
 
     def inspect_vehicle_photo(self, point, image):
         objects = detections(self.services.detect('bicycle_detector', image))
@@ -93,7 +103,7 @@ class Inspection:
         empty = {'person': lambda r: r['people'] == 0,
                  'plate': lambda r: not r['plate'],
                  'fire': lambda r: r['fire_count'] == 0,
-                 'trash': lambda r: not r['bins'] and not r['waste'],
+                 'trash': lambda r: not r['bins'] or not r['waste'],
                  'vehicle_photo': lambda r: not any(c in ('stand', 'fall') for c in r['detected_classes']),
                  'vehicle_video': lambda r: r['stand_count'] + r['fall_count'] == 0}
         try:

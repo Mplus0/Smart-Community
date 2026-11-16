@@ -33,7 +33,7 @@ def load_detector(config_path, name):
 class ONNXDetector:
     """Match the deployed service's resize, confidence filtering and NMS."""
 
-    def __init__(self, model, class_names, confidence, iou):
+    def __init__(self, model, class_names, confidence, iou, letterbox=False):
         import cv2
         import numpy as np
         import onnxruntime as ort
@@ -54,14 +54,25 @@ class ONNXDetector:
         self.height, self.width = shape[2:]
         self.class_names = class_names
         self.confidence, self.iou = confidence, iou
+        self.letterbox = letterbox
 
     def render(self, image):
         cv2, np = self.cv2, self.np
         start = time.monotonic()
-        tensor = cv2.cvtColor(cv2.resize(image, (self.width, self.height)), cv2.COLOR_BGR2RGB)
+        h, w = image.shape[:2]
+        if self.letterbox:
+            gain = min(self.width / w, self.height / h)
+            nw, nh = round(w * gain), round(h * gain)
+        else:
+            nw, nh = self.width, self.height
+        left, top = (self.width - nw) // 2, (self.height - nh) // 2
+        resized = cv2.resize(image, (nw, nh))
+        resized = cv2.copyMakeBorder(resized, top, self.height - nh - top,
+                                     left, self.width - nw - left,
+                                     cv2.BORDER_CONSTANT, value=(114, 114, 114))
+        tensor = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
         tensor = tensor.transpose(2, 0, 1)[None].astype(np.float32) / 255.0
         predictions = self.session.run(None, {self.input.name: tensor})[0][0].T
-        h, w = image.shape[:2]
         boxes, scores, ids = [], [], []
         for row in predictions:
             class_id = int(np.argmax(row[4:]))
@@ -69,10 +80,10 @@ class ONNXDetector:
             if score < self.confidence:
                 continue
             cx, cy, bw, bh = row[:4]
-            x1 = max(0, min(int((cx - bw / 2) * w / self.width), w - 1))
-            y1 = max(0, min(int((cy - bh / 2) * h / self.height), h - 1))
-            x2 = max(0, min(int((cx + bw / 2) * w / self.width), w - 1))
-            y2 = max(0, min(int((cy + bh / 2) * h / self.height), h - 1))
+            x1 = max(0, min(int((cx - bw / 2 - left) * w / nw), w - 1))
+            y1 = max(0, min(int((cy - bh / 2 - top) * h / nh), h - 1))
+            x2 = max(0, min(int((cx + bw / 2 - left) * w / nw), w - 1))
+            y2 = max(0, min(int((cy + bh / 2 - top) * h / nh), h - 1))
             if x2 - x1 > 5 and y2 - y1 > 5:
                 boxes.append([x1, y1, x2 - x1, y2 - y1])
                 scores.append(score)
@@ -201,7 +212,8 @@ def main():
     model_path = args.model or model_path
     if not model_path.is_file():
         parser.error('Model not found: {}'.format(model_path))
-    detector = ONNXDetector(model_path, config['class_names'], confidence, iou)
+    detector = ONNXDetector(model_path, config['class_names'], confidence, iou,
+                            letterbox=config.get('letterbox', False))
     print('Detector: {}; model: {}; confidence: {}; IoU: {}'.format(
         args.detector, model_path, confidence, iou), flush=True)
     rospy, subscriber = None, None

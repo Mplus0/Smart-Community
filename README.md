@@ -85,6 +85,8 @@ GUI 入口：`python3 /workspace/simulation_ws/src/tools/gui.py`；不要与终�
 
 ## 模型与训练
 
+垃圾分类数据集 `trash_sorting` 已按约 9:1 划分为训练集 262 张、验证集 29 张，包含有害、厨余、其他、可回收四类垃圾。YOLO26n 训练入口为 `python yolo_train/scripts/trash_sorting/train.py`，详见 [训练说明](yolo_train/scripts/trash_sorting/README.md)。
+
 新垃圾桶数据集已按约 9:1 划分为训练集 235 张、验证集 26 张，包含 8 个颜色与开闭状态类别。YOLO26n 训练入口为 `python yolo_train/scripts/trashbin_new/train.py`，详见 [训练说明](yolo_train/scripts/trashbin_new/README.md)。
 
 火焰与障碍物检测数据集已按约 9:1 划分训练集和验证集，分别为 209/23 张和 108/12 张；YOLO 标签及配置见 [火焰数据集](yolo_train/datasets/fire/README.md) 与 [障碍物数据集](yolo_train/datasets/obstacle/README.md)。

@@ -1,0 +1,21 @@
+# Paths are relative to yolo_train/.
+model: ../models/yolo26n.pt
+data: datasets/trash_sorting/data.yaml
+output:
+  project: results/trash_sorting
+  name: yolo26n
+train:
+  epochs: 100
+  # Preserve 1920x1080 source resolution; rectangular batches only add stride padding.
+  imgsz: 1920
+  batch: 2
+  rect: true
+  mosaic: 0.0
+  close_mosaic: 0
+  scale: 0.0
+  translate: 0.0
+  multi_scale: 0.0
+  workers: 4
+  patience: 30
+  seed: 42
+  deterministic: true
