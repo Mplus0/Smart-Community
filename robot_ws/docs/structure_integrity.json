@@ -24,7 +24,6 @@
     "src/community_perception/models/light.onnx": "63284c8863b9b5aa8a00aaa01987f56df738534b8c22e598f185ae3f37b7a88d",
     "src/community_perception/models/people.onnx": "b1b110b2e02a3faa1a60ab6bc9fe4e412bcf7c31488db70db1c49aedb3d4c9e9",
     "src/community_perception/models/tong.onnx": "87c8357f6f571066acf937afa1d63a254df5e29eff478726ea179f074154a5ea",
-    "src/community_perception/models/waste.onnx": "083f1234548fc7acd91847648a9d1ad0a1b6ecf1e9c2cd6f19cc4ca6b5499a65",
     "src/community_perception/scripts/yolo_detector_service.py": "0a3969ef079145965c7ef426d561d2a4dd358ebdbf919851531f714b6af0bb14",
     "src/community_perception/srv/ObjectDetection.srv": "282ee802ce5c3e255d8cb309f9cf72c772ff0c991993148733638578d8de4494",
     "src/community_perception/src/community_perception_yolo/yolo_detector_service.py": "ef9a8f8ba8cec4b5ef408edbfa92eae8a89c48751cdabe9db132f08ca417bebf",
@@ -146,7 +145,6 @@
     "src/community_perception/models/byc.onnx": "f2b0c7e3db0e60a6eaa12fd022ba16a12a714d094743deeda322e3c876162b78",
     "src/community_perception/models/fire.onnx": "838ac421f342d7f61eb7377cecaacde47470fad31ce1d7f0128cf7dc998177de",
     "src/community_perception/models/light.onnx": "63284c8863b9b5aa8a00aaa01987f56df738534b8c22e598f185ae3f37b7a88d",
-    "src/community_perception/models/waste.onnx": "083f1234548fc7acd91847648a9d1ad0a1b6ecf1e9c2cd6f19cc4ca6b5499a65",
     "src/community_perception/scripts/yolo_detector_service.py": "ab1a698c8fe2eb76eff5a07338fba5307a9d1c656d8b512ea0a2066429abacdf",
     "src/community_perception/srv/ObjectDetection.srv": "282ee802ce5c3e255d8cb309f9cf72c772ff0c991993148733638578d8de4494",
     "src/community_perception/launch/ocr_server.launch": "942a57a9e5232800c33e5a174efe13d90b99cb3465ebe38a6f68032488503c40",
@@ -246,7 +244,8 @@
     "src/community_perception/models/person.onnx": "fad53f9ea43dc8f7360c8f5e15cc691ee8c4e3573cb37f7421e89a65d648e508",
     "src/community_perception/models/trashbin.onnx": "5dfe651685e30627c15b5adb87d96b6e6092f69bb0c44d3b4226f5b6af1595e4",
     "src/community_perception/models/obstacle.onnx": "67116562ca82625f95c204416a6659ef690aaf3fbac92b4b4cd81162b68e7db5",
-    "src/community_perception/launch/obstacle_detector.launch": "cf40991e2972d923a8675a71df4d8b19549d3a7d4d02640a93bea53e21b177d0"
+    "src/community_perception/launch/obstacle_detector.launch": "cf40991e2972d923a8675a71df4d8b19549d3a7d4d02640a93bea53e21b177d0",
+    "src/community_perception/models/trash_sorting.onnx": "b1a034a6eb68d95849e278ac81512db92e89b69817a11c2da21294c04b0185a3"
   },
   "removed_generated": [
     "src/lslidar_msgs/build/CATKIN_IGNORE",

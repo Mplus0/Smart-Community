@@ -449,6 +449,17 @@ ROI 与匹配参数位于 `community_mission/config/recognition_rules.yaml`；�
 
 更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_16 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
 
+停车查看完整垃圾识别流程时，在 `robot_ws` 目录运行以下工具。它直接加载本地两个 ONNX 模型，复用巡检的 ROI 与匹配规则，无需启动巡检、导航或检测服务：
+
+```bash
+# 相机实时测试：先启动 ROS 相机并加载 ROS 环境
+python3 tools/detector_preview.py --trash --topic /usb_cam/image_raw --fps 2 --port 8080
+# 单张图片测试：不需要 ROS
+python3 tools/detector_preview.py --trash --image ../yolo_train/datasets/trash_sorting/val/images/0268.jpg --port 8080
+```
+
+浏览器访问 `http://小车IP:8080/`。黄色框为整体 ROI，绿/红/橙框分别表示正确/错误/无法确认，连线表示对应关系；网页显示中文判断，`/result.json` 提供当前结构化结果。默认阈值与巡检一致，`--conf` 可覆盖垃圾模型阈值，桶阈值读取 `mission_confidence.trash_bin_detector`。Ctrl+C 退出，工具不控制小车运动、不播报、不持续保存图片。
+
 ## 实车验收
 
 识别效果、定位导航和完整巡检流程需要在目标硬件与现场验证。详细说明见 [架构与接口](docs/ARCHITECTURE.md)、[实车验收](docs/ACCEPTANCE.md) 和 [底盘协议说明](docs/BASE_PROTOCOL_REVIEW.md)。
