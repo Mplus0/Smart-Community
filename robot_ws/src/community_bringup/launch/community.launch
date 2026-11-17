@@ -22,6 +22,7 @@
     <arg name="configure_camera" value="$(arg configure_camera)"/>
   </include>
   <include file="$(find community_bringup)/launch/navigation.launch">
+    <arg name="route" value="$(arg route)"/>
     <arg name="map" value="$(arg map)"/>
     <arg name="navigation_map" value="$(arg navigation_map)"/>
     <arg name="local_planner" value="$(arg local_planner)"/>

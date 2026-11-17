@@ -12,6 +12,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import Image
+from std_srvs.srv import SetBool, Trigger
 
 from rules import validate_route, detections, obstacle_route
 from services import Services, SpeechQueue
@@ -35,11 +36,18 @@ class Mission:
         if 'navigation_branches' in self.route:
             points = self.route['points']
             branch_index = next(i for i, p in enumerate(points) if p['id'] == 'wp_04')
-            expected = {p['id'] for p in points[branch_index + 1:]}
+            remaining = points[branch_index + 1:]
+            available = {p['id'] for p in remaining}
+            # 分支可选用不同的转角过渡点，原任务点仍须各访问一次。
+            expected = {p['id'] for p in remaining if not p['id'].startswith('via_')}
+            if any(p['id'].startswith('via_') and p['task'] != 'navigation' for p in points):
+                raise ValueError('Transition waypoints must use task navigation')
             for mode in ('blocked', 'clear'):
                 order = self.route['navigation_branches'][mode]
-                if len(order) != len(expected) or set(order) != expected:
-                    raise ValueError(f'{mode}: branch must visit every remaining waypoint once')
+                selected = set(order)
+                if len(order) != len(selected) or not expected <= selected <= available:
+                    raise ValueError(f'{mode}: branch must visit every remaining task waypoint once '
+                                     'and reference only known transition waypoints')
         self.single_waypoint = rospy.get_param('~single_waypoint', '')
         if not isinstance(self.single_waypoint, str):
             raise ValueError('single_waypoint must be a waypoint ID string')
@@ -223,11 +231,27 @@ class Mission:
     def initialize(self):
         if not self.client.wait_for_server(rospy.Duration(self.runtime['server_timeout'])):
             raise RuntimeError('move_base is unavailable')
+        if self.route.get('navigation_closures'):
+            self.update_navigation_map()
+            if self.navigation_only:
+                self.update_navigation_map(self.obstacle_mode)
         if not self.navigation_only:
             self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
         else:
             rospy.loginfo('[导航验收] 只导航模式，跳过全部航点任务及红绿灯等待')
         self.transition('NAVIGATE', '导航服务已就绪')
+
+    def update_navigation_map(self, mode=None):
+        name = '/navigation_map/reset' if mode is None else '/navigation_map/set_blocked'
+        rospy.wait_for_service(name, timeout=self.runtime['server_timeout'])
+        service = rospy.ServiceProxy(name, Trigger if mode is None else SetBool)
+        response = service() if mode is None else service(mode == 'blocked')
+        if not response.success:
+            raise RuntimeError('Navigation map update failed: ' + response.message)
+        # 在停车点等待一个全局代价地图更新周期，再下发下一导航目标。
+        frequency = rospy.get_param('/move_base/global_costmap/update_frequency', 1.0)
+        rospy.sleep(1.0 / frequency + 0.1)
+        rospy.loginfo('[导航封口] %s', response.message)
 
     def navigate(self):
         rospy.loginfo('[导航] 前往航点=%s', self.route['points'][self.index]['id'])
@@ -276,6 +300,8 @@ class Mission:
         objects = detections(self.services.detect('obstacle_detector', image))
         self.check_running()
         result = obstacle_route(objects, image.width, self.obstacle_clear_x_ratio)
+        if self.route.get('navigation_closures'):
+            self.update_navigation_map(result['mode'])
         self.obstacle_mode = result['mode']
         rospy.loginfo('[障碍物] 中心横坐标比例=%.3f，路线=%s',
                       result['center_x_ratio'], self.obstacle_mode)

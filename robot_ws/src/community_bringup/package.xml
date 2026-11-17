@@ -23,6 +23,7 @@
   <depend>robot_description</depend>
   <depend>robot_localization</depend>
   <depend>robot_state_publisher</depend>
+  <depend>std_srvs</depend>
   <depend>rospy</depend>
   <depend>tf</depend>
   <depend>usb_cam</depend>

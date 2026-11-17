@@ -1,6 +1,11 @@
 #机器人几何参，如果机器人是圆形，设置 robot_radius,如果是其他形状设置 footprint
 #robot_radius: 0.12
 footprint: [[-0.15, -0.14], [-0.15, 0.14], [0.18, 0.14], [0.19, -0.14]]
+# 使用真实车体轮廓，不额外增加碰撞边距。
+footprint_padding: 0.0
+
+# 使用实际车体轮廓，不额外增加边距。
+footprint_padding: 0.0
 
 # 全局、局部代价地图共用导航地图；静态障碍不会被激光清除。
 plugins:
@@ -10,6 +15,7 @@ plugins:
 
 static_layer:
   map_topic: /navigation_map
+  first_map_only: false  # 接收选路后发布的完整封口图和下一轮复位图。
 
 obstacle_layer:
   combination_method: 1 # 取最大代价，保留静态层中的禁行区域。

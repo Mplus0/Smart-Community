@@ -132,13 +132,15 @@ rostopic info /move_base/local_plan
 
 TEB 参数保留在 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，本次未随 DWA 更新；其速度、加速度和到点容差与当前 DWA 配置不同。
 
+move_base 关闭仅按平移进展判断的振荡超时（`oscillation_timeout: 0`），避免同位置转向任务被误判；`oscillation_distance: 0.05` 在此超时关闭时不触发振荡恢复。关闭默认恢复行为中的自动旋转（`clearing_rotation_allowed: false`），保留清图恢复和正常导航转向。无有效控制等待上限仍为 3 秒，全局规划等待上限为 5 秒，巡检单目标超时仍为 120 秒。修改恢复行为后需重启导航生效。
+
 两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 RViz 显示。已在实车确认 TEB 插件加载并运行导航，定位、绕障及通行稳定性仍需现场验证。
 
 ### 定位地图与导航地图
 
-定位地图和导航地图分别保存为 `src/community_bringup/maps/localization_map.yaml/.pgm` 与 `navigation_map.yaml/.pgm`。定位图主要包含外框围栏，规划图包含固定禁行区域；两图均为 431 × 431 像素，分辨率为 1 cm/格，原点为 `(-0.03, -0.03, 0)`，对应约 4.25 m 场地。
+定位地图和导航地图分别保存为 `src/community_bringup/maps/localization_map.yaml/.pgm` 与 `navigation_map.yaml/.pgm`。定位图主要包含外框围栏，规划图包含固定禁行区域；两图均为 431 × 431 像素，分辨率为 1 cm/格，原点为 `(-0.03, -0.03, 0)`，对应约 4.25 m 场地。两张地图已绕栅格中心旋转 180°，YAML 原点不变，停车起点位于左下侧。相对旋转前地图的坐标转换为 `x_new = 4.25 - x_old`、`y_new = 4.25 - y_old`，朝向增加 π 并归一化。AMCL 默认初始位姿为 `(0.411719, 0.409062, 0)`，仅适用于小车停在该停车起点且车头沿地图 +x 的情况；其他摆放位置通过 RViz 设置实际位姿。
 
-两图分别发布到 `/map` 和 `/navigation_map`。保留当前全局和局部代价地图的静态层、激光障碍层与膨胀层，车体轮廓及相关配置不变。规划图包含固定禁行区，分支封口和路线选择继续由当前任务方案处理。
+两图分别发布到 `/map` 和 `/navigation_map`。保留当前全局和局部代价地图的静态层、激光障碍层与膨胀层，车体轮廓保留原值（包围尺寸约 34 × 28 cm），全局和局部 `footprint_padding` 均为 0，不额外扩张车体。规划底图包含固定禁行区，`navigation_map_node.py` 订阅 `/navigation_map_base` 并发布 `/navigation_map`。选路后只在对应入口叠加一格厚的占用封口（当前地图为 1 cm），定位图和磁盘底图不变。全局和局部静态层均接收更新，激光实时避障继续保留。
 
 场地布局分析图仍保存在 `src/community_bringup/maps/gazebo_layout_analysis.png`，原始参考图为同目录的 `field_reference.png`。导航调参前的基线备份位于 `backups/navigation/20261117_210643_before_tuning/`。
 
@@ -148,7 +150,7 @@ TEB 参数保留在 `src/community_bringup/config/navigation/teb_local_planner_p
 roslaunch community_bringup navigation.launch
 ```
 
-在 RViz 使用 `2D Pose Estimate` 设置实际初始位姿，确认激光与围栏对齐，再以 `2D Nav Goal` 试跑。该地图与 DWA 组合尚未在本车验证。旧航点坐标不能沿用，需在新地图下重新采集；采集完成前不要启动自动巡检。
+在 RViz 使用 `2D Pose Estimate` 设置实际初始位姿，确认激光与围栏对齐，再以 `2D Nav Goal` 试跑。该地图与 DWA 组合尚未在本车验证。默认路线已更新为旋转后地图下重新采集的 21 个原任务点，并补充 11 个转角过渡点；正式巡检前先使用仅导航模式确认路线。
 
 更换地图时同时指定匹配的 `map` 和 `navigation_map`：
 
@@ -505,7 +507,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认定位图 `src/community_bringup/maps/localization_map.yaml` 与规划图 `navigation_map.yaml` 为配套场地先验地图。`route.yaml` 保留原内容，未随地图替换而修改；启动自动巡检前必须在新地图下重新记录并指定路线文件。
+默认定位图 `src/community_bringup/maps/localization_map.yaml` 与规划图 `navigation_map.yaml` 为配套场地先验地图。`route.yaml` 已按旋转后地图下的新采集顺序更新坐标和朝向，原任务与两条分支顺序保留；尚未完成整条路线的实车验证。
 
 | 位置 | 用途 |
 |---|---|
@@ -519,12 +521,24 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route.yaml` 包含 21 个航点，保留原路线坐标和朝向；补录的火焰检测点为 `wp_09`，B 区人员检测点为 `wp_13`。完整巡检到达 `wp_04` 后拍照，调用障碍物模型，按标志检测框中心横坐标选择后续顺序；仅导航模式仍按 `obstacle_mode` 手动选择，不调用模型：
+默认 `route.yaml` 包含 21 个原任务点和 11 个 `via_...` 转角过渡点，坐标和朝向来自 2026-11-17 新采集记录。航点按当前导航图的通道中心线校正：左右竖向通道 x 分别为 1.02、3.84 m，中间竖向通道 x 为 2.23 m；下、上横向通道 y 分别为 0.41、3.84 m，中间横向通道 y 为 1.62 m。各点保留原任务与朝向，录像起止点 `wp_19/20` 共用 x=1.02 m、yaw=3.1416 rad，保持横移目标排列。完整巡检到达 `wp_04` 后拍照，调用障碍物模型，按标志检测框中心横坐标选择后续顺序；仅导航模式仍按 `obstacle_mode` 手动选择，不调用模型：
 
 - `blocked`（默认）：01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 13 → 11 → 12 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
 - `clear`：01 → 02 → 03 → 04 → 13 → 12 → 11 → 08 → 06 → 05 → 07 → 09 → 10 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
 
-上述编号均为 `wp_XX`。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_14` 起沿公共路线执行，到达 `wp_21` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，作为手动参数仅在导航测试模式生效；完整巡检由检测结果决定。
+上述编号均为 `wp_XX`，仅列原任务点顺序。实际路线在直角处增加普通导航过渡点：公共前段 `wp_02 → via_02_03(3.84, 0.41) → wp_03`；右侧中部交叉口 `(3.84, 1.62)`、中部交叉口 `(2.23, 1.62)`、右上角 `(3.84, 3.84)`、中上交叉口 `(2.23, 3.84)` 和返回停车位前的 `(1.02, 0.41)` 按分支需要使用。过渡点朝向对齐后续行驶方向，两分支分别执行 29 / 27 个目标；录像 `wp_19 → wp_20` 之间不插点。原任务、任务点坐标及朝向不变，新增转角路线尚未进行实车验证。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_14` 起沿公共路线执行，到达 `wp_21` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，作为手动参数仅在导航测试模式生效；完整巡检由检测结果决定。
+
+封口参数位于 `route.yaml` 的 `navigation_closures`：`blocked` 封右侧竖道的 y=1.93–1.94 m，`clear` 封横向支路的 x=3.53–3.54 m；封口向禁行支路内侧放置，两端接入静态禁行区，不扩张到相邻转角。每轮开始先恢复底图；仅导航模式在起步前按 `obstacle_mode` 封口，完整巡检在 `wp_04` 识别完成后封口并锁定本轮选择。更新后在停车点等待一个全局代价地图更新周期，再下发目标。`blocked` 的 `wp_10 → wp_13` 改为从中上交叉口、右上转角绕行，原任务点和任务顺序不变。此封口方案尚未进行实车整圈验证。
+
+调试时停止巡检和其他导航目标后，可手动切换封口（服务仅更新地图，不发送运动目标）：
+
+```bash
+rosservice call /navigation_map/set_blocked "data: true"   # blocked
+rosservice call /navigation_map/set_blocked "data: false"  # clear
+rosservice call /navigation_map/reset "{}"                # 恢复底图
+```
+
+更换地图或场地后需同步核对 `navigation_closures` 的坐标；自定义路线可不配置该字段，此时巡检不自动设置封口。`navigation.launch` 支持 `route:=...` 指定封口配置来源，应与巡检使用同一份路线文件。
 
 每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 使用 `task: obstacle` 自动选路；`wp_11` 仪表盘识别、`wp_12` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；完整任务模式按检测选择的分支执行各航点任务，绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
 

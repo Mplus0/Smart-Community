@@ -3,15 +3,19 @@
   <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml" />
   <arg name="navigation_map" default="$(find community_bringup)/maps/navigation_map.yaml" />
   <arg name="local_planner" default="dwa" doc="dwa or teb" />
+  <arg name="route" default="$(find community_mission)/config/route.yaml" />
   <!-- 扫描图用于定位，叠加场地禁行区的导航图用于全局和局部规划。 -->
   <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />
   <group ns="navigation">
     <node pkg="map_server" type="map_server" name="map_server" args="$(arg navigation_map)">
       <param name="frame_id" value="map" />
-      <remap from="map" to="/navigation_map" />
+      <remap from="map" to="/navigation_map_base" />
       <remap from="map_metadata" to="/navigation_map_metadata" />
     </node>
   </group>
+  <node pkg="community_bringup" type="navigation_map_node.py" name="navigation_map" output="screen" required="true">
+    <param name="route" value="$(arg route)" />
+  </node>
   <include file="$(find community_bringup)/launch/amcl.launch" />
   <include file="$(find community_bringup)/launch/move_base.launch">
     <arg name="local_planner" value="$(arg local_planner)" />

@@ -10,7 +10,7 @@
 #       在接收到新的目标点或者局部规划器报告路径堵塞时才会重新执行规划操作.
 #   planner_patience:在空间清理操作执行前,留给规划器多长时间来找出一条有效规划.
 #   oscillation_timeout:执行修复机制前,允许振荡的时长.
-#   oscillation_distance:来回运动在多大距离以上不会被认为是振荡.
+#   oscillation_distance:平面位移达到该距离时重置振荡计时，不计入原地转动.
 #   base_local_planner:指定用于move_base的局部规划器插件名称.
 #   base_global_planner:指定用于move_base的全局规划器插件名称.
 
@@ -22,8 +22,13 @@ controller_patience: 3.0
 planner_frequency: 1.0
 planner_patience: 5.0
 
-oscillation_timeout: 8.0
-oscillation_distance: 0.3
+# 同位置不同朝向的任务点需要原地转向，关闭仅按平移进展判断的振荡超时。
+# 无有效控制仍由 controller_patience 触发恢复，任务总超时继续由巡检节点处理。
+oscillation_timeout: 0.0
+oscillation_distance: 0.05
+
+# 保留默认清图恢复，禁用恢复阶段的自动旋转；正常导航转向不受影响。
+clearing_rotation_allowed: false
 
 base_local_planner: "dwa_local_planner/DWAPlannerROS"
 base_global_planner: "global_planner/GlobalPlanner"

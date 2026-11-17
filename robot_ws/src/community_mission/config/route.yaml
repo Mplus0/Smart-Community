@@ -1,122 +1,193 @@
-# 正式 21 点路线；坐标来自新地图取点文件 route_20261114_033526.yaml。
+# 21 个原任务点及 11 个转角过渡点；坐标来自旋转后地图取点文件 route_points_20261117_223732_864220066.yaml。
+# 坐标按当前导航图通道中心线校正；邻近任务点共用位置，保留各自采集朝向。
+# 录像 wp_19/20 共用 x=1.02、yaw=3.1416，保持横移目标排列。
 # navigation_only:=true 时跳过全部任务，wp_04 后按 obstacle_mode 选择顺序。
 points:
 - id: wp_01
-  x: 1.2253
-  y: -0.0607
-  yaw: -0.0452
+  x: 1.5887
+  y: 0.41
+  yaw: 0.0452
   task: traffic_light
 - id: wp_02
-  x: 2.7421
-  y: -0.1879
-  yaw: 1.5832
+  x: 2.9953
+  y: 0.41
+  yaw: 1.6092
   task: person
   area: A
+- id: via_02_03
+  x: 3.84
+  y: 0.41
+  yaw: 1.5708
+  task: navigation
 - id: wp_03
-  x: 3.456
-  y: 0.3358
-  yaw: 3.0073
+  x: 3.84
+  y: 1.0787
+  yaw: -3.0608
   task: person
   area: A
 - id: wp_04
-  x: 3.4388
-  y: 0.3272
-  yaw: 1.4763
+  x: 3.84
+  y: 1.0787
+  yaw: 1.5675
   task: obstacle  # 根据标志中心横坐标自动选择 clear / blocked
 - id: wp_05
-  x: 2.7871
-  y: 1.0845
-  yaw: -1.5563
+  x: 3.0
+  y: 1.62
+  yaw: -1.5674
   task: person
   area: A
 - id: wp_06
-  x: 2.7296
-  y: 0.9956
-  yaw: 1.592
+  x: 3.0
+  y: 1.62
+  yaw: 1.6038
   task: person
   area: B
 - id: wp_07
-  x: 1.9579
-  y: 1.0371
-  yaw: 3.0743
+  x: 2.23
+  y: 1.62
+  yaw: -3.1251
   task: fire
 - id: wp_08
-  x: 1.9446
-  y: 1.6422
-  yaw: 0.0185
+  x: 2.23
+  y: 2.3373
+  yaw: 0.028
   task: person
   area: B
 - id: wp_09
-  x: 1.9844
-  y: 1.8255
-  yaw: 3.1338
+  x: 2.23
+  y: 2.3373
+  yaw: 3.0976
   task: fire
 - id: wp_10
-  x: 1.9493
-  y: 1.829
-  yaw: 1.5006
+  x: 2.23
+  y: 2.3373
+  yaw: 1.5677
   task: traffic_light
 - id: wp_11
-  x: 2.6771
-  y: 3.255
-  yaw: -1.6159
+  x: 2.8469
+  y: 3.84
+  yaw: -1.5361
   task: navigation  # 仪表盘识别占位，尚未实现
 - id: wp_12
-  x: 3.5594
-  y: 2.498
-  yaw: 1.5253
+  x: 3.84
+  y: 3.0606
+  yaw: 1.5956
   task: navigation  # 温度检测占位，尚未实现
 - id: wp_13
-  x: 3.5493
-  y: 1.6794
-  yaw: -3.0558
+  x: 3.84
+  y: 2.2853
+  yaw: -3.1149
   task: person
   area: B
 - id: wp_14
-  x: 0.8772
-  y: 3.2974
-  yaw: 3.0197
+  x: 1.02
+  y: 3.84
+  yaw: -3.0881
   task: plate
   parking_lot: 1
 - id: wp_15
-  x: 0.836
-  y: 2.7605
-  yaw: 3.1146
+  x: 1.02
+  y: 3.198
+  yaw: -3.094
   task: plate
   parking_lot: 2
 - id: wp_16
-  x: 0.787
-  y: 2.4667
-  yaw: -0.0922
+  x: 1.02
+  y: 3.0672
+  yaw: 0.0663
   task: trash
 - id: wp_17
-  x: 0.7857
-  y: 2.1513
-  yaw: 3.0748
+  x: 1.02
+  y: 2.5842
+  yaw: -3.123
   task: plate
   parking_lot: 3
 - id: wp_18
-  x: 0.7271
-  y: 1.5678
-  yaw: -0.0407
+  x: 1.02
+  y: 2.0516
+  yaw: 0.0648
   task: fire
 - id: wp_19
-  x: 0.7477
-  y: 1.5549
-  yaw: -3.1057
+  x: 1.02
+  y: 2.1437
+  yaw: 3.1416
   task: record_start
 - id: wp_20
-  x: 0.7068
-  y: 0.3346
-  yaw: 3.1118
+  x: 1.02
+  y: 0.9685
+  yaw: 3.1416
   task: record_stop
 - id: wp_21
-  x: 0.0154
-  y: 0.015
-  yaw: 0.0905
+  x: 0.41
+  y: 0.41
+  yaw: 0.0472
   task: navigation  # 最终停车
+
+# 分支过渡点仅引导绕角；各分支按下方 ID 顺序选择，未选分支的过渡点不执行。
+- id: via_04_05
+  x: 3.84
+  y: 1.62
+  yaw: 3.1416
+  task: navigation
+- id: via_10_13_a
+  x: 2.23
+  y: 3.84
+  yaw: 0.0
+  task: navigation
+- id: via_10_13_b
+  x: 3.84
+  y: 3.84
+  yaw: -1.5708
+  task: navigation
+- id: via_13_11
+  x: 3.84
+  y: 3.84
+  yaw: 3.1416
+  task: navigation
+- id: via_11_12
+  x: 3.84
+  y: 3.84
+  yaw: -1.5708
+  task: navigation
+- id: via_12_14
+  x: 3.84
+  y: 3.84
+  yaw: 3.1416
+  task: navigation
+- id: via_11_08
+  x: 2.23
+  y: 3.84
+  yaw: -1.5708
+  task: navigation
+- id: via_08_06
+  x: 2.23
+  y: 1.62
+  yaw: 0
+  task: navigation
+- id: via_10_14
+  x: 2.23
+  y: 3.84
+  yaw: 3.1416
+  task: navigation
+- id: via_20_21
+  x: 1.02
+  y: 0.41
+  yaw: 3.1416
+  task: navigation
 
 # wp_01～wp_04 为公共前段；完整巡检自动选路，仅导航测试由 obstacle_mode 手动选择。
 navigation_branches:
-  blocked: [wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, wp_13, wp_11, wp_12, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, wp_21]
-  clear: [wp_13, wp_12, wp_11, wp_08, wp_06, wp_05, wp_07, wp_09, wp_10, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, wp_21]
+  blocked: [via_04_05, wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, via_10_13_a, via_10_13_b, wp_13, via_13_11, wp_11, via_11_12, wp_12, via_12_14, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, via_20_21, wp_21]
+  clear: [wp_13, wp_12, via_13_11, wp_11, via_11_08, wp_08, via_08_06, wp_06, wp_05, wp_07, wp_09, wp_10, via_10_14, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, via_20_21, wp_21]
+
+# 分支入口封口：法向始终仅一格（当前地图 1 cm），span 接入两侧静态禁行区。
+# blocked 封右侧竖道；clear 封中间横向入口。坐标对应当前旋转后的地图。
+navigation_closures:
+  blocked:
+    axis: y
+    coordinate: 1.935
+    span: [3.53, 4.15]
+  clear:
+    axis: x
+    coordinate: 3.535
+    span: [1.30, 1.94]
