@@ -1,0 +1,27 @@
+<launch>
+  <rosparam command="load" file="$(find community_bringup)/config/hardware.yaml" />
+  <arg name="base_protocol" />
+  <arg name="base_port" default="/dev/carserial" />
+  <arg name="imu_port" default="/dev/imu" />
+  <arg name="camera_device" default="/dev/video0" />
+  <arg name="configure_camera" default="false" />
+  <include file="$(find lslidar_driver)/launch/lslidar_serial.launch" />
+  <node pkg="wit_ros_imu" type="wit_normal_ros.py" name="imu" output="screen">
+    <param name="port" value="$(arg imu_port)" />
+  </node>
+  <node pkg="community_bringup" type="serial_bridge.py" name="community_serial" output="screen" required="true">
+    <param name="port" value="$(arg base_port)" />
+    <param name="protocol" value="$(arg base_protocol)" />
+  </node>
+  <node pkg="community_bringup" type="odometry_node.py" name="odometry_publisher" output="screen">
+    <remap from="/sub_vel" to="/vel_raw" />
+    <remap from="/pub_odom" to="/odom_raw" />
+  </node>
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
+    <param name="video_device" value="$(arg camera_device)" />
+  </node>
+  <node if="$(arg configure_camera)" pkg="community_bringup" type="configure_camera.py" name="configure_camera" output="screen">
+    <param name="device" value="$(arg camera_device)" />
+    <rosparam command="load" file="$(find community_bringup)/config/camera.yaml" />
+  </node>
+</launch>

@@ -1,6 +1,0 @@
-image: square_4p2m_nav.pgm
-resolution: 0.020000
-origin: [-0.420000, -0.470000, 0.000000]
-negate: 0
-occupied_thresh: 0.65
-free_thresh: 0.196

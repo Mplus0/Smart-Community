@@ -1,0 +1,7 @@
+controls:
+  auto_exposure: 1
+  exposure_time_absolute: 650
+  focus_automatic_continuous: 0
+  focus_absolute: 400
+  power_line_frequency: 1
+  white_balance_automatic: 1

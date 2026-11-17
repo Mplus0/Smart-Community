@@ -1,0 +1,6 @@
+<launch>
+  <!-- Start visualization only; navigation and hardware run on the robot. -->
+  <arg name="config" default="$(dirname)/../../rviz/navigation.rviz" />
+  <node pkg="rviz" type="rviz" name="navigation_debug_rviz" required="true"
+        args="-d &quot;$(arg config)&quot;" output="screen" />
+</launch>

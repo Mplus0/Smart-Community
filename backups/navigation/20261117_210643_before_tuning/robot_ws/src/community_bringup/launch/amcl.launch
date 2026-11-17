@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <rosparam command="load" file="$(find community_bringup)/config/navigation/amcl.yaml" />
+    <remap from="scan" to="scan" />
+  </node>
+</launch>

@@ -1,0 +1,6 @@
+<launch>
+  <!-- Run on the Ubuntu workstation after connecting to the robot's ROS Master. -->
+  <arg name="config" default="$(dirname)/../../rviz/slam.rviz" />
+  <node pkg="rviz" type="rviz" name="slam_debug_rviz" required="true"
+        args="-d &quot;$(arg config)&quot;" output="screen" />
+</launch>

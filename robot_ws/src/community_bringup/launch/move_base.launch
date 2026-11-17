@@ -1,5 +1,5 @@
 <launch>
-    <arg name="local_planner" default="teb" doc="dwa or teb" />
+    <arg name="local_planner" default="dwa" doc="dwa or teb" />
 
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" clear_params="true">
         <rosparam file="$(find community_bringup)/config/navigation/costmap_common_params.yaml" command="load" ns="global_costmap" />
