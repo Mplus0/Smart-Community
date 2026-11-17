@@ -99,6 +99,8 @@ roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yam
 
 ### 局部规划器（默认 DWA）
 
+DWA 使用实车低速导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.25/0.12/0.08 m/s，合成平移速度上限为 0.25 m/s，角速度上限为 0.3 rad/s，平移加速度为 0.6 m/s²、角加速度为 1.0 rad/s²。到点容差为 0.05 m / 0.05236 rad。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
+
 导航默认使用 DWA，`navigation.launch`、`community.launch` 及调用后者的 `finals.launch` 均生效。默认启动无需指定规划器；可通过 `local_planner:=teb` 在前两个入口切换为 TEB。使用 TEB 前，先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
 
 ```bash
@@ -128,23 +130,27 @@ rosparam get /move_base/base_local_planner
 rostopic info /move_base/local_plan
 ```
 
-TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，使用 `/odom`、现有 `base_link` 车体轮廓及全向运动约束；前进/后退/横移速度上限与 DWA 对齐为 0.27/0.27/0.13 m/s，合成平移速度上限仍为 0.18 m/s，最大角速度为 0.5 rad/s。平移加速度上限为 0.5 m/s²，角加速度按实车 DWA 当前生效的 `acc_lim_theta` 对齐为 3.2 rad/s²（DWA 文件中的旧键 `acc_lim_th: 2` 不代表该生效值）。到点容差沿用 0.08 m / 0.15 rad。初始配置关闭多拓扑候选搜索，保留代价地图障碍检测及整条局部轨迹可行性检查。参数数值不是实际避障距离或速度的保证，需低速实测绕障、横移、倒车和停车。
+TEB 参数保留在 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，本次未随 DWA 更新；其速度、加速度和到点容差与当前 DWA 配置不同。
 
 两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 RViz 显示。已在实车确认 TEB 插件加载并运行导航，定位、绕障及通行稳定性仍需现场验证。
 
 ### 定位地图与导航地图
 
-默认使用新扫描地图 `src/community_bringup/maps/map.yaml`（`map.pgm`）进行 AMCL 定位，使用叠加场地禁行区的 `map_nav.yaml`（`map_nav.pgm`）进行全局和局部规划。两图均为 249 × 245 像素，分辨率为 2 cm/格，原点为 `(-0.665712, -0.854947)`；分别发布到 `/map` 和 `/navigation_map`，激光实时避障继续保留。
+定位地图和导航地图分别保存为 `src/community_bringup/maps/localization_map.yaml/.pgm` 与 `navigation_map.yaml/.pgm`。定位图主要包含外框围栏，规划图包含固定禁行区域；两图均为 431 × 431 像素，分辨率为 1 cm/格，原点为 `(-0.03, -0.03, 0)`，对应约 4.25 m 场地。
 
-扫描图来自实车 `community_20261117_013242`，原始扫描像素和倾角均保留。按扫描图内墙面拟合四角，再用 4.2 米正方形进行旋转和平移标定：场地相对地图角度约 -3.39°，角点最大拟合残差约 4.1 cm，未缩放地图。该残差不是实际定位精度或禁行边界准确度的保证；生成记录保存在 `maps/map_nav_zones.yaml`，启用后仍需现场核对。
+两图分别发布到 `/map` 和 `/navigation_map`。保留当前全局和局部代价地图的静态层、激光障碍层与膨胀层，车体轮廓及相关配置不变。规划图包含固定禁行区，分支封口和路线选择继续由当前任务方案处理。
 
-禁行区由 `tools/generate_forbidden_map.py` 根据场地参考图片白线计算，再变换到扫描坐标系：左侧长条约 60 × 340 cm，右上矩形约 100 × 160 cm，L 型竖条约 60 × 280 cm、底部横条约 220 × 60 cm。左下起始停车位保留；尺寸以参考图边界线中心为基准，实际布置须现场确认。
+场地布局分析图仍保存在 `src/community_bringup/maps/gazebo_layout_analysis.png`，原始参考图为同目录的 `field_reference.png`。导航调参前的基线备份位于 `backups/navigation/20261117_210643_before_tuning/`。
 
-场地布局分析图保存在 `src/community_bringup/maps/gazebo_layout_analysis.png`，用于核对场地布局；生成禁行区使用的原始参考图为同目录的 `field_reference.png`。`map_nav_zones.yaml` 中的文件路径相对于该记录所在目录。导航调参前的基线备份保存在仓库的 `backups/navigation/20261117_210643_before_tuning/`，保留原目录结构，可按相对路径恢复对应文件。
+停止已有建图或导航，保留硬件运行，在已加载 ROS 环境的终端启动：
 
-维护禁行区时优先通过脚本重新生成导航图，保留扫描图不变，并保持两图的尺寸、分辨率、原点和方向一致。修改后重启导航，在 RViz 中检查全局、局部代价地图及路径，并在实车低速条件下验证绕行效果。
+```bash
+roslaunch community_bringup navigation.launch
+```
 
-直接运行 `roslaunch community_bringup navigation.launch` 即加载当前扫描图和配套禁行区导航图。更换地图时同时指定匹配的 `map` 和 `navigation_map`，避免定位与规划错位；临时只用扫描图时让两参数指向同一份扫描 YAML。使用新地图及配套导航图：
+在 RViz 使用 `2D Pose Estimate` 设置实际初始位姿，确认激光与围栏对齐，再以 `2D Nav Goal` 试跑。该地图与 DWA 组合尚未在本车验证。旧航点坐标不能沿用，需在新地图下重新采集；采集完成前不要启动自动巡检。
+
+更换地图时同时指定匹配的 `map` 和 `navigation_map`：
 
 ```bash
 roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test_nav.yaml
@@ -499,7 +505,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认定位地图 `src/community_bringup/maps/map.yaml` 来自实车 `community_20261117_013242`，配套 `map_nav.yaml` 由场地参考图和四角标定生成。`route.yaml` 仍保留原路线，未随地图替换而修改；使用前需重新核对或记录航点，确认其与新地图匹配且不落在障碍物或禁行区域内。
+默认定位图 `src/community_bringup/maps/localization_map.yaml` 与规划图 `navigation_map.yaml` 为配套场地先验地图。`route.yaml` 保留原内容，未随地图替换而修改；启动自动巡检前必须在新地图下重新记录并指定路线文件。
 
 | 位置 | 用途 |
 |---|---|

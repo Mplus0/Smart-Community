@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <launch>
-  <arg name="map" default="$(find community_bringup)/maps/map.yaml" />
-  <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml" />
+  <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml" />
+  <arg name="navigation_map" default="$(find community_bringup)/maps/navigation_map.yaml" />
   <arg name="local_planner" default="dwa" doc="dwa or teb" />
   <!-- 扫描图用于定位，叠加场地禁行区的导航图用于全局和局部规划。 -->
   <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />

@@ -12,8 +12,8 @@
   <arg name="configure_camera" default="false"/>
   <arg name="run_mission" default="false"/>
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
-  <arg name="map" default="$(find community_bringup)/maps/map.yaml"/>
-  <arg name="navigation_map" default="$(find community_bringup)/maps/map_nav.yaml"/>
+  <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml"/>
+  <arg name="navigation_map" default="$(find community_bringup)/maps/navigation_map.yaml"/>
   <arg name="local_planner" default="dwa" doc="dwa or teb"/>
   <arg name="route" default="$(find community_mission)/config/route.yaml"/>
   <include file="$(find community_bringup)/launch/hardware.launch">

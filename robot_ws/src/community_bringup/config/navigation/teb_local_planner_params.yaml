@@ -2,7 +2,7 @@ TebLocalPlannerROS:
   odom_topic: /odom
   map_frame: map
 
-  # Initial real-robot settings; retain the existing 5 Hz controller rate.
+  # Controller rate is configured by move_base_params.yaml.
   teb_autosize: true
   dt_ref: 0.2
   dt_hysteresis: 0.02
