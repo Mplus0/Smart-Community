@@ -74,7 +74,10 @@ def set_config(req: CameraConfig) -> Dict[str, Any]:
             raise HTTPException(status_code=400, detail=f"{key} 必须在 0~1 之间")
     if req.fps is not None and not 1 <= req.fps <= 30:
         raise HTTPException(status_code=400, detail="fps 必须在 1~30 之间")
-    settings = get_camera().configure(**req.dict())
+    try:
+        settings = get_camera().configure(**req.dict())
+    except RuntimeError as exc:
+        raise HTTPException(409, str(exc)) from exc
     return {"ok": True, "settings": settings}
 
 
@@ -94,6 +97,29 @@ def capture_snapshot() -> Dict[str, Any]:
     except RuntimeError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"ok": True, "name": path.name, "path": str(path), "url": f"/api/camera/snaps/{path.name}"}
+
+
+class CaptureOptions(BaseModel):
+    directory: str = ""
+    name: str = ""
+
+
+@router.post("/collect/{kind}", dependencies=[Depends(check_writable)])
+def collect(kind: str, req: CaptureOptions) -> Dict[str, Any]:
+    if kind not in ("photo", "video"):
+        raise HTTPException(404, "未知采集类型")
+    try:
+        path = get_camera().collect(req.directory.strip(), req.name, kind == "video")
+    except (ValueError, OSError) as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    return {"path": str(path)}
+
+
+@router.post("/record/stop", dependencies=[Depends(check_writable)])
+def stop_recording() -> Dict[str, Any]:
+    return {"path": get_camera().stop_recording()}
 
 
 @router.get("/snaps")

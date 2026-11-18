@@ -3,79 +3,73 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=1200,initial-scale=1">
-  <title>Smart-Community Infra 工作台</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <title>Smart-Community控制台</title>
+  <link rel="stylesheet" href="/static/style.css?v=console-dark-1">
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-mark">SC</div>
-      <div class="brand-text">
-        <div class="brand-title">Infra</div>
-        <div class="brand-sub">Smart-Community</div>
+  <header class="workbench-head">
+    <div class="status-row">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div class="brand-text">
+          <h1 class="brand-title">Smart-Community控制台</h1>
+        </div>
       </div>
-    </div>
-
-    <nav class="nav" id="nav">
-      <button class="nav-item is-active" data-view="dashboard">
-        <span class="nav-icon">◎</span><span>总览</span>
-      </button>
-      <button class="nav-item" data-view="teleop">
-        <span class="nav-icon">◧</span><span>遥控 · 地图</span>
-      </button>
-      <button class="nav-item" data-view="camera">
-        <span class="nav-icon">▣</span><span>相机 · 检测</span>
-      </button>
-      <button class="nav-item" data-view="mission">
-        <span class="nav-icon">◆</span><span>巡检任务</span>
-      </button>
-    </nav>
-
-    <div class="sidebar-foot">
-      <div class="conn-indicator"><span class="dot" id="connDot"></span><span id="connText">连接中…</span></div>
-      <button id="estopBtn" class="btn btn-danger btn-estop" title="零速度 → 取消导航 → 停止巡检节点">紧急停止</button>
-    </div>
-  </aside>
-
-  <main class="main">
-    <header class="topbar">
-      <h1 id="viewTitle">总览</h1>
-      <div class="topbar-meta">
-        <span>读模式: <b id="roMode">检查中</b></span>
-        <span>更新: <b id="lastUpdate">—</b></span>
-      </div>
-    </header>
-
-    <!-- 总览 -->
-    <section class="view is-active" data-view="dashboard">
-      <div class="cards">
-        <article class="card">
+      <div class="status-metrics">
+        <article class="metric">
           <h2>ROS Master</h2>
           <p class="big" id="rosMaster">—</p>
           <div class="muted" id="rosNodes">节点: —</div>
         </article>
-        <article class="card">
+        <article class="metric">
           <h2>机器人位姿（map）</h2>
           <p class="big small-big" id="poseText">—</p>
           <div class="muted" id="poseSource">来源: —</div>
         </article>
-        <article class="card">
+        <article class="metric">
           <h2>CPU</h2>
           <p class="big"><span id="hostCpu">—</span><span class="unit">%</span></p>
           <div class="bar"><div class="bar-fill" id="hostCpuBar"></div></div>
         </article>
-        <article class="card">
+        <article class="metric">
           <h2>内存</h2>
           <p class="big"><span id="hostMem">—</span><span class="unit">%</span></p>
           <div class="bar"><div class="bar-fill" id="hostMemBar"></div></div>
         </article>
-        <article class="card">
+        <article class="metric">
           <h2>磁盘</h2>
           <p class="big"><span id="hostDisk">—</span><span class="unit">%</span></p>
           <div class="bar"><div class="bar-fill" id="hostDiskBar"></div></div>
         </article>
       </div>
+      <div class="topbar-meta">
+        <span><b id="roMode">检查中</b></span>
+        <span>更新 <b id="lastUpdate">—</b></span>
+      </div>
+      <div class="status-actions">
+        <div class="conn-indicator"><span class="dot" id="connDot"></span><span id="connText">连接中…</span></div>
+        <button id="raceStart" class="btn btn-primary" style="white-space: nowrap" disabled title="启动决赛完整巡检流程">比赛一键启动</button>
+        <button id="estopBtn" class="btn btn-danger btn-estop" title="零速度 → 取消导航 → 停止巡检节点">紧急停止</button>
+      </div>
+    </div>
+    <nav class="nav" id="nav" aria-label="工作台页面">
+      <button class="nav-item is-active" aria-current="page" data-view="dashboard">
+        <span class="nav-number" aria-hidden="true">01</span><span>总览</span>
+      </button>
+      <button class="nav-item" data-view="teleop">
+        <span class="nav-number" aria-hidden="true">02</span><span>遥控 · 地图</span>
+      </button>
+      <button class="nav-item" data-view="camera">
+        <span class="nav-number" aria-hidden="true">03</span><span>相机 · 检测</span>
+      </button>
+      <button class="nav-item" data-view="mission">
+        <span class="nav-number" aria-hidden="true">04</span><span>巡检任务</span>
+      </button>
+    </nav>
+  </header>
 
+  <main class="main">
+    <section class="view is-active" data-view="dashboard">
       <article class="card card-wide">
         <header class="card-head"><h2>话题状态</h2><span class="muted">Hz · 距上一条消息</span></header>
         <div class="topic-grid" id="topicGrid"></div>
@@ -146,14 +140,21 @@
             <select id="camSource" class="input"></select>
             <select id="camDetector" class="input"></select>
             <label class="chk">置信度 <input type="number" id="camConf" class="input num" min="0.05" max="0.95" step="0.05" placeholder="默认"></label>
-            <label class="chk">FPS <input type="number" id="camFps" class="input num" min="1" max="30" step="1" value="10"></label>
-            <button class="btn btn-primary" id="camApply">应用</button>
+            <label class="chk">FPS <input type="number" id="camFps" required class="input num" min="1" max="30" step="1" value="10"></label>
             <button class="btn" id="camSnap">保存快照</button>
           </div>
           <div class="video-wrap"><img id="camStream" alt="相机画面"></div>
         </article>
         <article class="card side-card">
-          <header class="card-head"><h2>识别结果</h2><span class="muted" id="camState">—</span></header>
+          <header class="card-head"><h2>原始画面采集</h2></header>
+          <label class="field">小车保存目录<input id="captureDir" class="input" placeholder="留空使用默认采集目录"></label>
+          <label class="field">文件名<input id="captureName" class="input" placeholder="留空按时间命名，同名自动编号" maxlength="100"></label>
+          <div class="toolbar sub-head">
+            <button id="capturePhoto" class="btn">拍照 JPG</button>
+            <button id="captureVideo" class="btn btn-primary" disabled>开始录像 AVI</button>
+          </div>
+          <div id="captureStatus" class="kv-v muted" role="status"></div>
+          <header class="card-head sub-head"><h2>识别结果</h2><span class="muted" id="camState">—</span></header>
           <div id="camResult" class="cam-result muted">未开始</div>
           <header class="card-head sub-head"><h2>最近快照</h2></header>
           <div class="thumbs" id="camSnaps"></div>
@@ -227,6 +228,6 @@
 
   <div class="toasts" id="toasts"></div>
 
-  <script type="module" src="/static/app.js"></script>
+  <script type="module" src="/static/app.js?v=capture-1"></script>
 </body>
 </html>

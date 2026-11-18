@@ -6,8 +6,8 @@
 //   * Live log WebSocket and the emergency stop button.
 
 import { api, connectWithRetry, emit, escapeHtml, fmtDuration, on, toast } from './common.js';
-import './nav.js';
-import './camera.js';
+import './nav.js?v=console-dark-1';
+import './camera.js?v=capture-1';
 import './mission.js';
 
 const $ = (id) => document.getElementById(id);
@@ -18,10 +18,14 @@ const LOG_MAX_LINES = 300;
 // --- Tabs -------------------------------------------------------------------
 
 function activateView(name) {
-  for (const btn of navButtons) btn.classList.toggle('is-active', btn.dataset.view === name);
+  for (const btn of navButtons) {
+    const selected = btn.dataset.view === name;
+    btn.classList.toggle('is-active', selected);
+    if (selected) btn.setAttribute('aria-current', 'page');
+    else btn.removeAttribute('aria-current');
+  }
   for (const v of views) v.classList.toggle('is-active', v.dataset.view === name);
-  const active = navButtons.find((b) => b.dataset.view === name);
-  if (active) $('viewTitle').textContent = active.textContent.trim();
+  document.querySelector('.main').scrollTop = 0;
   emit('view', name);
 }
 for (const btn of navButtons) btn.addEventListener('click', () => activateView(btn.dataset.view));
@@ -92,9 +96,32 @@ function renderStatusBadge(status) {
 }
 
 let launchSignature = '';
+let raceStarting = false;
+let writable = false;
+
+function updateRaceButton() {
+  const running = lastRecords.some((r) => r.name === 'finals' && r.status === 'running');
+  $('raceStart').disabled = !writable || raceStarting || running;
+  $('raceStart').textContent = raceStarting ? '比赛启动中…' : running ? '比赛运行中' : '比赛一键启动';
+}
+
+$('raceStart').addEventListener('click', async () => {
+  raceStarting = true;
+  updateRaceButton();
+  try {
+    await api('/api/launch/finals/start', { method: 'POST', body: { base_protocol: 'aa_bb' } });
+    toast('已启动决赛流程', 'ok');
+  } catch (err) {
+    toast(`比赛启动失败：${err.message}`, 'err');
+  } finally {
+    raceStarting = false;
+    updateRaceButton();
+  }
+});
 
 function renderLaunches(records) {
   lastRecords = records;
+  updateRaceButton();
   const byName = new Map(records.map((r) => [r.name, r]));
   $('launchHint').textContent = `${launchRegistry.length} 项`;
   const tbody = $('launchTbody');
@@ -225,6 +252,8 @@ async function fetchHealth() {
   try {
     const data = await api('/api/health');
     $('roMode').textContent = data.readonly ? '只读' : '读写';
+    writable = !data.readonly;
+    updateRaceButton();
   } catch { $('roMode').textContent = '未知'; }
 }
 

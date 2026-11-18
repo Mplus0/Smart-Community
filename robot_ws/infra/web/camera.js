@@ -7,43 +7,102 @@ import { api, escapeHtml, kvRows, on, toast } from './common.js';
 const $ = (id) => document.getElementById(id);
 let active = false;
 let statusTimer = null;
-let optionsLoaded = false;
+let sourceTimer = null;
+
+function showSources(sources, selected) {
+  const select = $('camSource');
+  const options = sources.map((x) => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.label)}</option>`).join('')
+    || '<option value="">暂无可用视频流</option>';
+  if (select.dataset.options !== options) {
+    select.innerHTML = options;
+    select.dataset.options = options;
+  }
+  if (sources.length && !sources.some((x) => x.id === selected)) {
+    if (!select.querySelector('option[value=""]')) {
+      select.insertAdjacentHTML('afterbegin', '<option value="" disabled>请选择视频流</option>');
+    }
+    select.value = '';
+  } else {
+    select.value = selected;
+  }
+  select.disabled = !sources.length;
+}
+
+async function refreshSources() {
+  try {
+    const { sources } = await api('/api/camera/sources');
+    if (active) showSources(sources, $('camSource').value);
+  } catch { /* retry on next refresh */ }
+}
 
 async function loadOptions() {
   try {
     const [{ sources }, { detectors }, cfg] = await Promise.all([
       api('/api/camera/sources'), api('/api/camera/detectors'), api('/api/camera/config')]);
     const s = cfg.settings;
-    $('camSource').innerHTML = sources.map((x) => `<option value="${escapeHtml(x.id)}">${escapeHtml(x.label)}</option>`).join('');
-    if (!sources.some((x) => x.id === s.source)) {
-      $('camSource').insertAdjacentHTML('afterbegin', `<option value="${escapeHtml(s.source)}">${escapeHtml(s.source)}</option>`);
-    }
-    $('camSource').value = s.source;
+    showSources(sources, s.source);
     $('camDetector').innerHTML = detectors.map((d) => `<option value="${escapeHtml(d)}">${d === '__none__' ? '不检测（原始画面）' : d === '__trash_pipeline__' ? '垃圾分类完整流程' : escapeHtml(d)}</option>`).join('');
     $('camDetector').value = s.detector;
     $('camConf').value = s.conf ?? '';
     $('camFps').value = s.fps;
-    optionsLoaded = true;
   } catch (err) {
     toast(`加载相机选项失败：${err.message}`, 'err');
   }
 }
 
-async function apply() {
-  const conf = $('camConf').value.trim();
-  try {
-    await api('/api/camera/config', {
-      method: 'POST',
-      body: { source: $('camSource').value, detector: $('camDetector').value,
-        conf: conf === '' ? 'auto' : Number(conf), fps: Number($('camFps').value) || 10 },
-    });
-    toast('已切换，模型首次加载需几秒', 'ok');
-  } catch (err) {
-    toast(`切换失败：${err.message}`, 'err');
-  }
+let pendingChange = Promise.resolve();
+
+function applyChange(control, key, value) {
+  if (!control.reportValidity()) return;
+  pendingChange = pendingChange.then(async () => {
+    try {
+      await api('/api/camera/config', { method: 'POST', body: { [key]: value } });
+    } catch (err) {
+      toast(`切换失败：${err.message}`, 'err');
+      await loadOptions();
+    }
+  });
 }
 
+let recording = false;
+let captureBusy = false;
+let lastPhoto = '';
+for (const id of ['captureDir', 'captureName']) {
+  $(id).value = localStorage.getItem(id) || '';
+  $(id).addEventListener('change', () => localStorage.setItem(id, $(id).value));
+}
+
+async function collect(video) {
+  if (captureBusy) return;
+  captureBusy = true;
+  $('captureVideo').disabled = true;
+  try {
+    await pendingChange;
+    const stop = video && recording;
+    const url = stop ? '/api/camera/record/stop' : '/api/camera/collect/' + (video ? 'video' : 'photo');
+    const body = { directory: $('captureDir').value.trim(), name: $('captureName').value.trim() };
+    const result = await api(url, { method: 'POST', body });
+    if (!video) lastPhoto = result.path;
+    toast((video && !stop ? '录像中：' : '已保存：') + result.path, 'ok');
+  } catch (err) {
+    toast(err.message, 'err');
+  } finally {
+    captureBusy = false;
+    await pollStatus();
+  }
+}
+$('capturePhoto').addEventListener('click', () => collect(false));
+$('captureVideo').addEventListener('click', () => collect(true));
+
 function renderStatus({ settings, status }) {
+  recording = !!status.recording;
+  $('captureVideo').disabled = captureBusy;
+  $('captureVideo').textContent = recording ? '停止并保存录像' : '开始录像 AVI';
+  $('captureStatus').textContent = [
+    status.record_error && ('录像中断：' + status.record_error),
+    status.video_path && ((recording ? '录像中：' : '最近录像：') + status.video_path),
+    lastPhoto && ('最近图片：' + lastPhoto),
+  ].filter(Boolean).join('  ·  ');
   $('camState').textContent = status.running ? '运行中' : '未运行';
   if (status.error) {
     $('camResult').innerHTML = `<div class="form-error">${escapeHtml(status.error)}</div>`;
@@ -80,7 +139,13 @@ async function loadSnaps() {
   } catch { /* ignore */ }
 }
 
-$('camApply').addEventListener('click', apply);
+for (const [id, key] of [['camSource', 'source'], ['camDetector', 'detector'], ['camConf', 'conf'], ['camFps', 'fps']]) {
+  $(id).addEventListener('change', ({ target }) => {
+    const value = key === 'conf' ? (target.value === '' ? 'auto' : Number(target.value))
+      : key === 'fps' ? Number(target.value) : target.value;
+    applyChange(target, key, value);
+  });
+}
 $('camSnap').addEventListener('click', async () => {
   try {
     const res = await api('/api/camera/snapshot', { method: 'POST' });
@@ -96,13 +161,15 @@ on('view', async (name) => {
   if (now === active) return;
   active = now;
   if (active) {
-    if (!optionsLoaded) await loadOptions();
+    loadOptions();
+    sourceTimer = setInterval(refreshSources, 5000);
     $('camStream').src = `/api/camera/stream.mjpeg?t=${Date.now()}`;
     pollStatus(); loadSnaps();
     statusTimer = setInterval(pollStatus, 1000);
   } else {
     // Dropping the src closes the HTTP stream; the pipeline stops with no client.
     $('camStream').src = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+    clearInterval(sourceTimer);
     clearInterval(statusTimer); statusTimer = null;
   }
 });

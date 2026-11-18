@@ -33,7 +33,9 @@ tools/start_infra.sh --port 9000 --bind 0.0.0.0 --token 口令 --readonly
 
 ## 功能
 
-**总览**：ROS master、机器人位姿、主机资源、话题频率（`/odom_raw`、`/odom`、`/wit/imu`、`/scan`、`/usb_cam/image_raw` 等）、launch 列表和实时日志。
+顶部固定显示 ROS Master、机器人位姿、主机资源和连接状态。比赛就位后点击右上角「比赛一键启动」，会以本车的 `aa_bb` 协议启动 `finals.launch`，按默认比赛路线自动巡检。旁边的「紧急停止」可随时操作。
+
+**总览**：话题频率（`/odom_raw`、`/odom`、`/wit/imu`、`/scan`、`/usb_cam/image_raw` 等）、launch 列表和实时日志。
 
 点击「启动」会弹出参数表单。启动前会做以下检查，不满足时拒绝启动并提示原因：
 
@@ -55,9 +57,9 @@ tools/start_infra.sh --port 9000 --bind 0.0.0.0 --token 口令 --readonly
 **相机 · 检测**：
 
 - 处理流程：相机来源 → 帧缓存 → 检测器（ONNX） → 结果叠加 → MJPEG。
-- 相机来源可以选 ROS 图像话题或 USB 相机（DJI、Orbbec）。车载相机已被 `usb_cam` 占用，只能通过 ROS 话题获取。
+- 来源列表每 5 秒刷新，显示小车检测到的视频采集设备和已发布的 ROS 图像话题。选择来源或检测器后立即切换；置信度和 FPS 在确认输入后生效。
 - 检测器来自 `community_perception/config/detectors.yaml`，另外还有一个「垃圾分类完整流程」。
-- 只有打开本页时才会采集画面和推理，离开本页后自动停止。「保存快照」会保存叠加了识别结果的当前画面。
+- 「原始画面采集」可输入小车上的保存目录和文件名，拍摄 JPG 或录制 MJPEG AVI。留空使用默认 captures 目录和时间名，同名自动编号。录像会持续到点击停止或视频源异常；离开页面后可返回停止。空闲预览在离开页面后关闭。「保存快照」会保存叠加了识别结果的当前画面。
 
 **巡检任务**：
 

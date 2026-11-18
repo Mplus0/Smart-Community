@@ -9,14 +9,15 @@
 
 A single :class:`CameraService` serves every browser: the worker thread
 runs only while at least one MJPEG client is connected, and closes the
-camera when the last one leaves. On the robot ``usb_cam`` already owns
-``/dev/video0``, so the car camera is consumed through its ROS topic;
-USB sources are for extra cameras (DJI / Orbbec) only.
+camera when the last one leaves. The onboard camera can be opened
+directly at /dev/video0 or through its ROS topic when usb_cam owns it.
 """
 
 from __future__ import annotations
 
 import logging
+import re
+import shutil
 import threading
 import time
 from pathlib import Path
@@ -41,10 +42,12 @@ class FrameBuffer:
     def __init__(self) -> None:
         self._cond = threading.Condition()
         self._item: Any = None
+        self.updated = 0.0
         self._seq = 0
 
     def put(self, item: Any) -> None:
         with self._cond:
+            self.updated = time.monotonic()
             self._item = item
             self._seq += 1
             self._cond.notify_all()
@@ -64,27 +67,37 @@ class FrameBuffer:
 # Sources
 # ---------------------------------------------------------------------------
 
-USB_CAMERAS = {
-    "dji": ("DJI Action 5 Pro", ("osmoaction5", "djipocket3")),
-    "orbbec": ("Orbbec 深度相机（彩色）", ("orbbec", "rgb")),
-}
+def capture_devices():
+    """Read udev capture capabilities without opening any camera."""
+    for node in sorted(Path("/sys/class/video4linux").glob("video[0-9]*")):
+        device = Path("/dev") / node.name
+        try:
+            if not device.is_char_device():
+                continue
+            name = (node / "name").read_text().strip()
+            number = (node / "dev").read_text().strip()
+            record = Path("/run/udev/data", "c" + number)
+            caps = next((line for line in record.read_text(errors="replace").splitlines()
+                         if line.startswith("E:ID_V4L_CAPABILITIES=")), "") if record.exists() else ""
+            if caps:
+                if ":capture:" not in caps:
+                    continue
+            elif (node / "index").read_text().strip() != "0":
+                continue
+        except OSError:
+            continue
+        yield device, name
 
 
 def open_usb_camera(source: str, width: int = 1280, height: int = 720, fps: int = 30):
-    """Open a USB camera by name (dji or orbbec); returns cv2.VideoCapture."""
-    label, names = USB_CAMERAS[source]
-    found = False
-    for node in sorted(Path("/sys/class/video4linux").glob("video*")):
-        try:
-            name = (node / "name").read_text().lower().replace(" ", "")
-            index = (node / "index").read_text().strip()
-        except OSError:
+    for device, name in capture_devices():
+        model = name.lower().replace(" ", "")
+        # Accept older clients that select a camera by model.
+        alias = ((source == "orbbec" and "orbbec" in model and "rgb" in model)
+                 or (source == "dji" and any(k in model for k in ("osmoaction5", "djipocket3"))))
+        if source != device.name and not alias:
             continue
-        matches = any(p in name for p in names) if source == "dji" else all(p in name for p in names)
-        if not matches or index != "0":
-            continue
-        found = True
-        camera = cv2.VideoCapture("/dev/" + node.name, cv2.CAP_V4L2)
+        camera = cv2.VideoCapture(str(device), cv2.CAP_V4L2)
         if camera.isOpened():
             camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
             camera.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -93,9 +106,8 @@ def open_usb_camera(source: str, width: int = 1280, height: int = 720, fps: int 
             camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             return camera
         camera.release()
-    if found:
-        raise RuntimeError(f"{label} 打不开，请检查相机是否被其他程序占用")
-    raise RuntimeError(f"未找到 {label}，请检查 USB 连接" + ("并在相机上选择「网络摄像头」" if source == "dji" else ""))
+        raise RuntimeError(f"无法打开 {device}，请检查权限或占用情况；若由 ROS 采集，请选择对应图像话题")
+    raise RuntimeError(f"未找到相机 {source}，请检查连接")
 
 
 class RosImageSource:
@@ -152,7 +164,7 @@ class UsbSource:
 
 
 def list_sources() -> List[Dict[str, str]]:
-    """ROS image topics currently published plus the known USB cameras."""
+    """ROS image topics currently published plus connected capture devices."""
     sources = []
     try:
         import rospy
@@ -162,11 +174,8 @@ def list_sources() -> List[Dict[str, str]]:
                 sources.append({"id": f"ros:{topic}", "label": f"ROS {topic}"})
     except Exception as exc:
         _LOG.debug("cannot list ROS topics: %s", exc)
-    default = "ros:/usb_cam/image_raw"
-    if not any(s["id"] == default for s in sources):
-        sources.insert(0, {"id": default, "label": "ROS /usb_cam/image_raw（未发布）"})
-    for key, (label, _names) in USB_CAMERAS.items():
-        sources.append({"id": f"usb:{key}", "label": f"USB {label}"})
+    for device, name in capture_devices():
+        sources.append({"id": f"usb:{device.name}", "label": f"{name}（{device}）"})
     return sources
 
 
@@ -178,7 +187,7 @@ def _open_source(source_id: str, buffer: FrameBuffer):
         if not get_bridge().ready:
             raise RuntimeError("ROS 未连接（roscore 未运行？）")
         return RosImageSource(name, buffer)
-    if kind == "usb" and name in USB_CAMERAS:
+    if kind == "usb":
         return UsbSource(name, buffer)
     raise ValueError(f"未知相机来源 {source_id!r}")
 
@@ -214,10 +223,105 @@ class CameraService:
         self._detectors: Dict[Tuple, Any] = {}
         self.status: Dict[str, Any] = {"running": False, "error": None, "detections": [], "report": None}
 
+        self._raw_source = None
+        self._record_thread = None
+        self._record_stop = threading.Event()
+        self.status.update(recording=False, video_path="", record_error="")
+
+    def _capture_frame(self):
+        _, frame = self._raw.latest()
+        if (not self.status["running"] or self.settings["source"] != self._raw_source
+                or frame is None or time.monotonic() - self._raw.updated > 2):
+            raise RuntimeError("请先选择视频源并等待实时画面")
+        return frame
+
+    @staticmethod
+    def _reserve_file(directory, name, suffix):
+        folder = Path(directory).expanduser() if directory else config.RUNTIME_DIR / "captures"
+        if not folder.is_absolute():
+            raise ValueError("请输入小车上的绝对路径或 ~/ 路径")
+        stem = name.strip() or time.strftime("capture_%Y%m%d_%H%M%S")
+        if stem.lower().endswith(suffix):
+            stem = stem[:-len(suffix)]
+        if not re.fullmatch(r"[\w .-]{1,100}", stem) or stem.startswith("."):
+            raise ValueError("文件名可包含中英文、数字、空格、横线或下划线")
+        folder.mkdir(parents=True, exist_ok=True)
+        for n in range(10000):
+            path = folder / ((stem if not n else f"{stem}_{n}") + suffix)
+            try:
+                path.touch(exist_ok=False)
+                return path
+            except FileExistsError:
+                continue
+        raise ValueError("同名文件过多，请更换名称")
+
+    def collect(self, directory, name, video):
+        with self._lock:
+            frame = self._capture_frame()
+            if video and self.status["recording"]:
+                raise RuntimeError("已有录像进行中")
+            path = self._reserve_file(directory, name, ".avi" if video else ".jpg")
+            try:
+                if not video:
+                    if not cv2.imwrite(str(path), frame):
+                        raise RuntimeError("图片写入失败")
+                    return path
+                fps = float(self.settings["fps"])
+                size = frame.shape[1::-1]
+                writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"MJPG"), fps, size)
+                if not writer.isOpened():
+                    writer.release()
+                    raise RuntimeError("无法创建 MJPEG 视频")
+                writer.write(frame)
+                self._record_stop.clear()
+                self.status.update(recording=True, video_path=str(path), record_error="")
+                self._record_thread = threading.Thread(target=self._record, args=(writer, path, fps, size), daemon=True)
+                self._record_thread.start()
+                return path
+            except Exception:
+                path.unlink(missing_ok=True)
+                raise
+
+    def _record(self, writer, path, fps, size):
+        next_frame = time.monotonic()
+        next_disk_check = next_frame
+        try:
+            while True:
+                next_frame += 1 / fps
+                if self._record_stop.wait(max(0, next_frame - time.monotonic())):
+                    break
+                frame = self._capture_frame()
+                if frame.shape[1::-1] != size:
+                    raise RuntimeError("视频源分辨率改变")
+                now = time.monotonic()
+                if now >= next_disk_check:
+                    if shutil.disk_usage(path.parent).free < 32 * 1024 * 1024:
+                        raise RuntimeError("磁盘空间不足")
+                    next_disk_check = now + 1
+                writer.write(frame)
+                next_frame = max(next_frame, now)
+        except Exception as exc:
+            self.status["record_error"] = str(exc)
+        finally:
+            writer.release()
+            with self._lock:
+                self.status["recording"] = False
+
+    def stop_recording(self):
+        with self._lock:
+            thread = self._record_thread
+            path = self.status["video_path"]
+            self._record_stop.set()
+        if thread:
+            thread.join()
+        return path
+
     # -- settings -----------------------------------------------------------
 
     def configure(self, **changes: Any) -> Dict[str, Any]:
         with self._lock:
+            if self.status["recording"] and changes.get("source") not in (None, self.settings["source"]):
+                raise RuntimeError("请先停止录像，再切换视频源")
             for key, value in changes.items():
                 if key in self.settings and value is not None:
                     self.settings[key] = value
@@ -268,7 +372,7 @@ class CameraService:
         try:
             while True:
                 with self._lock:
-                    if self._clients <= 0 or self._closing:
+                    if (self._clients <= 0 and not self.status["recording"]) or self._closing:
                         # Cleared under the lock so a client arriving while
                         # the source closes starts a fresh worker.
                         self._thread = None
@@ -293,7 +397,10 @@ class CameraService:
                         continue
                     last_open = time.monotonic()
                     try:
+                        self._raw = FrameBuffer()
+                        raw_seq = -1
                         source = _open_source(source_id, self._raw)
+                        self._raw_source = source_id
                         last_frame = time.monotonic()
                         self.status["error"] = None
                     except Exception as exc:
@@ -364,6 +471,7 @@ class CameraService:
     def close(self) -> None:
         """Server shutdown: end every MJPEG response and the worker."""
         self._closing = True
+        self.stop_recording()
 
     # -- snapshot -----------------------------------------------------------
 

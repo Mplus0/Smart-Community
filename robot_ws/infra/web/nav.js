@@ -130,7 +130,7 @@ function drawArrow(x, y, yaw, color, len = 0.25) {
 
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#e9edf1';
+  ctx.fillStyle = '#0c1521';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (!view) return;
   ctx.imageSmoothingEnabled = false;
