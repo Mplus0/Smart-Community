@@ -28,15 +28,7 @@ Smart-Community/
 
 ## 仪表离线读数
 
-`opencv/` 提供主表盘的手动标定、指针检测和整数读数，不依赖 ROS、YOLO 或 GPU。当前要求拍摄构图与标定时基本一致，尚未接入实车巡检任务。
-
-先按 [OpenCV 模块说明](opencv/README.md) 建立独立 Python 环境并安装依赖。在仓库根目录、使用该环境执行：
-
-```bash
-python -m opencv read opencv/photo/clear3.png --config opencv/configs/competition.json
-```
-
-结果位于 `opencv/outputs/read/clear3/`。更换拍摄构图时先运行标定，完整 Windows/Linux 命令见模块说明。
+Windows 下使用单目相机识别得力 No.9011 的温度和湿度，提供单图读数、标定和相机预览。安装、命令和实测流程见 [OpenCV 模块说明](opencv/README.md)。
 
 ## 实车环境与启动
 
