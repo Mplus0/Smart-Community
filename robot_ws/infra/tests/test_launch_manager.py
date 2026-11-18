@@ -16,7 +16,7 @@ import pytest
 pytestmark = pytest.mark.skipif(os.name != "posix", reason="POSIX-only pgid behaviour")
 
 from infra import launch_manager, state_bus
-from infra.launch_manager import AlreadyRunning, LaunchManager, NotRunning, build_roslaunch_cmd
+from infra.launch_manager import build_roslaunch_cmd
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +44,7 @@ def _wait_until(pred, timeout=2.0, step=0.02):
 
 
 def test_start_and_stop_sleep():
-    mgr = LaunchManager()
+    mgr = launch_manager.LaunchManager()
     record = mgr.start("demo", [sys.executable, "-c", "import time; time.sleep(30)"])
     assert record.status == "running"
     assert mgr.is_running("demo")
@@ -56,28 +56,28 @@ def test_start_and_stop_sleep():
 
 
 def test_duplicate_start_rejected():
-    mgr = LaunchManager()
+    mgr = launch_manager.LaunchManager()
     mgr.start("dup", [sys.executable, "-c", "import time; time.sleep(30)"])
     try:
-        with pytest.raises(AlreadyRunning):
+        with pytest.raises(launch_manager.AlreadyRunning):
             mgr.start("dup", [sys.executable, "-c", "pass"])
     finally:
         mgr.stop("dup")
 
 
 def test_stop_unknown_raises():
-    mgr = LaunchManager()
-    with pytest.raises(NotRunning):
+    mgr = launch_manager.LaunchManager()
+    with pytest.raises(launch_manager.NotRunning):
         mgr.stop("ghost")
 
 
 def test_log_lines_reach_bus():
     bus = state_bus.get_bus()
     q = bus.subscribe_log()
-    mgr = LaunchManager(bus=bus)
+    mgr = launch_manager.LaunchManager(bus=bus)
     mgr.start(
         "chatty",
-        [sys.executable, "-c", "import time; print('hello from child'); time.sleep(0.1)"],
+        [sys.executable, "-c", "import time; print('hello from child', flush=True); time.sleep(5)"],
     )
     # Wait for the reader thread to pick up the line.
     assert _wait_until(lambda: not q.empty())
@@ -88,7 +88,7 @@ def test_log_lines_reach_bus():
 
 
 def test_self_exit_updates_history():
-    mgr = LaunchManager()
+    mgr = launch_manager.LaunchManager()
     mgr.start("short", [sys.executable, "-c", "pass"])
     assert _wait_until(lambda: not mgr.is_running("short"))
     rec = mgr.status("short")

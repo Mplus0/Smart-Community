@@ -1,30 +1,25 @@
 """Dashboard routes.
 
-Batch 1 keeps these intentionally skinny:
+Endpoints:
 
 * ``GET /api/health`` — liveness probe for ``run.sh`` and curl checks.
 * ``GET /api/state``  — latest synchronous snapshot (also usable without
   WebSocket for debugging via ``curl``).
 * ``WS  /api/state``  — fan-out of state snapshots from the state bus.
-* ``POST /api/estop`` — emergency stop; batch 1 only stops every live
-  launch, later batches will also publish zero ``cmd_vel``.
-
-Everything else from ``WORKBENCH.md`` §4.1 (ROS topic health, host
-metrics, mission state) will be populated once ``ros_bridge`` lands in
-batch 2. The frontend therefore has to tolerate missing fields.
+* ``POST /api/estop`` — emergency stop (zero velocity → cancel
+  navigation → stop the mission node).
 """
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from .. import config
-from ..deps import check_writable
+from ..deps import accept_ws
 from ..launch_manager import get_manager
 from ..ros_bridge import get_bridge
 from ..state_bus import get_bus
@@ -67,7 +62,8 @@ async def state_snapshot() -> Dict[str, Any]:
 @router.websocket("/api/state")
 async def state_ws(ws: WebSocket) -> None:
     """Fan-out WebSocket. Sends JSON snapshots as they are published."""
-    await ws.accept()
+    if not await accept_ws(ws):
+        return
     bus = get_bus()
     queue = bus.subscribe_state()
     try:
@@ -90,25 +86,36 @@ async def state_ws(ws: WebSocket) -> None:
             pass
 
 
-@router.post("/api/estop", dependencies=[Depends(check_writable)])
-async def emergency_stop() -> Dict[str, Any]:
-    """Stop every live launch and send zero velocity. Batch 2: Add cmd_vel."""
-    manager = get_manager()
+# No read-only / token check on purpose: anyone looking at the robot must
+# be able to stop it.
+@router.post("/api/estop")
+def emergency_stop() -> Dict[str, Any]:
+    """Emergency stop: zero velocity first, then cancel navigation and mission.
+
+    Launches (including the chassis driver) are deliberately left running
+    so the driver keeps holding the zero command. Plain ``def`` so the
+    blocking ROS calls run in the thread pool.
+    """
     bridge = get_bridge()
-
-    stopped = []
-    for record in list(manager.all_records()):
-        if record.status != "running":
-            continue
-        try:
-            manager.stop(record.name, reason="estop")
-            stopped.append(record.name)
-        except Exception:  # pragma: no cover — logged inside manager
-            _LOG.exception("estop failed for %s", record.name)
-
-    # Batch 2: Send zero velocity to stop robot immediately
-    bridge.publish_cmd_vel(0.0, 0.0)
-
-    # Give downstream a tick so the bus can broadcast the resulting state.
-    await asyncio.sleep(0)
-    return {"stopped": stopped}
+    if not bridge.ready:
+        # Fallback without ROS: stop launches, mission first; the chassis
+        # driver sends zero velocity when it shuts down.
+        manager = get_manager()
+        records = [r for r in manager.all_records() if r.status == "running"]
+        records.sort(key=lambda r: "mission" not in config.launch_components(r.name, r.args))
+        running = [r.name for r in records]
+        for name in running:
+            try:
+                manager.stop(name, reason="estop")
+            except Exception:
+                _LOG.exception("estop failed for %s", name)
+        steps = ["ROS 未连接，已停止所有 launch：" + (", ".join(running) or "无")]
+        _LOG.warning("EMERGENCY STOP (no ROS): %s", steps[0])
+        return {"ok": True, "steps": steps}
+    try:
+        steps = bridge.emergency_stop()
+    except Exception as exc:
+        _LOG.exception("estop failed")
+        raise HTTPException(status_code=503, detail=f"急停失败：{exc}") from exc
+    _LOG.warning("EMERGENCY STOP: %s", "; ".join(steps))
+    return {"ok": True, "steps": steps}

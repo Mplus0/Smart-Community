@@ -16,8 +16,8 @@
   <arg name="route" default="$(find community_mission)/config/route.yaml"/>
 
   <!-- Mission-specific parameters -->
-  <arg name="navigation_only" default="false" doc="Skip obstacle detection"/>
-  <arg name="obstacle_mode" default="clear" doc="clear, blocked, or disabled"/>
+  <arg name="navigation_only" default="false" doc="true: skip every waypoint task (traffic light wait, photos, recognition, recording) and only navigate"/>
+  <arg name="obstacle_mode" default="clear" doc="clear or blocked: wp_04 branch used when navigation_only is true"/>
   <arg name="green_confirm_frames" default=""/>
   <arg name="traffic_light_timeout" default=""/>
   <arg name="navigation_retries" default=""/>

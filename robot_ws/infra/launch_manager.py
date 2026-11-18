@@ -163,6 +163,10 @@ class LaunchManager:
                 stderr=subprocess.STDOUT,
                 bufsize=1,
                 text=True,
+                # A stray non-UTF-8 byte must not kill the reader thread: a
+                # stalled pipe would block every output="screen" node.
+                encoding="utf-8",
+                errors="replace",
                 env={**os.environ, **(env or {})},
             )
             # ``preexec_fn`` is POSIX-only. On Windows (dev workstations)
@@ -241,14 +245,24 @@ class LaunchManager:
         return record
 
     def stop_all(self, reason: str = "shutdown") -> None:
-        """Best-effort stop of every live child."""
-        for name in list(self._children.keys()):
+        """Stop every live child in parallel (SIGINT reaches all at once,
+        so shutdown takes one escalation period, not one per launch)."""
+
+        def stop_one(name: str) -> None:
             try:
                 self.stop(name, reason=reason)
             except NotRunning:
-                continue
+                pass
             except Exception:  # pragma: no cover — logged, never raised
                 _LOG.exception("error stopping %s", name)
+
+        with self._lock:
+            names = list(self._children.keys())
+        threads = [threading.Thread(target=stop_one, args=(n,), daemon=True) for n in names]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
     # -- log tailing -------------------------------------------------------
 

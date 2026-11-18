@@ -4,17 +4,11 @@ Run with::
 
     python -m infra.server --port 8000
 
-or via the sibling ``run.sh`` wrapper. Later the ROS launch file
-``community_bringup/launch/infra.launch`` will invoke the same
-module with ``--port`` / ``--bind`` / ``--readonly`` taken from
-``roslaunch`` args.
+or via ``tools/start_infra.sh`` (``infra.launch``) / ``infra/run.sh``.
 
-Batch 1 scope:
-
-* Mount the four tab-shell HTMLs under ``/``.
-* Serve ``/api/health``, state WS, launch control, log tail.
-* Run a periodic state producer that reports launch state + host CPU/mem
-  when :mod:`psutil` is available.
+* Serves the single-page frontend under ``/`` and the API under ``/api``.
+* Runs a periodic state producer (launches, ROS health, pose, mission
+  state, host CPU/mem when :mod:`psutil` is available).
 * Clean shutdown via ``SIGINT``/``SIGTERM`` — every live launch is
   stopped before uvicorn exits.
 """
@@ -25,8 +19,8 @@ import argparse
 import asyncio
 import logging
 import os
-import signal
 import sys
+import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -36,8 +30,9 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config
+from .camera_core import get_camera
 from .launch_manager import get_manager
-from .routes import control, dashboard, stubs, nav, camera, mission
+from .routes import camera, control, dashboard, mission, nav
 from .ros_bridge import get_bridge
 from .state_bus import StateSnapshot, get_bus
 
@@ -80,19 +75,27 @@ async def _state_producer(stop: asyncio.Event) -> None:
         except Exception:  # pragma: no cover
             pass
 
+    loop = asyncio.get_running_loop()
+
+    def collect_ros():
+        # Master XML-RPC and TF lookups block: keep them off the event loop.
+        ros = {"master": bridge.is_master_alive(), "nodes": bridge.get_ros_nodes()}
+        return ros, bridge.get_pose(), bridge.get_mission_state()
+
     while not stop.is_set():
-        snapshot = StateSnapshot(
-            host=_collect_host(),
-            launches=[r.to_dict() for r in manager.all_records()],
-            # Batch 2: Add ROS bridge data
-            ros={
-                "master": bridge.is_master_alive(),
-                "nodes": bridge.get_ros_nodes(),
-            },
-            topics=bridge.get_topics_snapshot(),
-            pose=bridge.get_pose(),
-        )
-        bus.publish_state(snapshot)
+        try:
+            ros, pose, mission = await loop.run_in_executor(None, collect_ros)
+            snapshot = StateSnapshot(
+                host=_collect_host(),
+                launches=[r.to_dict() for r in manager.all_records()],
+                ros=ros,
+                topics=bridge.get_topics_snapshot(),
+                pose=pose,
+                mission=mission,
+            )
+            bus.publish_state(snapshot)
+        except Exception:  # one bad tick must not stop the dashboard
+            _LOG.exception("state producer tick failed")
         try:
             await asyncio.wait_for(stop.wait(), timeout=period)
         except asyncio.TimeoutError:
@@ -111,7 +114,7 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         config.ensure_runtime_dirs()
-        # Batch 2: Initialize ROS bridge
+        get_bus().bind_loop(asyncio.get_running_loop())
         bridge = get_bridge()
         bridge.initialize()
 
@@ -127,7 +130,7 @@ def create_app() -> FastAPI:
             except asyncio.TimeoutError:  # pragma: no cover
                 task.cancel()
             get_manager().stop_all(reason="shutdown")
-            bridge.shutdown()  # Batch 2: Shutdown ROS bridge
+            bridge.shutdown()
             get_bus().close()
             _LOG.info("infra stopped")
 
@@ -135,10 +138,9 @@ def create_app() -> FastAPI:
 
     app.include_router(dashboard.router)
     app.include_router(control.router)
-    app.include_router(nav.router)  # Batch 2: Add navigation routes
-    app.include_router(camera.router)  # Batch 3: Add camera routes
-    app.include_router(mission.router)  # Batch 4: Add mission routes
-    app.include_router(stubs.router)
+    app.include_router(nav.router)
+    app.include_router(camera.router)
+    app.include_router(mission.router)
 
     # Static assets --------------------------------------------------------
     web_dir = config.WEB_DIR
@@ -190,18 +192,31 @@ def main(argv: Optional[list] = None) -> int:
 
     app = create_app()
 
-    # uvicorn installs its own signal handlers, but we still want atexit
-    # to fire for the LaunchManager cleanup.
-    def _flush_logs(signum, _frame):  # noqa: D401
-        _LOG.info("received signal %s", signum)
+    class _Server(uvicorn.Server):
+        """Start stopping launches on the first signal.
 
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            signal.signal(sig, _flush_logs)
-        except (ValueError, OSError):  # pragma: no cover — not main thread
-            pass
+        uvicorn first waits for open connections (MJPEG streams, WebSockets)
+        before running the lifespan shutdown; roslaunch only grants
+        ~15 s before SIGTERM/SIGKILL. Stopping children right away
+        (in parallel) and ending the streams avoids leaking roslaunch
+        processes when the workbench is killed.
+        """
 
-    uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level)
+        _stopping = False
+
+        def handle_exit(self, sig, frame):  # noqa: D401
+            if not self._stopping:
+                self._stopping = True
+                _LOG.info("received signal %s, stopping launches", sig)
+                get_camera().close()
+                threading.Thread(target=get_manager().stop_all, kwargs={"reason": "shutdown"},
+                                 name="infra-stop-all", daemon=True).start()
+                bus = get_bus()
+                if bus._loop is not None and not bus._loop.is_closed():
+                    bus._loop.call_soon_threadsafe(bus.close)
+            super().handle_exit(sig, frame)
+
+    _Server(uvicorn.Config(app, host=args.host, port=args.port, log_level=args.log_level)).run()
     return 0
 
 

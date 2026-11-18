@@ -33,7 +33,7 @@
 
     <div class="sidebar-foot">
       <div class="conn-indicator"><span class="dot" id="connDot"></span><span id="connText">连接中…</span></div>
-      <button id="estopBtn" class="btn btn-danger">紧急停止</button>
+      <button id="estopBtn" class="btn btn-danger btn-estop" title="零速度 → 取消导航 → 停止巡检节点">紧急停止</button>
     </div>
   </aside>
 
@@ -55,6 +55,11 @@
           <div class="muted" id="rosNodes">节点: —</div>
         </article>
         <article class="card">
+          <h2>机器人位姿（map）</h2>
+          <p class="big small-big" id="poseText">—</p>
+          <div class="muted" id="poseSource">来源: —</div>
+        </article>
+        <article class="card">
           <h2>CPU</h2>
           <p class="big"><span id="hostCpu">—</span><span class="unit">%</span></p>
           <div class="bar"><div class="bar-fill" id="hostCpuBar"></div></div>
@@ -72,63 +77,155 @@
       </div>
 
       <article class="card card-wide">
+        <header class="card-head"><h2>话题状态</h2><span class="muted">Hz · 距上一条消息</span></header>
+        <div class="topic-grid" id="topicGrid"></div>
+      </article>
+
+      <article class="card card-wide">
         <header class="card-head"><h2>Launch 列表</h2><span class="muted" id="launchHint">加载中…</span></header>
-        <table class="launch-table">
+        <table class="table">
           <thead><tr><th>名称</th><th>说明</th><th>状态</th><th>PID</th><th>运行时长</th><th>操作</th></tr></thead>
           <tbody id="launchTbody"></tbody>
         </table>
       </article>
 
       <article class="card card-wide">
-        <header class="card-head"><h2>日志流</h2><span class="muted">最近 200 行 · 实时</span></header>
+        <header class="card-head"><h2>日志流</h2><span class="muted">最近 300 行 · 实时</span></header>
         <pre class="logbox" id="logbox">（等待子进程输出…）</pre>
       </article>
     </section>
 
     <!-- 遥控 + 地图 -->
     <section class="view" data-view="teleop">
-      <article class="card card-wide">
-        <header class="card-head"><h2>遥控 · 地图</h2><span class="muted">批次 2 开发中</span></header>
-        <div class="placeholder">
-          <p>此视图将在 <b>批次 2</b> 接入：地图图层（AMCL / costmap / scan）、虚拟摇杆、2D Pose Estimate / 2D Nav Goal。</p>
-          <p class="muted">后端已预留接口：<code>WS /api/teleop</code> · <code>GET /api/nav/map.png</code> · <code>POST /api/nav/pose_estimate</code> · <code>POST /api/nav/goal</code>。</p>
-        </div>
-      </article>
+      <div class="split">
+        <article class="card map-card">
+          <div class="toolbar">
+            <div class="seg" id="navModes">
+              <button class="btn is-on" data-mode="view">浏览</button>
+              <button class="btn" data-mode="pose">2D Pose Estimate</button>
+              <button class="btn" data-mode="goal">2D Nav Goal</button>
+            </div>
+            <select id="mapLayer" class="input">
+              <option value="navigation">导航图 /navigation_map</option>
+              <option value="localization">定位图 /map</option>
+            </select>
+            <label class="chk"><input type="checkbox" id="showGlobalCost">全局代价</label>
+            <label class="chk"><input type="checkbox" id="showLocalCost" checked>局部代价</label>
+            <label class="chk"><input type="checkbox" id="showScan" checked>激光</label>
+            <label class="chk"><input type="checkbox" id="showPlans" checked>路径</label>
+            <button class="btn" id="fitMap">适应窗口</button>
+            <button class="btn" id="cancelNav">取消导航</button>
+          </div>
+          <div class="map-wrap"><canvas id="mapCanvas"></canvas></div>
+          <div class="muted map-status" id="mapStatus">等待地图…</div>
+        </article>
+
+        <article class="card side-card">
+          <header class="card-head"><h2>遥控</h2><span class="muted" id="teleopState">未连接</span></header>
+          <div class="pad">
+            <span></span><button class="btn pad-btn" data-dir="fwd">↑</button><span></span>
+            <button class="btn pad-btn" data-dir="left">↺</button><button class="btn pad-btn" data-dir="stop">■</button><button class="btn pad-btn" data-dir="right">↻</button>
+            <span></span><button class="btn pad-btn" data-dir="back">↓</button><span></span>
+          </div>
+          <label class="field">线速度 <b id="linVal">0.15</b> m/s
+            <input type="range" id="linSpeed" min="0.05" max="0.25" step="0.01" value="0.15"></label>
+          <label class="field">角速度 <b id="angVal">0.20</b> rad/s
+            <input type="range" id="angSpeed" min="0.05" max="0.30" step="0.01" value="0.20"></label>
+          <p class="muted">按住方向键或 W/A/S/D（Q/E 前进中转向）。松开或 0.5 s 无指令自动停车；导航运行时遥控会与 move_base 抢占 /cmd_vel。</p>
+          <header class="card-head sub-head"><h2>导航</h2></header>
+          <div class="kv" id="navInfo"></div>
+        </article>
+      </div>
     </section>
 
     <!-- 相机 + 检测 -->
     <section class="view" data-view="camera">
-      <article class="card card-wide">
-        <header class="card-head"><h2>相机 · 检测</h2><span class="muted">批次 3 开发中</span></header>
-        <div class="placeholder">
-          <p>此视图将在 <b>批次 3</b> 接入：任意相机源 × 任意检测器切换预览，视觉识别结果（框 / ROI / 匹配连线 / 温度热图 / 红绿灯状态）后端叠加到 MJPEG。</p>
-          <p class="muted">后端已预留接口：<code>GET /api/stream.mjpeg</code> · <code>GET /api/camera/sources</code> · <code>GET /api/detectors</code>。</p>
-        </div>
-      </article>
+      <div class="split">
+        <article class="card">
+          <div class="toolbar">
+            <select id="camSource" class="input"></select>
+            <select id="camDetector" class="input"></select>
+            <label class="chk">置信度 <input type="number" id="camConf" class="input num" min="0.05" max="0.95" step="0.05" placeholder="默认"></label>
+            <label class="chk">FPS <input type="number" id="camFps" class="input num" min="1" max="30" step="1" value="10"></label>
+            <button class="btn btn-primary" id="camApply">应用</button>
+            <button class="btn" id="camSnap">保存快照</button>
+          </div>
+          <div class="video-wrap"><img id="camStream" alt="相机画面"></div>
+        </article>
+        <article class="card side-card">
+          <header class="card-head"><h2>识别结果</h2><span class="muted" id="camState">—</span></header>
+          <div id="camResult" class="cam-result muted">未开始</div>
+          <header class="card-head sub-head"><h2>最近快照</h2></header>
+          <div class="thumbs" id="camSnaps"></div>
+        </article>
+      </div>
     </section>
 
     <!-- 巡检 -->
     <section class="view" data-view="mission">
+      <div class="split">
+        <article class="card">
+          <header class="card-head"><h2>任务控制</h2><span class="muted">启动 mission.launch，需先运行 hardware + navigation（完整任务还需 services）</span></header>
+          <div class="form-grid">
+            <label class="field">任务范围
+              <select id="misScope" class="input">
+                <option value="">完整巡检（全部航点）</option>
+                <option value="single">单航点</option>
+              </select>
+            </label>
+            <label class="field">航点
+              <select id="misWaypoint" class="input" disabled></select>
+            </label>
+            <label class="field">obstacle_mode
+              <select id="misObstacle" class="input">
+                <option value="blocked">blocked</option>
+                <option value="clear">clear</option>
+              </select>
+            </label>
+            <label class="field chk-field"><span><input type="checkbox" id="misNavOnly"> 仅导航（navigation_only）</span></label>
+          </div>
+          <p class="hint">勾选「仅导航」时会跳过<b>全部</b>航点任务：红绿灯等待、拍照识别、录像都不执行，小车只按顺序导航；wp_04 之后按 obstacle_mode 选择分支。未勾选时 wp_04 分支由障碍物识别决定。</p>
+          <div class="row-actions">
+            <button class="btn btn-primary" id="misStart">启动任务</button>
+            <button class="btn" id="misStop">停止任务</button>
+          </div>
+        </article>
+        <article class="card side-card">
+          <header class="card-head"><h2>实时状态</h2><span id="misBadge" class="badge">—</span></header>
+          <div class="kv" id="misInfo"><div class="muted">尚未收到 /mission/state</div></div>
+        </article>
+      </div>
+
       <article class="card card-wide">
-        <header class="card-head"><h2>巡检任务</h2><span class="muted">批次 4 开发中</span></header>
-        <div class="placeholder">
-          <p>此视图将在 <b>批次 4</b> 接入：实时航点状态、结果浏览（<code>result.json</code> / 照片 / 视频下载）。</p>
-          <p class="muted">依赖 <code>mission_node</code> 发布 <code>/mission/state</code>（见 WORKBENCH.md §3.3）。</p>
-        </div>
+        <header class="card-head"><h2>巡检记录</h2><button class="btn btn-ghost" id="runsRefresh">刷新</button></header>
+        <table class="table">
+          <thead><tr><th>run_id</th><th>结果</th><th>开始时间</th><th>耗时</th><th>完成航点</th><th>任务成功/失败</th><th>照片/视频</th><th>操作</th></tr></thead>
+          <tbody id="runsTbody"></tbody>
+        </table>
+      </article>
+
+      <article class="card card-wide" id="runDetail" hidden>
+        <header class="card-head"><h2 id="runTitle">记录详情</h2><button class="btn btn-ghost" id="runClose">关闭</button></header>
+        <div id="runBody"></div>
       </article>
     </section>
   </main>
 
-  <div class="modal" id="confirmModal" hidden>
-    <div class="modal-box">
-      <h3 id="confirmTitle">确认操作</h3>
-      <p id="confirmBody">确定继续吗？</p>
+  <!-- Launch 参数 -->
+  <div class="modal" id="argsModal" hidden>
+    <form class="modal-box" id="argsForm">
+      <h3 id="argsTitle">启动</h3>
+      <p class="muted" id="argsDesc"></p>
+      <div id="argsFields" class="args-fields"></div>
+      <p class="form-error" id="argsError"></p>
       <div class="modal-actions">
-        <button class="btn" id="confirmCancel">取消</button>
-        <button class="btn btn-danger" id="confirmOk">确认</button>
+        <button type="button" class="btn" id="argsCancel">取消</button>
+        <button type="submit" class="btn btn-primary">启动</button>
       </div>
-    </div>
+    </form>
   </div>
+
+  <div class="toasts" id="toasts"></div>
 
   <script type="module" src="/static/app.js"></script>
 </body>

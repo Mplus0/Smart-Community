@@ -1,269 +1,244 @@
-// Smart-Community infra workbench — batch-1 frontend bootstrap.
+// Smart-Community infra workbench — entry module.
 //
-// Responsibilities:
-//   * Tab switching between the four sidebar views.
-//   * Single long-lived WebSocket to /api/state → dashboard rendering.
-//   * Secondary WebSocket to /api/logs → scrolling log pane.
-//   * Launch list rendering + start/stop buttons (fetch POST).
-//   * Emergency-stop confirmation modal.
-//
-// Deliberately framework-free; everything lives in one ES module so it
-// can run from `python -m http.server` during dev.
+//   * Tab switching (views emit 'view' so modules start/stop polling).
+//   * State WebSocket → dashboard + 'state' event for other modules.
+//   * Launch list with an args dialog (required args, choices, last values).
+//   * Live log WebSocket and the emergency stop button.
 
+import { api, connectWithRetry, emit, escapeHtml, fmtDuration, on, toast } from './common.js';
+import './nav.js';
+import './camera.js';
+import './mission.js';
+
+const $ = (id) => document.getElementById(id);
 const views = Array.from(document.querySelectorAll('.view'));
 const navButtons = Array.from(document.querySelectorAll('.nav-item'));
-const viewTitleEl = document.getElementById('viewTitle');
-const connDot = document.getElementById('connDot');
-const connText = document.getElementById('connText');
-const lastUpdateEl = document.getElementById('lastUpdate');
-const roModeEl = document.getElementById('roMode');
+const LOG_MAX_LINES = 300;
 
-const launchTbody = document.getElementById('launchTbody');
-const launchHint = document.getElementById('launchHint');
-const logbox = document.getElementById('logbox');
-
-const estopBtn = document.getElementById('estopBtn');
-const confirmModal = document.getElementById('confirmModal');
-const confirmTitle = document.getElementById('confirmTitle');
-const confirmBody = document.getElementById('confirmBody');
-const confirmOk = document.getElementById('confirmOk');
-const confirmCancel = document.getElementById('confirmCancel');
-
-const LOG_MAX_LINES = 200;
-
-// --- Tab switching ---------------------------------------------------------
+// --- Tabs -------------------------------------------------------------------
 
 function activateView(name) {
   for (const btn of navButtons) btn.classList.toggle('is-active', btn.dataset.view === name);
   for (const v of views) v.classList.toggle('is-active', v.dataset.view === name);
   const active = navButtons.find((b) => b.dataset.view === name);
-  if (active) viewTitleEl.textContent = active.textContent.trim();
+  if (active) $('viewTitle').textContent = active.textContent.trim();
+  emit('view', name);
 }
+for (const btn of navButtons) btn.addEventListener('click', () => activateView(btn.dataset.view));
 
-for (const btn of navButtons) {
-  btn.addEventListener('click', () => activateView(btn.dataset.view));
-}
-
-// --- Confirmation modal ----------------------------------------------------
-
-function confirmAction({ title, body }) {
-  return new Promise((resolve) => {
-    confirmTitle.textContent = title;
-    confirmBody.textContent = body;
-    confirmModal.hidden = false;
-    const cleanup = () => {
-      confirmModal.hidden = true;
-      confirmOk.removeEventListener('click', onOk);
-      confirmCancel.removeEventListener('click', onCancel);
-    };
-    const onOk = () => { cleanup(); resolve(true); };
-    const onCancel = () => { cleanup(); resolve(false); };
-    confirmOk.addEventListener('click', onOk);
-    confirmCancel.addEventListener('click', onCancel);
-  });
-}
-
-// --- WebSocket helpers -----------------------------------------------------
-
-function wsUrl(path) {
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${proto}//${window.location.host}${path}`;
-}
+// --- Dashboard --------------------------------------------------------------
 
 function setConn(ok, text) {
-  connDot.classList.toggle('ok', !!ok);
-  connDot.classList.toggle('err', !ok);
-  connText.textContent = text;
+  $('connDot').classList.toggle('ok', !!ok);
+  $('connDot').classList.toggle('err', !ok);
+  $('connText').textContent = text;
 }
-
-function connectWithRetry(path, onMessage, label) {
-  let backoff = 500;
-  const open = () => {
-    const ws = new WebSocket(wsUrl(path));
-    ws.addEventListener('open', () => {
-      backoff = 500;
-      if (label === 'state') setConn(true, '实时连接');
-    });
-    ws.addEventListener('message', (ev) => {
-      try { onMessage(JSON.parse(ev.data)); }
-      catch (err) { console.warn('bad ws payload', err); }
-    });
-    ws.addEventListener('close', () => {
-      if (label === 'state') setConn(false, '断线重连…');
-      setTimeout(open, backoff);
-      backoff = Math.min(backoff * 2, 5000);
-    });
-    ws.addEventListener('error', () => ws.close());
-  };
-  open();
-}
-
-// --- State rendering -------------------------------------------------------
-
 function fmtPct(v) { return (v === null || v === undefined) ? '—' : Number(v).toFixed(0); }
-function fmtDuration(s) {
-  if (s === null || s === undefined) return '—';
-  s = Math.max(0, Math.floor(s));
-  const h = Math.floor(s / 3600); s %= 3600;
-  const m = Math.floor(s / 60);   s %= 60;
-  if (h) return `${h}h${m}m`;
-  if (m) return `${m}m${s}s`;
-  return `${s}s`;
-}
-function setBar(id, pct) {
-  const bar = document.getElementById(id);
-  if (!bar) return;
-  const clamped = Math.max(0, Math.min(100, Number(pct) || 0));
-  bar.style.width = `${clamped}%`;
+function setBar(id, pct) { $(id).style.width = `${Math.max(0, Math.min(100, Number(pct) || 0))}%`; }
+
+// Topics expected on the real robot; others seen by the bridge are appended.
+const KEY_TOPICS = ['/odom_raw', '/odom', '/wit/imu', '/scan', '/amcl_pose', '/usb_cam/image_raw',
+  '/map', '/navigation_map', '/move_base/GlobalPlanner/plan', '/move_base/local_plan', '/mission/state'];
+
+function renderTopics(topics) {
+  const names = KEY_TOPICS.concat(Object.keys(topics).filter((t) => !KEY_TOPICS.includes(t)));
+  $('topicGrid').innerHTML = names.map((name) => {
+    const t = topics[name];
+    // Latched/slow topics (maps, plans, mission state) are fine once received.
+    const slowOk = /map|plan|mission/.test(name);
+    let cls = 'err'; let text = '无数据';
+    if (t) {
+      const fresh = t.age_s < 2 || slowOk;
+      cls = fresh ? 'ok' : 'warn';
+      text = t.age_s < 2 ? `${t.hz.toFixed(1)} Hz` : `${t.age_s.toFixed(0)} s 前`;
+    }
+    return `<div class="topic"><span class="dot ${cls}"></span><code>${escapeHtml(name)}</code><span class="muted">${text}</span></div>`;
+  }).join('');
 }
 
 function renderDashboard(snap) {
-  lastUpdateEl.textContent = snap.ts
-    ? new Date(snap.ts * 1000).toLocaleTimeString()
-    : '—';
-
+  $('lastUpdate').textContent = snap.ts ? new Date(snap.ts * 1000).toLocaleTimeString() : '—';
   const ros = snap.ros || {};
-  document.getElementById('rosMaster').textContent = ros.master ? '在线' : '离线';
-  document.getElementById('rosNodes').textContent  = `节点: ${(ros.nodes || []).length}`;
-
+  $('rosMaster').textContent = ros.master ? '在线' : '离线';
+  $('rosNodes').textContent = `节点: ${(ros.nodes || []).length}`;
   const host = snap.host || {};
-  document.getElementById('hostCpu').textContent  = fmtPct(host.cpu);
-  document.getElementById('hostMem').textContent  = fmtPct(host.mem);
-  document.getElementById('hostDisk').textContent = fmtPct(host.disk);
-  setBar('hostCpuBar',  host.cpu);
-  setBar('hostMemBar',  host.mem);
-  setBar('hostDiskBar', host.disk);
-
+  $('hostCpu').textContent = fmtPct(host.cpu);
+  $('hostMem').textContent = fmtPct(host.mem);
+  $('hostDisk').textContent = fmtPct(host.disk);
+  setBar('hostCpuBar', host.cpu); setBar('hostMemBar', host.mem); setBar('hostDiskBar', host.disk);
+  const p = snap.pose;
+  $('poseText').textContent = p ? `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${(p.yaw * 180 / Math.PI).toFixed(0)}°` : '—';
+  $('poseSource').textContent = `来源: ${p ? (p.source === 'tf' ? 'TF map→base' : '/amcl_pose') : '—'}`;
+  renderTopics(snap.topics || {});
   renderLaunches(snap.launches || []);
+  emit('state', snap);
 }
 
-function renderLaunches(records) {
-  // Merge snapshot records (keyed by name) with registry entries loaded
-  // from /api/launches so we always show every known launch, even those
-  // that have never been started.
-  const byName = new Map(records.map((r) => [r.name, r]));
-  const rows = (launchRegistry || []).map((entry) => {
-    const r = byName.get(entry.name);
-    const status = r && r.status ? r.status : 'idle';
-    const since = r && r.since_s != null ? r.since_s : null;
-    return { entry, r, status, since };
-  });
+// --- Launches ---------------------------------------------------------------
 
-  launchHint.textContent = `${rows.length} 项`;
-  launchTbody.innerHTML = '';
-  for (const row of rows) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><b>${row.entry.name}</b></td>
-      <td class="muted">${row.entry.description || ''}</td>
-      <td>${renderStatusBadge(row.status)}</td>
-      <td class="muted">${row.r && row.r.pid ? row.r.pid : '—'}</td>
-      <td class="muted">${fmtDuration(row.since)}</td>
-      <td class="row-actions">
-        <button class="btn btn-primary" data-act="start">启动</button>
-        <button class="btn" data-act="stop">停止</button>
-        <button class="btn btn-ghost" data-act="log">日志</button>
-      </td>`;
-    const [startBtn, stopBtn, logBtn] = tr.querySelectorAll('button');
-    const running = row.status === 'running';
-    startBtn.disabled = running;
-    stopBtn.disabled = !running;
-    startBtn.addEventListener('click', () => startLaunch(row.entry));
-    stopBtn.addEventListener('click',  () => stopLaunch(row.entry));
-    logBtn.addEventListener('click',   () => window.open(`/api/logs/${row.entry.name}`, '_blank'));
-    launchTbody.appendChild(tr);
-  }
+let launchRegistry = [];
+let lastRecords = [];
+
+async function fetchLaunchRegistry() {
+  try { launchRegistry = (await api('/api/launches')).launches || []; }
+  catch (err) { console.warn('failed to load launch registry', err); }
+  renderLaunches(lastRecords);
 }
 
 function renderStatusBadge(status) {
-  const map = {
-    running: ['ok', '运行中'],
-    exited:  ['', '已退出'],
-    failed:  ['err', '异常'],
-    idle:    ['', '未启动'],
-  };
+  const map = { running: ['ok', '运行中'], exited: ['', '已退出'], failed: ['err', '异常'], idle: ['', '未启动'] };
   const [cls, text] = map[status] || ['', status];
   return `<span class="badge ${cls}">${text}</span>`;
 }
 
-// --- Launch registry -------------------------------------------------------
+let launchSignature = '';
 
-let launchRegistry = [];
+function renderLaunches(records) {
+  lastRecords = records;
+  const byName = new Map(records.map((r) => [r.name, r]));
+  $('launchHint').textContent = `${launchRegistry.length} 项`;
+  const tbody = $('launchTbody');
+  // Rebuild rows only when something other than the timers changed, so a
+  // click is never lost to a re-render between mousedown and mouseup.
+  const signature = JSON.stringify([launchRegistry.map((e) => e.name),
+    records.map((r) => [r.name, r.status, r.pid, r.exit_code, r.args])]);
+  if (signature === launchSignature) {
+    for (const tr of tbody.children) {
+      const r = byName.get(tr.dataset.name);
+      tr.querySelector('.since').textContent = fmtDuration(r && r.since_s != null ? r.since_s : null);
+    }
+    return;
+  }
+  launchSignature = signature;
+  tbody.innerHTML = '';
+  for (const entry of launchRegistry) {
+    const r = byName.get(entry.name);
+    const status = r && r.status ? r.status : 'idle';
+    const running = status === 'running';
+    const args = r && r.args ? Object.entries(r.args).filter(([, v]) => v !== '').map(([k, v]) => `${k}=${v}`).join(' ') : '';
+    const tr = document.createElement('tr');
+    tr.dataset.name = entry.name;
+    tr.innerHTML = `
+      <td><b>${escapeHtml(entry.name)}</b></td>
+      <td class="muted">${escapeHtml(entry.description || '')}${args ? `<div class="args-line">${escapeHtml(args)}</div>` : ''}</td>
+      <td>${renderStatusBadge(status)}${r && !running && r.exit_code != null ? ` <span class="muted">code ${r.exit_code}</span>` : ''}</td>
+      <td class="muted">${r && r.pid ? r.pid : '—'}</td>
+      <td class="muted since">${fmtDuration(r && r.since_s != null ? r.since_s : null)}</td>
+      <td class="row-actions">
+        <button class="btn btn-primary" data-act="start" ${running ? 'disabled' : ''}>启动</button>
+        <button class="btn" data-act="stop" ${running ? '' : 'disabled'}>停止</button>
+        <button class="btn btn-ghost" data-act="log" ${r ? '' : 'disabled'}>日志</button>
+      </td>`;
+    tr.querySelector('[data-act=start]').addEventListener('click', () => openArgsDialog(entry));
+    tr.querySelector('[data-act=stop]').addEventListener('click', () => stopLaunch(entry.name));
+    tr.querySelector('[data-act=log]').addEventListener('click', () => window.open(`/api/logs/${entry.name}/download`, '_blank'));
+    tbody.appendChild(tr);
+  }
+}
 
-async function fetchLaunchRegistry() {
+function savedArgs(name) {
+  try { return JSON.parse(localStorage.getItem(`launchArgs:${name}`) || '{}'); } catch { return {}; }
+}
+
+function openArgsDialog(entry) {
+  const saved = savedArgs(entry.name);
+  $('argsTitle').textContent = `启动 ${entry.name}`;
+  $('argsDesc').textContent = `${entry.description}（${entry.package}/${entry.launch_file}）`;
+  $('argsError').textContent = '';
+  const fields = $('argsFields');
+  fields.innerHTML = '';
+  for (const [key, def] of Object.entries(entry.args)) {
+    const value = saved[key] !== undefined ? saved[key] : def;
+    const required = entry.required.includes(key);
+    const choices = entry.choices[key];
+    const label = document.createElement('label');
+    label.className = 'field';
+    label.innerHTML = `<span>${escapeHtml(key)}${required ? ' <b class="req">*必填</b>' : ''}</span>`;
+    let input;
+    if (choices) {
+      input = document.createElement('select');
+      const opts = (required ? [''] : []).concat(choices);
+      input.innerHTML = opts.map((c) => `<option value="${escapeHtml(c)}">${c === '' ? '— 请选择 —' : escapeHtml(c)}</option>`).join('');
+    } else {
+      input = document.createElement('input');
+      input.placeholder = def === '' ? '留空使用 launch 默认值' : '';
+    }
+    input.className = 'input';
+    input.name = key;
+    input.value = value;
+    label.appendChild(input);
+    fields.appendChild(label);
+  }
+  $('argsModal').hidden = false;
+  $('argsForm').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const body = {};
+    for (const el of fields.querySelectorAll('[name]')) body[el.name] = el.value.trim();
+    const missing = entry.required.filter((k) => !body[k]);
+    if (missing.length) { $('argsError').textContent = `请填写：${missing.join(', ')}`; return; }
+    try {
+      await api(`/api/launch/${entry.name}/start`, { method: 'POST', body });
+      localStorage.setItem(`launchArgs:${entry.name}`, JSON.stringify(body));
+      $('argsModal').hidden = true;
+      toast(`已启动 ${entry.name}`, 'ok');
+    } catch (err) {
+      $('argsError').textContent = err.message;
+    }
+  };
+}
+$('argsCancel').addEventListener('click', () => { $('argsModal').hidden = true; });
+
+async function stopLaunch(name) {
+  toast(`正在停止 ${name}…`);
+  try { await api(`/api/launch/${name}/stop`, { method: 'POST' }); toast(`已停止 ${name}`, 'ok'); }
+  catch (err) { toast(`停止 ${name} 失败：${err.message}`, 'err'); }
+}
+
+// --- Emergency stop (no confirmation: it must act immediately) --------------
+
+$('estopBtn').addEventListener('click', async () => {
+  emit('estop');
   try {
-    const r = await fetch('/api/launches');
-    const data = await r.json();
-    launchRegistry = data.launches || [];
+    const res = await api('/api/estop', { method: 'POST' });
+    toast(`急停：${res.steps.join(' → ')}`, 'err');
   } catch (err) {
-    console.warn('failed to load launch registry', err);
+    toast(`急停失败：${err.message}`, 'err');
   }
-}
-
-async function startLaunch(entry) {
-  const body = {};
-  // For batch 1 we start with registry defaults; a proper args editor
-  // modal lands with the Mission tab (batch 4).
-  const r = await fetch(`/api/launch/${entry.name}/start`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) {
-    const detail = await r.json().catch(() => ({}));
-    alert(`启动 ${entry.name} 失败：${JSON.stringify(detail.detail || detail)}`);
-  }
-}
-
-async function stopLaunch(entry) {
-  const r = await fetch(`/api/launch/${entry.name}/stop`, { method: 'POST' });
-  if (!r.ok) {
-    const detail = await r.json().catch(() => ({}));
-    alert(`停止 ${entry.name} 失败：${JSON.stringify(detail.detail || detail)}`);
-  }
-}
-
-// --- Emergency stop --------------------------------------------------------
-
-estopBtn.addEventListener('click', async () => {
-  const ok = await confirmAction({
-    title: '紧急停止',
-    body: '将停止所有正在运行的 launch（hardware / navigation / services / mission 等）。确定继续？',
-  });
-  if (!ok) return;
-  const r = await fetch('/api/estop', { method: 'POST' });
-  if (!r.ok) alert('紧急停止失败');
 });
 
-// --- Log stream ------------------------------------------------------------
+// --- Logs -------------------------------------------------------------------
 
 function appendLog(msg) {
+  const logbox = $('logbox');
+  if (logbox.dataset.started !== '1') { logbox.textContent = ''; logbox.dataset.started = '1'; }
+  const stick = logbox.scrollTop + logbox.clientHeight >= logbox.scrollHeight - 20;
   const line = document.createElement('div');
   line.innerHTML = `<span class="log-name">[${escapeHtml(msg.name)}]</span>${escapeHtml(msg.line || '')}`;
   logbox.appendChild(line);
   while (logbox.childNodes.length > LOG_MAX_LINES) logbox.removeChild(logbox.firstChild);
-  logbox.scrollTop = logbox.scrollHeight;
-}
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  if (stick) logbox.scrollTop = logbox.scrollHeight;
 }
 
-// --- Bootstrap -------------------------------------------------------------
+// --- Bootstrap --------------------------------------------------------------
 
 async function fetchHealth() {
   try {
-    const r = await fetch('/api/health');
-    const data = await r.json();
-    roModeEl.textContent = data.readonly ? '只读' : '读写';
-  } catch { roModeEl.textContent = '未知'; }
+    const data = await api('/api/health');
+    $('roMode').textContent = data.readonly ? '只读' : '读写';
+  } catch { $('roMode').textContent = '未知'; }
 }
+
+on('launch-changed', fetchLaunchRegistry);
 
 async function main() {
   await Promise.all([fetchHealth(), fetchLaunchRegistry()]);
-  renderLaunches([]);  // seed from registry even before first WS tick
-  connectWithRetry('/api/state', renderDashboard, 'state');
-  connectWithRetry('/api/logs', appendLog, 'logs');
-  // Refresh registry occasionally in case launches are added at runtime.
+  connectWithRetry('/api/state', renderDashboard, {
+    onOpen: () => setConn(true, '实时连接'),
+    onClose: (ev) => setConn(false, ev.code === 4401 ? 'Token 无效' : '断线重连…'),
+  });
+  connectWithRetry('/api/logs', appendLog);
   setInterval(fetchLaunchRegistry, 30000);
+  emit('view', 'dashboard');
 }
 
 main().catch((err) => console.error(err));

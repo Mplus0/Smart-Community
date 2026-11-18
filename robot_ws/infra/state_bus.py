@@ -23,6 +23,8 @@ from . import config
 
 _LOG = logging.getLogger(__name__)
 
+LOG_QUEUE_MAX = 500
+
 
 # ---------------------------------------------------------------------------
 # Snapshot dataclass
@@ -83,6 +85,33 @@ class StateBus:
         self._state_subs: Set[asyncio.Queue] = set()
         self._log_subs: Set[asyncio.Queue] = set()
         self._closed = False
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+
+    def bind_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Remember the server event loop so other threads can publish safely."""
+        self._loop = loop
+
+    def _dispatch(self, subs: Set[asyncio.Queue], payload: Any) -> None:
+        """Offer ``payload`` to every queue, hopping onto the loop if needed.
+
+        ``asyncio.Queue`` is not thread-safe: launch log readers run in
+        plain threads, so their lines are scheduled with
+        ``call_soon_threadsafe`` which also wakes the awaiting WebSocket.
+        """
+        loop = self._loop
+        if loop is not None and not loop.is_closed():
+            try:
+                running = asyncio.get_running_loop()
+            except RuntimeError:
+                running = None
+            if running is not loop:
+                loop.call_soon_threadsafe(self._offer_all, subs, payload)
+                return
+        self._offer_all(subs, payload)
+
+    def _offer_all(self, subs: Set[asyncio.Queue], payload: Any) -> None:
+        for queue in list(subs):
+            self._offer(queue, payload)
 
     # -- state --------------------------------------------------------------
 
@@ -96,9 +125,7 @@ class StateBus:
         if self._closed:
             return
         self._latest = snapshot
-        payload = snapshot.to_dict()
-        for queue in list(self._state_subs):
-            self._offer(queue, payload)
+        self._dispatch(self._state_subs, snapshot.to_dict())
 
     def subscribe_state(self) -> asyncio.Queue:
         """Register a new state subscriber and return its queue."""
@@ -117,12 +144,11 @@ class StateBus:
         """Broadcast a single stdout/stderr line from a launched process."""
         if self._closed:
             return
-        payload = {"name": name, "line": line, "ts": time.time()}
-        for queue in list(self._log_subs):
-            self._offer(queue, payload)
+        self._dispatch(self._log_subs, {"name": name, "line": line, "ts": time.time()})
 
     def subscribe_log(self) -> asyncio.Queue:
-        queue: asyncio.Queue = asyncio.Queue(maxsize=self._queue_max)
+        # Logs burst at launch start-up; keep a deeper queue than state.
+        queue: asyncio.Queue = asyncio.Queue(maxsize=LOG_QUEUE_MAX)
         self._log_subs.add(queue)
         return queue
 

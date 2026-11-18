@@ -78,3 +78,19 @@ def test_log_fanout():
         assert a["name"] == "hardware" == b["name"]
         assert a["line"] == "hello" == b["line"]
     _run(scenario())
+
+
+def test_log_from_thread_wakes_loop():
+    """Launch log readers publish from plain threads; the awaiting
+    WebSocket consumer must be woken immediately."""
+    import threading
+    import time
+
+    async def scenario():
+        bus = StateBus()
+        bus.bind_loop(asyncio.get_running_loop())
+        q = bus.subscribe_log()
+        threading.Thread(target=lambda: (time.sleep(0.05), bus.publish_log("hw", "hi")), daemon=True).start()
+        payload = await asyncio.wait_for(q.get(), timeout=1.0)
+        assert payload["line"] == "hi"
+    _run(scenario())

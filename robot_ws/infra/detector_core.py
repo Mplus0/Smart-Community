@@ -1,17 +1,14 @@
-"""Detector core classes - extracted from detector_preview.py for reuse in infra.
+"""Detector core classes, extracted from tools/detector_preview.py.
 
-Batch 3 scope:
-- ONNXDetector: Load and run ONNX models with NMS
-- YoloDetector: Alias for ONNXDetector (for compatibility)
-- TrashPipeline: Full garbage classification workflow (ROI + matching)
-- load_detector_config: Parse detectors.yaml
+- ONNXDetector: load and run ONNX models with NMS (same preprocessing as
+  the deployed detector service)
+- TrashPipeline: bin detection + ROI + waste detection + matching
+- list_detectors / create_detector: registry used by camera_core
 """
 
 from __future__ import annotations
 
 import sys
-import time
-from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -187,58 +184,6 @@ class ONNXDetector:
             for index in np.asarray(keep, dtype=int).reshape(-1)
         ]
 
-    def render(self, image: np.ndarray) -> bytes:
-        """Detect and draw boxes, return JPEG bytes."""
-        start = time.monotonic()
-        objects = self.detect(image)
-        counts = Counter()
-        canvas = image.copy()
-
-        palette = (
-            (0, 220, 0),
-            (0, 0, 255),
-            (255, 160, 0),
-            (0, 220, 220),
-            (220, 0, 220),
-            (220, 220, 0),
-        )
-
-        for obj in objects:
-            x1, y1, x2, y2 = obj.box
-            name = obj.label
-            class_id = self.class_names.index(name)
-            counts[name] += 1
-            color = palette[class_id % len(palette)]
-            cv2.rectangle(canvas, (x1, y1), (x2, y2), color, 2)
-            cv2.putText(
-                canvas,
-                f"{name} {obj.confidence:.2f}",
-                (x1, max(20, y1 - 6)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.6,
-                color,
-                2,
-            )
-
-        elapsed = (time.monotonic() - start) * 1000
-        lines = [f"Objects: {sum(counts.values())}  inference: {elapsed:.0f} ms"]
-
-        # Multi-line counts
-        summary = ""
-        for name, count in sorted(counts.items()):
-            item = f"{name}: {count}  "
-            text_width = cv2.getTextSize(
-                summary + item, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1
-            )[0][0]
-            if summary and text_width > image.shape[1] - 16:
-                lines.append(summary)
-                summary = ""
-            summary += item
-        if summary:
-            lines.append(summary)
-
-        return encode_preview(canvas, lines)
-
 
 # Alias for compatibility
 YoloDetector = ONNXDetector
@@ -281,108 +226,55 @@ class TrashPipeline:
         ]
         self.last_result: Optional[Dict[str, Any]] = None
 
-    def render(self, image: np.ndarray) -> bytes:
-        """Run full pipeline and return annotated JPEG."""
-        start = time.monotonic()
-        h, w = image.shape[:2]
+    def analyze(self, image: np.ndarray) -> Dict[str, Any]:
+        """Bin detection → ROI → waste detection → matching report.
 
+        Drawing is left to :func:`infra.overlay.draw_trash_pipeline`.
+        """
+        h, w = image.shape[:2]
         bins = self.detectors["trash_bin_detector"].detect(image)
         roi = trash_roi(bins, w, h, self.settings)
         waste = []
-
         if roi is not None:
             x1, y1, x2, y2 = roi
-            objects = self.detectors["waste_detector"].detect(
-                image[y1:y2, x1:x2].copy()
-            )
+            objects = self.detectors["waste_detector"].detect(image[y1:y2, x1:x2].copy())
             waste = [
-                Detection(
-                    d.label,
-                    (d.box[0] + x1, d.box[1] + y1, d.box[2] + x1, d.box[3] + y1),
-                    d.confidence,
-                )
+                Detection(d.label, (d.box[0] + x1, d.box[1] + y1, d.box[2] + x1, d.box[3] + y1), d.confidence)
                 for d in objects
             ]
-
         report = dict(trash_result(bins, waste, self.settings), roi=roi)
-        canvas = image.copy()
-
-        # Draw ROI
-        if roi is not None:
-            cv2.rectangle(canvas, (roi[0], roi[1]), (roi[2], roi[3]), (0, 255, 255), 2)
-
-        # Draw matches
-        colors = {"CORRECT": (0, 200, 0), "INCORRECT": (0, 0, 255), "UNKNOWN": (0, 165, 255)}
-        for match in report["matches"]:
-            bx1, by1, bx2, by2 = match["bin_bbox"]
-            color = colors[match["status"]]
-            cv2.rectangle(canvas, (bx1, by1), (bx2, by2), color, 2)
-            cv2.putText(
-                canvas,
-                match["bin_label"] + " " + match["status"],
-                (bx1, max(16, by1 - 5)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                color,
-                1,
-            )
-            for obj in match["garbage"]:
-                gx1, gy1, gx2, gy2 = obj["bbox"]
-                cv2.rectangle(canvas, (gx1, gy1), (gx2, gy2), color, 2)
-                cv2.line(
-                    canvas,
-                    ((bx1 + bx2) // 2, by2),
-                    ((gx1 + gx2) // 2, (gy1 + gy2) // 2),
-                    color,
-                    1,
-                )
-                cv2.putText(
-                    canvas,
-                    f"{obj['label']} {obj['confidence']:.2f}",
-                    (gx1, max(16, gy1 - 5)),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.45,
-                    color,
-                    1,
-                )
-
-        # Draw unmatched waste
-        for obj in report["unmatched"]:
-            gx1, gy1, gx2, gy2 = obj["bbox"]
-            cv2.rectangle(canvas, (gx1, gy1), (gx2, gy2), colors["UNKNOWN"], 2)
-
-        report["duration_ms"] = round((time.monotonic() - start) * 1000, 1)
-        self.last_result = report
-
-        return encode_preview(
-            canvas,
-            [
-                f"Trash: {report['placement_status']} | bins={len(bins)} waste={len(waste)} | {report['duration_ms']:.0f} ms",
-                "ROI: yellow | Correct: green | Incorrect: red | Unknown: orange",
-            ],
-        )
+        report["bin_count"] = len(bins)
+        report["waste_count"] = len(waste)
+        return report
 
 
 # ---------------------------------------------------------------------------
-# Encoding utility
+# Registry used by the camera pipeline
 # ---------------------------------------------------------------------------
 
+#: Pseudo detector running the full trash classification pipeline.
+TRASH_PIPELINE = "__trash_pipeline__"
+NO_DETECTOR = "__none__"
 
-def encode_preview(canvas: np.ndarray, lines: List[str]) -> bytes:
-    """Draw text lines over black band, encode to JPEG."""
-    h, w = canvas.shape[:2]
-    cv2.rectangle(canvas, (0, 0), (w, min(h, 25 * len(lines) + 5)), (0, 0, 0), -1)
-    for index, text in enumerate(lines):
-        cv2.putText(
-            canvas,
-            text,
-            (8, 22 + 25 * index),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (255, 255, 255),
-            1,
-        )
-    ok, encoded = cv2.imencode(".jpg", canvas, [cv2.IMWRITE_JPEG_QUALITY, 85])
-    if not ok:
-        raise RuntimeError("Failed to encode preview image")
-    return encoded.tobytes()
+
+def list_detectors(config_path: Path = DEFAULT_CONFIG) -> List[str]:
+    """Detector names from detectors.yaml plus the trash pipeline."""
+    configs = yaml.safe_load(config_path.read_text(encoding="utf-8"))["detectors"]
+    return list(configs) + [TRASH_PIPELINE]
+
+
+def create_detector(name: str, confidence: Optional[float] = None, iou: Optional[float] = None,
+                    config_path: Path = DEFAULT_CONFIG):
+    """Load a detector by name; ``None`` thresholds use detectors.yaml values."""
+    if name == TRASH_PIPELINE:
+        return TrashPipeline(config_path, confidence, iou)
+    settings, model = load_detector_config(config_path, name)
+    if not model.is_file():
+        raise FileNotFoundError(f"模型文件不存在：{model}")
+    return ONNXDetector(
+        model,
+        settings["class_names"],
+        settings["conf_threshold"] if confidence is None else confidence,
+        settings["iou_threshold"] if iou is None else iou,
+        letterbox=settings.get("letterbox", False),
+    )

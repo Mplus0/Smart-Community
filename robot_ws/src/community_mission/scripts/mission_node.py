@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Explicit mission states with a lightweight image callback."""
+import json
 import math
 from pathlib import Path
 import threading
@@ -12,6 +13,7 @@ import rospy
 from actionlib_msgs.msg import GoalStatus
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 from std_srvs.srv import SetBool, Trigger
 
 from rules import validate_route, detections, obstacle_route
@@ -22,6 +24,8 @@ from result_manager import ResultManager
 
 class Mission:
     def __init__(self):
+        # 工作台订阅的任务状态（JSON），latch 保证新连接也能拿到最近状态。
+        self.state_pub = rospy.Publisher('/mission/state', String, queue_size=10, latch=True)
         self.state = "INIT"
         self.index = 0
         self.reason = "等待初始化"
@@ -227,6 +231,21 @@ class Mission:
         self.results.state(state, self.route['points'][self.index], reason)
         if state == 'ERROR':
             rospy.logerr('[状态] %s -> ERROR: %s', previous, reason)
+        self.publish_state()
+
+    def publish_state(self):
+        point = self.route['points'][self.index]
+        operations = self.results.data['operations']
+        last = operations[-1] if operations else None
+        self.state_pub.publish(json.dumps(dict(
+            state=self.state, reason=self.reason, index=self.index,
+            total=len(self.route['points']), current_waypoint=point['id'], task=point['task'],
+            navigation_only=self.navigation_only, obstacle_mode=self.obstacle_mode,
+            single_waypoint=self.single_waypoint, run_id=self.results.run_id,
+            last_operation=None if last is None else dict(
+                waypoint_id=last.get('waypoint_id'), task_type=last.get('task_type'),
+                status=last.get('status'), reason=last.get('reason', '')),
+            stamp=time.time()), ensure_ascii=False))
 
     def initialize(self):
         if not self.client.wait_for_server(rospy.Duration(self.runtime['server_timeout'])):

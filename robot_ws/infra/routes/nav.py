@@ -1,123 +1,153 @@
-"""Navigation routes: map rendering, pose estimation, goal setting, and teleop.
+"""Navigation routes: map layers, overlay data, pose/goal and teleop.
 
-Batch 2 scope:
-- GET /api/nav/map.png: render map or navigation_map as PNG with metadata headers
-- POST /api/nav/pose_estimate: publish 2D Pose Estimate
-- POST /api/nav/goal: publish navigation goal
-- WS /api/teleop: real-time teleop with heartbeat timeout
+* ``GET  /api/nav/grid.png?layer=``  — localization / navigation map or
+  global / local costmap as PNG. Metadata in ``X-Map-*`` headers; row 0
+  of the image is the grid origin row (the frontend draws it y-up).
+* ``GET  /api/nav/overlay``         — pose, laser scan, global/local plan
+  (all in the map frame) and grid versions for cache busting.
+* ``POST /api/nav/pose_estimate``   — 2D Pose Estimate (/initialpose).
+* ``POST /api/nav/goal``            — 2D Nav Goal (/move_base_simple/goal).
+* ``POST /api/nav/cancel``          — cancel every move_base goal.
+* ``WS   /api/nav/teleop``          — {"linear", "angular"} at ≥ 2 Hz;
+  500 ms without a message → zero velocity (ros_bridge timer).
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import time
-from io import BytesIO
-from typing import Any, Dict
+import math
+import threading
+from typing import Any, Dict, Tuple
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+import cv2
+import numpy as np
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from ..deps import check_writable
-from ..ros_bridge import get_bridge
+from ..deps import accept_ws, check_writable
+from ..ros_bridge import GRID_TOPICS, get_bridge
 
 _LOG = logging.getLogger("infra.routes.nav")
 
 router = APIRouter(prefix="/api/nav", tags=["navigation"])
 
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-
-class PoseEstimateRequest(BaseModel):
+class PoseRequest(BaseModel):
     x: float
     y: float
     yaw: float
-    frame: str = "map"
-
-
-class NavGoalRequest(BaseModel):
-    x: float
-    y: float
-    yaw: float
-    frame: str = "map"
-
-
-class TeleopCommand(BaseModel):
-    linear: float
-    angular: float
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# Grid rendering
 # ---------------------------------------------------------------------------
 
+_png_cache: Dict[str, Tuple[int, bytes]] = {}
+_png_lock = threading.Lock()
 
-@router.get("/map.png")
-async def get_map(
-    layer: str = Query("localization", description="'localization' or 'navigation'")
-) -> Response:
-    """
-    Render the requested map layer as PNG.
 
-    Returns PNG with custom headers:
-    - X-Map-Origin: "x,y,yaw" (map origin in meters + radians)
-    - X-Map-Resolution: float (meters per pixel)
+def _render_map(data: np.ndarray) -> np.ndarray:
+    """Occupancy (−1 / 0..100) → map_server style grayscale."""
+    img = (254 - data.clip(0, 100).astype(np.int32) * 254 // 100).astype(np.uint8)
+    img[data < 0] = 205
+    return img
 
-    TODO Batch 2: Currently returns stub. Need to cache OccupancyGrid from
-    ros_bridge callbacks and convert to PNG using PIL or OpenCV.
-    """
-    # Placeholder implementation
-    _LOG.warning("GET /api/nav/map.png not yet implemented (batch 2 TODO)")
 
-    # Return a simple 1x1 PNG as placeholder (using PIL or raw bytes)
-    try:
-        from PIL import Image
-        img = Image.new("L", (100, 100), color=128)
-        buf = BytesIO()
-        img.save(buf, format="PNG")
-        buf.seek(0)
-        png_data = buf.read()
-    except ImportError:
-        # Fallback: minimal PNG (1x1 gray pixel)
-        # This is a valid PNG binary for a 1x1 grayscale image
-        png_data = (
-            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
-            b'\x08\x00\x00\x00\x00:~\x9bU\x00\x00\x00\nIDATx\x9cc\x00\x01\x00'
-            b'\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-        )
+def _render_costmap(data: np.ndarray) -> np.ndarray:
+    """Costmap → BGRA overlay: transparent free space, red lethal cells."""
+    cost = data.astype(np.int32)
+    img = np.zeros(data.shape + (4,), dtype=np.uint8)
+    inflated = (cost > 0) & (cost < 99)
+    ratio = cost[inflated] / 98.0
+    img[inflated, 0] = (255 * (1 - ratio)).astype(np.uint8)   # blue → yellow-ish
+    img[inflated, 1] = (200 * ratio).astype(np.uint8)
+    img[inflated, 2] = (255 * ratio).astype(np.uint8)
+    img[inflated, 3] = (60 + 120 * ratio).astype(np.uint8)
+    lethal = cost >= 99
+    img[lethal] = (60, 0, 230, 220)
+    return img
 
+
+@router.get("/grid.png")
+def get_grid_png(layer: str = Query("navigation", description="localization / navigation / global_costmap / local_costmap")) -> Response:
+    if layer not in GRID_TOPICS:
+        raise HTTPException(status_code=400, detail=f"未知图层 {layer!r}")
+    bridge = get_bridge()
+    grid = bridge.get_grid(layer)
+    if grid is None:
+        raise HTTPException(status_code=404, detail=f"尚未收到 {GRID_TOPICS[layer]}")
+    origin = bridge.grid_origin_in_map(grid)
+    if origin is None:
+        raise HTTPException(status_code=503, detail=f"缺少 TF：map → {grid.frame}")
+
+    with _png_lock:
+        cached = _png_cache.get(layer)
+        if cached is not None and cached[0] == grid.version:
+            png = cached[1]
+        else:
+            img = _render_map(grid.data) if layer in ("localization", "navigation") else _render_costmap(grid.data)
+            ok, encoded = cv2.imencode(".png", img)
+            if not ok:
+                raise HTTPException(status_code=500, detail="PNG 编码失败")
+            png = encoded.tobytes()
+            _png_cache[layer] = (grid.version, png)
+
+    h, w = grid.data.shape
     return Response(
-        content=png_data,
+        content=png,
         media_type="image/png",
         headers={
-            "X-Map-Origin": "0.0,0.0,0.0",
-            "X-Map-Resolution": "0.02",
+            "X-Map-Origin": f"{origin[0]:.4f},{origin[1]:.4f},{origin[2]:.5f}",
+            "X-Map-Resolution": f"{grid.resolution:.5f}",
+            "X-Map-Size": f"{w},{h}",
+            "X-Map-Version": str(grid.version),
+            "Cache-Control": "no-store",
         },
     )
 
 
-@router.post("/pose_estimate")
-async def set_pose_estimate(
-    req: PoseEstimateRequest, _=Depends(check_writable)
-) -> Dict[str, Any]:
-    """Publish 2D Pose Estimate to /initialpose."""
-    bridge = get_bridge()
-    bridge.publish_initial_pose(req.x, req.y, req.yaw, req.frame)
-    return {"ok": True, "x": req.x, "y": req.y, "yaw": req.yaw, "frame": req.frame}
+@router.get("/overlay")
+def get_overlay() -> Dict[str, Any]:
+    return get_bridge().get_overlay()
 
 
-@router.post("/goal")
-async def set_nav_goal(
-    req: NavGoalRequest, _=Depends(check_writable)
-) -> Dict[str, Any]:
-    """Publish navigation goal to /move_base_simple/goal."""
-    bridge = get_bridge()
-    bridge.publish_nav_goal(req.x, req.y, req.yaw, req.frame)
-    return {"ok": True, "x": req.x, "y": req.y, "yaw": req.yaw, "frame": req.frame}
+# ---------------------------------------------------------------------------
+# Pose / goal / cancel
+# ---------------------------------------------------------------------------
+
+
+def _publish(action, *args) -> None:
+    try:
+        action(*args)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
+def _check_pose(req: PoseRequest) -> None:
+    if not all(math.isfinite(v) for v in (req.x, req.y, req.yaw)):
+        raise HTTPException(status_code=400, detail="坐标必须为有限数值")
+
+
+@router.post("/pose_estimate", dependencies=[Depends(check_writable)])
+def set_pose_estimate(req: PoseRequest) -> Dict[str, Any]:
+    _check_pose(req)
+    _publish(get_bridge().publish_initial_pose, req.x, req.y, req.yaw)
+    return {"ok": True}
+
+
+@router.post("/goal", dependencies=[Depends(check_writable)])
+def set_nav_goal(req: PoseRequest) -> Dict[str, Any]:
+    _check_pose(req)
+    _publish(get_bridge().publish_nav_goal, req.x, req.y, req.yaw)
+    return {"ok": True}
+
+
+@router.post("/cancel", dependencies=[Depends(check_writable)])
+def cancel_nav() -> Dict[str, Any]:
+    _publish(get_bridge().cancel_navigation)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
@@ -127,40 +157,31 @@ async def set_nav_goal(
 
 @router.websocket("/teleop")
 async def teleop_ws(websocket: WebSocket) -> None:
-    """
-    Real-time teleop WebSocket.
-
-    Client sends JSON: {"linear": float, "angular": float}
-    Backend publishes to /cmd_vel with limits and 500ms heartbeat timeout.
-
-    If no message received for 500ms, ros_bridge automatically sends zero velocity.
-    """
-    await websocket.accept()
-    _LOG.info("Teleop WebSocket connected")
-
+    """Client sends {"linear": m/s, "angular": rad/s} repeatedly while a key
+    or joystick is held. Limits are applied in ros_bridge."""
+    if not await accept_ws(websocket, writable=True):
+        return
     bridge = get_bridge()
-    last_msg_time = time.monotonic()
-
     try:
         while True:
             try:
-                # Wait for message with timeout
                 msg = await asyncio.wait_for(websocket.receive_json(), timeout=0.5)
-
-                # Parse and publish
-                linear = float(msg.get("linear", 0.0))
-                angular = float(msg.get("angular", 0.0))
-                bridge.publish_cmd_vel(linear, angular)
-                last_msg_time = time.monotonic()
-
             except asyncio.TimeoutError:
-                # No message for 500ms - cmd_vel timeout handled by ros_bridge timer
+                continue  # the 500 ms heartbeat timer already sent zero
+            linear = float(msg.get("linear", 0.0))
+            angular = float(msg.get("angular", 0.0))
+            if not (math.isfinite(linear) and math.isfinite(angular)):
                 continue
-
+            try:
+                bridge.publish_cmd_vel(linear, angular)
+            except RuntimeError as exc:
+                await websocket.send_json({"ok": False, "error": str(exc)})
     except WebSocketDisconnect:
-        _LOG.info("Teleop WebSocket disconnected")
-        # Send zero velocity on disconnect
-        bridge.publish_cmd_vel(0.0, 0.0)
-    except Exception as e:
-        _LOG.exception(f"Teleop WebSocket error: {e}")
-        bridge.publish_cmd_vel(0.0, 0.0)
+        pass
+    except Exception:
+        _LOG.exception("teleop websocket error")
+    finally:
+        try:
+            bridge.publish_cmd_vel(0.0, 0.0)
+        except RuntimeError:
+            pass

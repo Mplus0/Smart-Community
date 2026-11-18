@@ -57,7 +57,7 @@ roslaunch community_bringup community.launch base_protocol:=aa_bb
 
 红外测温已在 `community_perception` 中提供独立采集和楼宇 D 检测：画面从左到右对应 4、3、2、1 楼，连续 3 帧超过 40℃ 输出异常，支持网页显示分区、温度和中文结果。SDK 必要文件随包提供，尚未接入自动巡检；权限配置、启动和网页访问方式见 [实车测温说明](robot_ws/README.md#seek-红外热成像采集)。
 
-实车 Web 工作台提供启动项管理、状态和日志查看。部署方法和功能范围见 [工作台说明](robot_ws/infra/README.md)。
+实车 Web 工作台提供启动项管理、状态和日志、地图遥控与导航、相机识别预览、巡检任务启停和结果浏览。部署方法和功能范围见 [工作台说明](robot_ws/infra/README.md)。
 
 ## 仿真环境与启动
 

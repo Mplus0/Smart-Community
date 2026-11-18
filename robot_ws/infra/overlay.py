@@ -1,8 +1,11 @@
 """Overlay visualization utilities for detection results.
 
-Batch 3/5 scope:
-- draw_boxes: Simple detection boxes with labels and confidence
-- draw_trash_pipeline: Trash bin + ROI + matching lines
+The camera pipeline (camera_core) uses:
+- draw_boxes: detection boxes with labels and confidence
+- draw_trash_pipeline: trash bin + ROI + matching lines
+- draw_banner: status lines on top of the frame
+
+Kept for later special modes:
 - draw_traffic_light_state: Large status display
 - draw_thermal_building: Four-zone temperature visualization
 - draw_fall_count: Person tracking with standing/fallen状态
@@ -25,6 +28,16 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 
+_PALETTE = [
+    (0, 220, 0),
+    (0, 0, 255),
+    (255, 160, 0),
+    (0, 220, 220),
+    (220, 0, 220),
+    (220, 220, 0),
+]
+
+
 def draw_boxes(
     image: np.ndarray,
     detections: List[Dict[str, Any]],
@@ -32,43 +45,28 @@ def draw_boxes(
 ) -> np.ndarray:
     """Draw boxes with labels and confidence scores.
 
-    detections: [{"box": (x1, y1, x2, y2), "label": str, "confidence": float}, ...]
+    detections: [{"box": (x1, y1, x2, y2), "label": str, "confidence": float,
+                  "class_id": int (optional, picks a stable colour)}, ...]
     """
-    if palette is None:
-        palette = [
-            (0, 220, 0),
-            (0, 0, 255),
-            (255, 160, 0),
-            (0, 220, 220),
-            (220, 0, 220),
-            (220, 220, 0),
-        ]
-
+    palette = palette or _PALETTE
     for idx, det in enumerate(detections):
-        x1, y1, x2, y2 = det["box"]
+        x1, y1, x2, y2 = (int(v) for v in det["box"])
         label = det.get("label", "object")
         conf = det.get("confidence", 1.0)
-        color = palette[idx % len(palette)]
-
+        color = palette[det.get("class_id", idx) % len(palette)]
         cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
-        text = f"{label} {conf:.2f}"
-        cv2.putText(
-            image,
-            text,
-            (x1, max(20, y1 - 6)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            color,
-            2,
-        )
+        cv2.putText(image, f"{label} {conf:.2f}", (x1, max(20, y1 - 6)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+    return image
 
-    # Count summary in top-left corner
-    count_text = f"Objects: {len(detections)}"
-    cv2.rectangle(image, (0, 0), (250, 30), (0, 0, 0), -1)
-    cv2.putText(
-        image, count_text, (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1
-    )
 
+def draw_banner(image: np.ndarray, lines: List[str]) -> np.ndarray:
+    """Draw white status lines on a black band across the top of the frame."""
+    h, w = image.shape[:2]
+    cv2.rectangle(image, (0, 0), (w, min(h, 25 * len(lines) + 5)), (0, 0, 0), -1)
+    for index, text in enumerate(lines):
+        cv2.putText(image, text, (8, 22 + 25 * index), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6, (255, 255, 255), 1)
     return image
 
 
@@ -90,7 +88,7 @@ def draw_trash_pipeline(
     """
     roi = report.get("roi")
     if roi is not None:
-        x1, y1, x2, y2 = roi
+        x1, y1, x2, y2 = (int(v) for v in roi)
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 255), 2)
 
     colors = {
@@ -101,7 +99,7 @@ def draw_trash_pipeline(
 
     # Draw matches
     for match in report.get("matches", []):
-        bx1, by1, bx2, by2 = match["bin_bbox"]
+        bx1, by1, bx2, by2 = (int(v) for v in match["bin_bbox"])
         status = match.get("status", "UNKNOWN")
         color = colors.get(status, (128, 128, 128))
 
@@ -118,7 +116,7 @@ def draw_trash_pipeline(
 
         # Draw garbage and matching lines
         for obj in match.get("garbage", []):
-            gx1, gy1, gx2, gy2 = obj["bbox"]
+            gx1, gy1, gx2, gy2 = (int(v) for v in obj["bbox"])
             cv2.rectangle(image, (gx1, gy1), (gx2, gy2), color, 2)
             # Line from bin center bottom to garbage center
             cv2.line(
@@ -140,7 +138,7 @@ def draw_trash_pipeline(
 
     # Draw unmatched waste
     for obj in report.get("unmatched", []):
-        gx1, gy1, gx2, gy2 = obj["bbox"]
+        gx1, gy1, gx2, gy2 = (int(v) for v in obj["bbox"])
         cv2.rectangle(image, (gx1, gy1), (gx2, gy2), colors["UNKNOWN"], 2)
 
     # Status text at bottom center
