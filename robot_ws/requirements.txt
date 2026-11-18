@@ -1,6 +1,30 @@
-# Match ROS cv_bridge's NumPy/OpenCV ABI. Install ROS packages through the target system.
-numpy<2
-onnxruntime
+# ROS perception and web workbench dependencies. Install ROS packages through the target system.
+
+# Web framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=11.0
+
+# Data/config
+pydantic>=2.0
+pyyaml>=6.0
+
+# System monitoring
+psutil>=5.9.0
+
+# Image/video
+opencv-python>=4.8.0,<4.12
+Pillow>=10.0.0
+
+# ONNX runtime for model inference
+onnxruntime>=1.16.0
+# For GPU support (optional):
+# onnxruntime-gpu>=1.16.0
+
+# Keep the NumPy 1.x ABI used by ROS cv_bridge.
+numpy>=1.24.0,<2
+
+# Existing perception and hardware drivers
 paddleocr>=2.6,<3
 paddlepaddle>=2.4,<3
 filterpy
@@ -8,4 +32,9 @@ scipy
 scikit-image
 matplotlib
 pyserial
-PyYAML
+
+# Optional: for PDF generation (future batches)
+# reportlab>=4.0.0
+
+# Optional: for CSV/Excel export
+# pandas>=2.0.0

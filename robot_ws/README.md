@@ -31,6 +31,7 @@ robot_ws/
 │   │   └── scripts/        # 巡检任务及辅助节点
 │   └── ...                # 雷达、IMU 驱动和机器人描述
 ├── tools/                 # 图片采集、浏览器模型测试及离线检查
+├── infra/                 # 实车 Web 工作台
 ├── docs/                  # 架构、验收及驱动说明
 └── requirements.txt       # Python 依赖
 ```
@@ -64,6 +65,10 @@ source devel/setup.bash --extend
 ```
 
 实车 Cartographer 安装于 `/home/mowen/cartographer_ws/install_isolated`。可用 `rospack find cartographer_ros` 检查环境；若启动建图时提示找不到该包，按上述顺序重新加载，并保留 `--extend`。
+
+## Web 工作台
+
+在已加载实车 ROS 环境的终端运行 `roslaunch community_bringup infra.launch`。依赖安装、浏览器访问和当前功能范围见 [工作台说明](infra/README.md)。
 
 ## 键盘建图与导航
 

@@ -1,0 +1,21 @@
+<launch>
+  <!--
+    infra workbench entry point.
+
+    Delegates to scripts/start_infra.py which imports
+    `infra.server` from robot_ws/infra/. See WORKBENCH.md §3.2
+    and §7 for the end-to-end start procedure.
+  -->
+  <arg name="port"     default="8000"/>
+  <arg name="bind"     default="0.0.0.0"/>
+  <arg name="readonly" default="false"/>
+  <arg name="token"    default=""/>
+
+  <node pkg="community_bringup" type="start_infra.py" name="infra"
+        output="screen" required="true">
+    <env name="INFRA_PORT"     value="$(arg port)"/>
+    <env name="INFRA_BIND"     value="$(arg bind)"/>
+    <env name="INFRA_READONLY" value="$(arg readonly)"/>
+    <env name="INFRA_TOKEN"    value="$(arg token)"/>
+  </node>
+</launch>

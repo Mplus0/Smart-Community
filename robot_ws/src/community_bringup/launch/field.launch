@@ -1,0 +1,61 @@
+<launch>
+  <!-- field.launch: Complete field deployment with all systems (hardware + navigation + services + mission).
+       Equivalent to enabling run_mission in community.launch with all parameters.
+
+       Batch 4 new launch per WORKBENCH.md §4.4 / §11.4.
+  -->
+  <arg name="base_protocol"/>
+  <arg name="base_port" default="/dev/carserial"/>
+  <arg name="imu_port" default="/dev/imu"/>
+  <arg name="camera_device" default="/dev/video0"/>
+  <arg name="configure_camera" default="false"/>
+  <arg name="data_dir" default="$(env HOME)/.ros/community"/>
+  <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml"/>
+  <arg name="navigation_map" default="$(find community_bringup)/maps/navigation_map.yaml"/>
+  <arg name="local_planner" default="dwa" doc="dwa or teb"/>
+  <arg name="route" default="$(find community_mission)/config/route.yaml"/>
+
+  <!-- Mission-specific parameters -->
+  <arg name="navigation_only" default="false" doc="Skip obstacle detection"/>
+  <arg name="obstacle_mode" default="clear" doc="clear, blocked, or disabled"/>
+  <arg name="green_confirm_frames" default=""/>
+  <arg name="traffic_light_timeout" default=""/>
+  <arg name="navigation_retries" default=""/>
+  <arg name="navigation_cancel_timeout" default=""/>
+  <arg name="goal_timeout" default=""/>
+
+  <!-- Include base system stack -->
+  <include file="$(find community_bringup)/launch/hardware.launch">
+    <arg name="base_protocol" value="$(arg base_protocol)"/>
+    <arg name="base_port" value="$(arg base_port)"/>
+    <arg name="imu_port" value="$(arg imu_port)"/>
+    <arg name="camera_device" value="$(arg camera_device)"/>
+    <arg name="configure_camera" value="$(arg configure_camera)"/>
+  </include>
+
+  <!-- Include navigation stack -->
+  <include file="$(find community_bringup)/launch/navigation.launch">
+    <arg name="route" value="$(arg route)"/>
+    <arg name="map" value="$(arg map)"/>
+    <arg name="navigation_map" value="$(arg navigation_map)"/>
+    <arg name="local_planner" value="$(arg local_planner)"/>
+  </include>
+
+  <!-- Include perception services -->
+  <include file="$(find community_bringup)/launch/services.launch">
+    <arg name="data_dir" value="$(arg data_dir)"/>
+  </include>
+
+  <!-- Include mission node -->
+  <include file="$(find community_mission)/launch/mission.launch">
+    <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>
+    <arg name="traffic_light_timeout" value="$(arg traffic_light_timeout)"/>
+    <arg name="navigation_retries" value="$(arg navigation_retries)"/>
+    <arg name="navigation_cancel_timeout" value="$(arg navigation_cancel_timeout)"/>
+    <arg name="goal_timeout" value="$(arg goal_timeout)"/>
+    <arg name="data_dir" value="$(arg data_dir)"/>
+    <arg name="route" value="$(arg route)"/>
+    <arg name="navigation_only" value="$(arg navigation_only)"/>
+    <arg name="obstacle_mode" value="$(arg obstacle_mode)"/>
+  </include>
+</launch>

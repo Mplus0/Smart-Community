@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=1200,initial-scale=1">
+  <title>Smart-Community Infra 工作台</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">SC</div>
+      <div class="brand-text">
+        <div class="brand-title">Infra</div>
+        <div class="brand-sub">Smart-Community</div>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item is-active" data-view="dashboard">
+        <span class="nav-icon">◎</span><span>总览</span>
+      </button>
+      <button class="nav-item" data-view="teleop">
+        <span class="nav-icon">◧</span><span>遥控 · 地图</span>
+      </button>
+      <button class="nav-item" data-view="camera">
+        <span class="nav-icon">▣</span><span>相机 · 检测</span>
+      </button>
+      <button class="nav-item" data-view="mission">
+        <span class="nav-icon">◆</span><span>巡检任务</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="conn-indicator"><span class="dot" id="connDot"></span><span id="connText">连接中…</span></div>
+      <button id="estopBtn" class="btn btn-danger">紧急停止</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h1 id="viewTitle">总览</h1>
+      <div class="topbar-meta">
+        <span>读模式: <b id="roMode">检查中</b></span>
+        <span>更新: <b id="lastUpdate">—</b></span>
+      </div>
+    </header>
+
+    <!-- 总览 -->
+    <section class="view is-active" data-view="dashboard">
+      <div class="cards">
+        <article class="card">
+          <h2>ROS Master</h2>
+          <p class="big" id="rosMaster">—</p>
+          <div class="muted" id="rosNodes">节点: —</div>
+        </article>
+        <article class="card">
+          <h2>CPU</h2>
+          <p class="big"><span id="hostCpu">—</span><span class="unit">%</span></p>
+          <div class="bar"><div class="bar-fill" id="hostCpuBar"></div></div>
+        </article>
+        <article class="card">
+          <h2>内存</h2>
+          <p class="big"><span id="hostMem">—</span><span class="unit">%</span></p>
+          <div class="bar"><div class="bar-fill" id="hostMemBar"></div></div>
+        </article>
+        <article class="card">
+          <h2>磁盘</h2>
+          <p class="big"><span id="hostDisk">—</span><span class="unit">%</span></p>
+          <div class="bar"><div class="bar-fill" id="hostDiskBar"></div></div>
+        </article>
+      </div>
+
+      <article class="card card-wide">
+        <header class="card-head"><h2>Launch 列表</h2><span class="muted" id="launchHint">加载中…</span></header>
+        <table class="launch-table">
+          <thead><tr><th>名称</th><th>说明</th><th>状态</th><th>PID</th><th>运行时长</th><th>操作</th></tr></thead>
+          <tbody id="launchTbody"></tbody>
+        </table>
+      </article>
+
+      <article class="card card-wide">
+        <header class="card-head"><h2>日志流</h2><span class="muted">最近 200 行 · 实时</span></header>
+        <pre class="logbox" id="logbox">（等待子进程输出…）</pre>
+      </article>
+    </section>
+
+    <!-- 遥控 + 地图 -->
+    <section class="view" data-view="teleop">
+      <article class="card card-wide">
+        <header class="card-head"><h2>遥控 · 地图</h2><span class="muted">批次 2 开发中</span></header>
+        <div class="placeholder">
+          <p>此视图将在 <b>批次 2</b> 接入：地图图层（AMCL / costmap / scan）、虚拟摇杆、2D Pose Estimate / 2D Nav Goal。</p>
+          <p class="muted">后端已预留接口：<code>WS /api/teleop</code> · <code>GET /api/nav/map.png</code> · <code>POST /api/nav/pose_estimate</code> · <code>POST /api/nav/goal</code>。</p>
+        </div>
+      </article>
+    </section>
+
+    <!-- 相机 + 检测 -->
+    <section class="view" data-view="camera">
+      <article class="card card-wide">
+        <header class="card-head"><h2>相机 · 检测</h2><span class="muted">批次 3 开发中</span></header>
+        <div class="placeholder">
+          <p>此视图将在 <b>批次 3</b> 接入：任意相机源 × 任意检测器切换预览，视觉识别结果（框 / ROI / 匹配连线 / 温度热图 / 红绿灯状态）后端叠加到 MJPEG。</p>
+          <p class="muted">后端已预留接口：<code>GET /api/stream.mjpeg</code> · <code>GET /api/camera/sources</code> · <code>GET /api/detectors</code>。</p>
+        </div>
+      </article>
+    </section>
+
+    <!-- 巡检 -->
+    <section class="view" data-view="mission">
+      <article class="card card-wide">
+        <header class="card-head"><h2>巡检任务</h2><span class="muted">批次 4 开发中</span></header>
+        <div class="placeholder">
+          <p>此视图将在 <b>批次 4</b> 接入：实时航点状态、结果浏览（<code>result.json</code> / 照片 / 视频下载）。</p>
+          <p class="muted">依赖 <code>mission_node</code> 发布 <code>/mission/state</code>（见 WORKBENCH.md §3.3）。</p>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="modal" id="confirmModal" hidden>
+    <div class="modal-box">
+      <h3 id="confirmTitle">确认操作</h3>
+      <p id="confirmBody">确定继续吗？</p>
+      <div class="modal-actions">
+        <button class="btn" id="confirmCancel">取消</button>
+        <button class="btn btn-danger" id="confirmOk">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

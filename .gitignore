@@ -60,6 +60,10 @@ simulation_ws/src/robot_gazebo/results/*
 # Recorder advisory locks are created on demand; do not ignore dependency lockfiles.
 simulation_ws/**/*.yaml.lock
 robot_ws/**/*.yaml.lock
+# Local workbench notes and runtime PID
+/WORKBENCH.md
+/robot_ws/infra/.infra.pid
+
 # Local camera captures, training caches and new training runs.
 simulation_ws/datasets/
 robot_ws/datasets/

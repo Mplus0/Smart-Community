@@ -1,0 +1,28 @@
+<launch>
+  <!-- debug_perception.launch: Perception debugging without hardware or navigation.
+
+       Starts only the camera and recognition services for testing detection/classification.
+       No chassis movement, no AMCL, no move_base.
+
+       Batch 4 new launch per WORKBENCH.md §4.4 / §11.4.
+  -->
+  <arg name="camera_device" default="/dev/video0"/>
+  <arg name="configure_camera" default="false"/>
+  <arg name="data_dir" default="$(env HOME)/.ros/community"/>
+
+  <!-- Start USB camera node only (from hardware.launch) -->
+  <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="log">
+    <param name="video_device" value="$(arg camera_device)"/>
+    <param name="image_width" value="640"/>
+    <param name="image_height" value="480"/>
+    <param name="pixel_format" value="yuyv"/>
+    <param name="camera_frame_id" value="usb_cam"/>
+    <param name="io_method" value="mmap"/>
+    <param name="autofocus" value="false" if="$(arg configure_camera)"/>
+  </node>
+
+  <!-- Start recognition services (from services.launch) -->
+  <include file="$(find community_bringup)/launch/services.launch">
+    <arg name="data_dir" value="$(arg data_dir)"/>
+  </include>
+</launch>
