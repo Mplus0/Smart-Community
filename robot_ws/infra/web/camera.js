@@ -16,6 +16,8 @@ const detectorLabels = {
   __trash_pipeline__: '垃圾分类完整流程',
   __thermal__: '红外测温（楼宇 D）',
   __meter__: '仪表盘识别（UGREEN 4K）',
+  __plate__: '车牌识别',
+  __building_fire__: '楼宇火灾识别',
 };
 
 function showSources(sources, selected) {
@@ -51,7 +53,7 @@ function syncSelection(settings) {
   selectedSource = settings.source;
   showSources(availableSources, selectedSource);
   $('camDetector').value = settings.detector;
-  $('camConf').disabled = ['__thermal__', '__meter__'].includes(settings.detector);
+  $('camConf').disabled = ['__thermal__', '__meter__', '__plate__'].includes(settings.detector);
 }
 
 async function loadOptions() {
@@ -152,6 +154,37 @@ function renderStatus({ settings, status }) {
       ['表盘状态', alignment],
       ['温度', r.temperature_c == null ? '—' : `${escapeHtml(r.temperature_c)} ℃`],
       ['湿度', r.humidity_percent == null ? '—' : `${escapeHtml(r.humidity_percent)} %RH`],
+    ]);
+  } else if (settings.detector === '__plate__') {
+    const r = status.report;
+    if (r?.kind !== 'plate' || r.pending) {
+      $('camResult').textContent = '正在识别车牌';
+      return;
+    }
+    if (r.ocr_error) {
+      $('camResult').innerHTML = `<div class="form-error">车牌 OCR 不可用：${escapeHtml(r.ocr_error)}</div>`;
+      return;
+    }
+    $('camResult').innerHTML = r.plate ? kvRows([
+      ['车牌号码', escapeHtml(r.plate)],
+      ['OCR 置信度', Number.isFinite(r.confidence) ? `${(100 * r.confidence).toFixed(1)}%` : '—'],
+    ]) : '未识别到车牌';
+  } else if (settings.detector === '__building_fire__') {
+    const r = status.report;
+    if (r?.kind !== 'building_fire') {
+      $('camResult').textContent = '等待火焰检测结果';
+      return;
+    }
+    if (!r.fire_count) {
+      $('camResult').textContent = '当前画面未检测到火焰';
+      return;
+    }
+    const building = r.building || (r.ocr_error ? '楼名 OCR 不可用' : r.pending ? '正在识别楼名' : '未识别到楼名');
+    $('camResult').innerHTML = kvRows([
+      ['火情', '发现火焰'],
+      ['火焰数量', escapeHtml(r.fire_count)],
+      ['楼名', escapeHtml(building)],
+      ...(r.ocr_error ? [['OCR 状态', escapeHtml(r.ocr_error)]] : []),
     ]);
   } else if (settings.detector === '__trash_pipeline__' && status.report) {
     const r = status.report;

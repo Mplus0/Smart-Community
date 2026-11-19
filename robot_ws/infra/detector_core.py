@@ -9,7 +9,10 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
+import threading
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -253,6 +256,62 @@ class TrashPipeline:
 # Registry used by the camera pipeline
 # ---------------------------------------------------------------------------
 
+def building_name(texts):
+    """Accept a single plausible building sign from the fire frame."""
+    candidates = set()
+    signs = re.compile(r'楼宇[A-D]|(?<![A-Z0-9])[A-D](?:号)?(?:大楼|大厦|楼|栋)|[\u4e00-\u9fff]{1,12}(?:大楼|大厦)')
+    for text in texts:
+        candidates.update(signs.findall(''.join(text.upper().split())))
+    if not candidates:
+        candidates.update(signs.findall(''.join(''.join(text.upper().split()) for text in texts)))
+    return next(iter(candidates)) if len(candidates) == 1 else ''
+
+
+class PreviewOCR:
+    """Run one preview OCR request at a time without blocking video frames."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._running = False
+        self._generation = 0
+        self._next_request = 0.0
+        self._result = None
+
+    def reset(self):
+        with self._lock:
+            self._generation += 1
+            self._next_request = 0.0
+            self._result = None
+
+    def sample(self, image, service):
+        with self._lock:
+            if not self._running and time.monotonic() >= self._next_request:
+                self._running = True
+                threading.Thread(target=self._read, args=(image.copy(), service, self._generation),
+                                 name='camera-preview-ocr', daemon=True).start()
+            return self._result
+
+    def _read(self, image, service, generation):
+        try:
+            import rospy
+            from community_perception.srv import LicensePlateOCR
+            from cv_bridge import CvBridge
+
+            rospy.wait_for_service(service, timeout=1.0)
+            message = CvBridge().cv2_to_imgmsg(image, encoding='bgr8')
+            response = rospy.ServiceProxy(service, LicensePlateOCR)(message)
+            if response.status_message not in ('', '未识别到文字', '未识别到车牌'):
+                raise RuntimeError(response.status_message)
+            result = dict(texts=list(response.plate_texts), scores=list(response.confidences), error='')
+        except Exception as error:
+            result = dict(texts=[], scores=[], error=str(error))
+        with self._lock:
+            self._running = False
+            if self._generation == generation:
+                self._result = result
+                self._next_request = time.monotonic() + 3.0
+
+
 class MeterPreview:
     """Run the same reader and 4K calibration as the wp_11 task."""
 
@@ -278,13 +337,15 @@ class MeterPreview:
 TRASH_PIPELINE = "__trash_pipeline__"
 METER_PREVIEW = "__meter__"
 THERMAL_PREVIEW = "__thermal__"
+PLATE_PREVIEW = "__plate__"
+BUILDING_FIRE_PREVIEW = "__building_fire__"
 NO_DETECTOR = "__none__"
 
 
 def list_detectors(config_path: Path = DEFAULT_CONFIG) -> List[str]:
     """Detector names from detectors.yaml plus the workbench preview modes."""
     configs = yaml.safe_load(config_path.read_text(encoding="utf-8"))["detectors"]
-    return list(configs) + [TRASH_PIPELINE, METER_PREVIEW, THERMAL_PREVIEW]
+    return list(configs) + [TRASH_PIPELINE, METER_PREVIEW, THERMAL_PREVIEW, PLATE_PREVIEW, BUILDING_FIRE_PREVIEW]
 
 
 def create_detector(name: str, confidence: Optional[float] = None, iou: Optional[float] = None,

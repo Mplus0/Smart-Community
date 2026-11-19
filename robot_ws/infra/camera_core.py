@@ -27,11 +27,15 @@ import cv2
 import numpy as np
 
 from . import config, overlay
-from .detector_core import METER_PREVIEW, NO_DETECTOR, THERMAL_PREVIEW, TRASH_PIPELINE, create_detector
+from .detector_core import (
+    BUILDING_FIRE_PREVIEW, METER_PREVIEW, NO_DETECTOR, PLATE_PREVIEW, THERMAL_PREVIEW,
+    TRASH_PIPELINE, PreviewOCR, building_name, create_detector,
+)
 
 _LOG = logging.getLogger("infra.camera")
 THERMAL_IMAGE_TOPIC = "/building_d_temperature/image"
 METER_IMAGE_TOPIC = "/ugreen_4k/image_raw"
+MAIN_CAMERA_SOURCE = "ros:/usb_cam/image_raw"
 PREVIEW_SOURCES = {THERMAL_PREVIEW: f"ros:{THERMAL_IMAGE_TOPIC}", METER_PREVIEW: f"ros:{METER_IMAGE_TOPIC}"}
 SOURCE_LABELS = {THERMAL_IMAGE_TOPIC: "楼宇 D 红外热图", METER_IMAGE_TOPIC: "UGREEN 4K 仪表相机"}
 
@@ -239,7 +243,7 @@ class CameraService:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self.settings: Dict[str, Any] = {
-            "source": "ros:/usb_cam/image_raw",
+            "source": MAIN_CAMERA_SOURCE,
             "detector": "__none__",
             "conf": None,   # None → detectors.yaml threshold
             "iou": None,
@@ -252,6 +256,7 @@ class CameraService:
         self._raw = FrameBuffer()
         self.output = FrameBuffer()   # JPEG bytes
         self._detectors: Dict[Tuple, Any] = {}
+        self._ocr = PreviewOCR()
         self.status: Dict[str, Any] = {"running": False, "error": None, "detections": [], "report": None}
 
         self._raw_source = None
@@ -354,9 +359,19 @@ class CameraService:
             required_source = PREVIEW_SOURCES.get(changes.get("detector"))
             if required_source:
                 changes["source"] = required_source
+            elif changes.get("detector") in (PLATE_PREVIEW, BUILDING_FIRE_PREVIEW):
+                source = changes.get("source") or self.settings["source"]
+                if source in PREVIEW_SOURCES.values() or source.startswith("ros:/thermal_camera/"):
+                    changes["source"] = MAIN_CAMERA_SOURCE
             elif changes.get("source") and changes.get("detector") is None:
-                active_source = PREVIEW_SOURCES.get(self.settings["detector"])
+                active_detector = self.settings["detector"]
+                active_source = PREVIEW_SOURCES.get(active_detector)
                 if active_source and changes["source"] != active_source:
+                    changes["detector"] = NO_DETECTOR
+                if active_detector in (PLATE_PREVIEW, BUILDING_FIRE_PREVIEW) and (
+                    changes["source"] == PREVIEW_SOURCES[THERMAL_PREVIEW]
+                    or changes["source"].startswith("ros:/thermal_camera/")
+                ):
                     changes["detector"] = NO_DETECTOR
             if self.status["recording"] and changes.get("source") not in (None, self.settings["source"]):
                 raise RuntimeError("请先停止录像，再切换视频源")
@@ -419,6 +434,7 @@ class CameraService:
 
                 if current != version:
                     version = current
+                    self._ocr.reset()
                     self.status.update(error=None, detections=[], report=None)
                     if settings["source"] != source_id and source is not None:
                         source.close()
@@ -450,6 +466,7 @@ class CameraService:
                 now = time.monotonic()
                 if seq == raw_seq or frame is None:
                     if now - last_frame > 3.0:
+                        self._ocr.reset()
                         self.status.update(error=f"未收到 {source_id} 的图像", detections=[], report=None)
                         self._emit(_placeholder([f"No frames from {source_id}"]))
                     continue
@@ -487,7 +504,16 @@ class CameraService:
                 annotated, report = self._detector(name, None, None).analyze(frame)
                 self.status.update(report=report, detections=[], error=None)
                 return annotated
-            detector = self._detector(name, settings["conf"], settings["iou"])
+            if name == PLATE_PREVIEW:
+                reading = self._ocr.sample(frame, '/license_plate_ocr_preview')
+                report = dict(kind='plate', pending=reading is None, plate='', confidence=None, ocr_error='')
+                if reading is not None:
+                    report.update(plate=next(iter(reading['texts']), ''),
+                                  confidence=next(iter(reading['scores']), None), ocr_error=reading['error'])
+                self.status.update(report=report, detections=[], error=None)
+                return frame
+            detector_name = 'fire_detector' if name == BUILDING_FIRE_PREVIEW else name
+            detector = self._detector(detector_name, settings["conf"], settings["iou"])
             if name == TRASH_PIPELINE:
                 report = detector.analyze(frame)
                 overlay.draw_trash_pipeline(frame, report)
@@ -496,11 +522,24 @@ class CameraService:
                            f"waste={report['waste_count']}")
             else:
                 objects = detector.detect(frame)
+                if name == BUILDING_FIRE_PREVIEW:
+                    # Send a clean frame to OCR before drawing boxes on the preview.
+                    fires = [obj for obj in objects if obj.label == 'fire']
+                    reading = self._ocr.sample(frame, '/building_name_ocr_preview') if fires else None
+                    if not fires:
+                        self._ocr.reset()
+                    report = dict(kind='building_fire', fire_count=len(fires),
+                                  pending=bool(fires) and reading is None,
+                                  building=building_name(reading['texts']) if reading else '',
+                                  ocr_error=reading['error'] if reading else '')
+                    objects = fires
+                else:
+                    report = None
                 dets = [{"label": o.label, "box": [int(v) for v in o.box], "confidence": round(float(o.confidence), 3),
                          "class_id": detector.class_names.index(o.label)} for o in objects]
                 overlay.draw_boxes(frame, dets)
-                self.status.update(detections=dets, report=None, error=None)
-                summary = f"{name}: {len(dets)} objects"
+                self.status.update(detections=dets, report=report, error=None)
+                summary = f"{detector_name}: {len(dets)} objects"
         except Exception as exc:
             self.status["error"] = f"{name}: {exc}"
             return overlay.draw_banner(frame, [f"Detector error: {name}", str(exc)[:70]])

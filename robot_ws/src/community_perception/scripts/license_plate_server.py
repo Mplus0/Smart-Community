@@ -36,6 +36,10 @@ class LicensePlateOCRServer:
 
         # 创建服务
         self.service = rospy.Service('license_plate_ocr', LicensePlateOCR, self.handle_ocr_request)
+        self.plate_preview = rospy.Service(
+            'license_plate_ocr_preview', LicensePlateOCR, self.handle_plate_preview)
+        self.building_preview = rospy.Service(
+            'building_name_ocr_preview', LicensePlateOCR, self.handle_building_preview)
         rospy.loginfo("License Plate OCR Server 已启动，等待请求...")
         rospy.loginfo("处理图像中心区域：x轴保留 %.0f%%，y轴全高", self.crop_ratio * 100)
 
@@ -113,7 +117,7 @@ class LicensePlateOCRServer:
             rospy.logwarn(f"图像增强失败: {e}")
             return image
 
-    def safe_ocr_process(self, image_path):
+    def safe_ocr_process(self, image):
         """安全的OCR处理，带错误恢复"""
         if not self.check_ocr_health():
             return None
@@ -121,7 +125,7 @@ class LicensePlateOCRServer:
         max_attempts = 2
         for attempt in range(max_attempts):
             try:
-                result = self.ocr.ocr(image_path, cls=False)
+                result = self.ocr.ocr(image, cls=False)
 
                 if result is None:
                     rospy.logwarn(f"OCR返回None (尝试 {attempt+1}/{max_attempts})")
@@ -288,6 +292,37 @@ class LicensePlateOCRServer:
                     confidences=[],
                     status_message=f"处理失败: {str(e)[:50]}"
                 )
+
+    def handle_plate_preview(self, req):
+        return self.handle_preview(req, plate=True)
+
+    def handle_building_preview(self, req):
+        return self.handle_preview(req, plate=False)
+
+    def handle_preview(self, req, plate):
+        with self.processing_lock:
+            try:
+                frame = self.bridge.imgmsg_to_cv2(req.image, 'bgr8')
+                if plate:
+                    crop, _ = self.get_center_crop(frame)
+                    if not crop.size:
+                        return LicensePlateOCRResponse(status_message='裁剪区域无效')
+                    frame = self.enhance_image(crop)
+                result = self.safe_ocr_process(frame)
+                if not self.ocr_health:
+                    return LicensePlateOCRResponse(status_message='OCR 引擎未就绪')
+                if not result:
+                    return LicensePlateOCRResponse(status_message='未识别到文字')
+                texts, scores = result['texts'], result['scores']
+                if not plate:
+                    return LicensePlateOCRResponse(plate_texts=texts, confidences=scores)
+                text = self.postprocess_plate(''.join(texts))
+                if not re.fullmatch(r'[\u4e00-\u9fff]?[A-Z0-9]{5,8}', text) or not any(c.isdigit() for c in text):
+                    return LicensePlateOCRResponse(status_message='未识别到车牌')
+                return LicensePlateOCRResponse(plate_texts=[text], confidences=[sum(scores) / len(scores)])
+            except Exception as error:
+                rospy.logerr('预览 OCR 处理失败: %s', error)
+                return LicensePlateOCRResponse(status_message=f'处理失败: {error}')
 
     def postprocess_plate(self, text):
         """后处理修正车牌"""
