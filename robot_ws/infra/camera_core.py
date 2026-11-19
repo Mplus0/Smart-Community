@@ -27,8 +27,13 @@ import cv2
 import numpy as np
 
 from . import config, overlay
+from .detector_core import METER_PREVIEW, NO_DETECTOR, THERMAL_PREVIEW, TRASH_PIPELINE, create_detector
 
 _LOG = logging.getLogger("infra.camera")
+THERMAL_IMAGE_TOPIC = "/building_d_temperature/image"
+METER_IMAGE_TOPIC = "/ugreen_4k/image_raw"
+PREVIEW_SOURCES = {THERMAL_PREVIEW: f"ros:{THERMAL_IMAGE_TOPIC}", METER_PREVIEW: f"ros:{METER_IMAGE_TOPIC}"}
+SOURCE_LABELS = {THERMAL_IMAGE_TOPIC: "楼宇 D 红外热图", METER_IMAGE_TOPIC: "UGREEN 4K 仪表相机"}
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +131,8 @@ class RosImageSource:
         self._image_cls = Image
         self._bridge = CvBridge()
         self._buffer = buffer
-        self._sub = rospy.Subscriber(topic, rospy.AnyMsg, self._cb, queue_size=1, buff_size=2 ** 24)
+        buff_size = 2 ** 25 if topic == METER_IMAGE_TOPIC else 2 ** 24
+        self._sub = rospy.Subscriber(topic, rospy.AnyMsg, self._cb, queue_size=1, buff_size=buff_size)
 
     def _cb(self, raw) -> None:
         try:
@@ -137,6 +143,29 @@ class RosImageSource:
 
     def close(self) -> None:
         self._sub.unregister()
+
+
+class ThermalImageSource(RosImageSource):
+    """Pair the existing building D preview with its live ROS status text."""
+
+    def __init__(self, buffer: FrameBuffer) -> None:
+        import rospy
+        from std_msgs.msg import String
+
+        super().__init__(THERMAL_IMAGE_TOPIC, buffer)
+        self._result = FrameBuffer()
+        self._result_sub = rospy.Subscriber("/building_d_temperature/result", String,
+                                           lambda message: self._result.put((time.monotonic(), message.data)),
+                                           queue_size=1)
+
+    def report(self) -> Dict[str, Any]:
+        _, sample = self._result.latest()
+        message = sample[1] if sample and time.monotonic() - sample[0] < 3.0 else ""
+        return {"kind": "thermal", "message": message}
+
+    def close(self) -> None:
+        self._result_sub.unregister()
+        super().close()
 
 
 class UsbSource:
@@ -170,8 +199,8 @@ def list_sources() -> List[Dict[str, str]]:
         import rospy
 
         for topic, msg_type in sorted(rospy.get_published_topics()):
-            if msg_type == "sensor_msgs/Image":
-                sources.append({"id": f"ros:{topic}", "label": f"ROS {topic}"})
+            if msg_type == "sensor_msgs/Image" and topic != "/thermal_camera/temperature":
+                sources.append({"id": f"ros:{topic}", "label": SOURCE_LABELS.get(topic, f"ROS {topic}")})
     except Exception as exc:
         _LOG.debug("cannot list ROS topics: %s", exc)
     for device, name in capture_devices():
@@ -186,6 +215,8 @@ def _open_source(source_id: str, buffer: FrameBuffer):
 
         if not get_bridge().ready:
             raise RuntimeError("ROS 未连接（roscore 未运行？）")
+        if name == THERMAL_IMAGE_TOPIC:
+            return ThermalImageSource(buffer)
         return RosImageSource(name, buffer)
     if kind == "usb":
         return UsbSource(name, buffer)
@@ -320,6 +351,13 @@ class CameraService:
 
     def configure(self, **changes: Any) -> Dict[str, Any]:
         with self._lock:
+            required_source = PREVIEW_SOURCES.get(changes.get("detector"))
+            if required_source:
+                changes["source"] = required_source
+            elif changes.get("source") and changes.get("detector") is None:
+                active_source = PREVIEW_SOURCES.get(self.settings["detector"])
+                if active_source and changes["source"] != active_source:
+                    changes["detector"] = NO_DETECTOR
             if self.status["recording"] and changes.get("source") not in (None, self.settings["source"]):
                 raise RuntimeError("请先停止录像，再切换视频源")
             for key, value in changes.items():
@@ -332,8 +370,6 @@ class CameraService:
             return dict(self.settings)
 
     def _detector(self, name: str, conf, iou):
-        from .detector_core import create_detector
-
         key = (name, conf, iou)
         if key not in self._detectors:
             self._detectors.clear()   # keep one model in memory on the robot
@@ -414,6 +450,7 @@ class CameraService:
                 now = time.monotonic()
                 if seq == raw_seq or frame is None:
                     if now - last_frame > 3.0:
+                        self.status.update(error=f"未收到 {source_id} 的图像", detections=[], report=None)
                         self._emit(_placeholder([f"No frames from {source_id}"]))
                     continue
                 raw_seq, last_frame = seq, now
@@ -422,7 +459,11 @@ class CameraService:
                 if now - last_infer < period:
                     continue
                 last_infer = now
-                self._emit(self._annotate(frame.copy(), settings))
+                if settings["detector"] == THERMAL_PREVIEW:
+                    self.status.update(report=source.report(), detections=[], error=None)
+                    self._emit(frame)
+                else:
+                    self._emit(self._annotate(frame.copy(), settings))
         except Exception as exc:  # never leave clients hanging silently
             _LOG.exception("camera pipeline crashed")
             self.status["error"] = str(exc)
@@ -436,13 +477,16 @@ class CameraService:
             self.status["running"] = False
 
     def _annotate(self, frame: np.ndarray, settings: Dict[str, Any]) -> np.ndarray:
-        from .detector_core import NO_DETECTOR, TRASH_PIPELINE
-
         name = settings["detector"]
         if name == NO_DETECTOR:
+            self.status.update(detections=[], report=None, error=None)
             return frame
         start = time.monotonic()
         try:
+            if name == METER_PREVIEW:
+                annotated, report = self._detector(name, None, None).analyze(frame)
+                self.status.update(report=report, detections=[], error=None)
+                return annotated
             detector = self._detector(name, settings["conf"], settings["iou"])
             if name == TRASH_PIPELINE:
                 report = detector.analyze(frame)

@@ -8,6 +8,15 @@ const $ = (id) => document.getElementById(id);
 let active = false;
 let statusTimer = null;
 let sourceTimer = null;
+let availableSources = [];
+let selectedSource = '';
+
+const detectorLabels = {
+  __none__: '不检测（原始画面）',
+  __trash_pipeline__: '垃圾分类完整流程',
+  __thermal__: '红外测温（楼宇 D）',
+  __meter__: '仪表盘识别（UGREEN 4K）',
+};
 
 function showSources(sources, selected) {
   const select = $('camSource');
@@ -31,8 +40,18 @@ function showSources(sources, selected) {
 async function refreshSources() {
   try {
     const { sources } = await api('/api/camera/sources');
-    if (active) showSources(sources, $('camSource').value);
+    if (active) {
+      availableSources = sources;
+      showSources(availableSources, selectedSource);
+    }
   } catch { /* retry on next refresh */ }
+}
+
+function syncSelection(settings) {
+  selectedSource = settings.source;
+  showSources(availableSources, selectedSource);
+  $('camDetector').value = settings.detector;
+  $('camConf').disabled = ['__thermal__', '__meter__'].includes(settings.detector);
 }
 
 async function loadOptions() {
@@ -40,9 +59,10 @@ async function loadOptions() {
     const [{ sources }, { detectors }, cfg] = await Promise.all([
       api('/api/camera/sources'), api('/api/camera/detectors'), api('/api/camera/config')]);
     const s = cfg.settings;
-    showSources(sources, s.source);
-    $('camDetector').innerHTML = detectors.map((d) => `<option value="${escapeHtml(d)}">${d === '__none__' ? '不检测（原始画面）' : d === '__trash_pipeline__' ? '垃圾分类完整流程' : escapeHtml(d)}</option>`).join('');
-    $('camDetector').value = s.detector;
+    availableSources = sources;
+    $('camDetector').innerHTML = detectors.map((d) =>
+      `<option value="${escapeHtml(d)}">${escapeHtml(detectorLabels[d] ?? d)}</option>`).join('');
+    syncSelection(s);
     $('camConf').value = s.conf ?? '';
     $('camFps').value = s.fps;
   } catch (err) {
@@ -56,7 +76,8 @@ function applyChange(control, key, value) {
   if (!control.reportValidity()) return;
   pendingChange = pendingChange.then(async () => {
     try {
-      await api('/api/camera/config', { method: 'POST', body: { [key]: value } });
+      const { settings } = await api('/api/camera/config', { method: 'POST', body: { [key]: value } });
+      syncSelection(settings);
     } catch (err) {
       toast(`切换失败：${err.message}`, 'err');
       await loadOptions();
@@ -111,6 +132,27 @@ function renderStatus({ settings, status }) {
   }
   if (settings.detector === '__none__') {
     $('camResult').textContent = '未选择检测器';
+  } else if (settings.detector === '__thermal__') {
+    const message = status.report?.message;
+    if (message) {
+      $('camResult').innerHTML = message.split('\n').map((line) => `<div>${escapeHtml(line)}</div>`).join('');
+    } else {
+      $('camResult').textContent = '等待楼宇 D 测温结果';
+    }
+  } else if (settings.detector === '__meter__') {
+    const r = status.report;
+    if (r?.kind !== 'meter') {
+      $('camResult').textContent = '等待读表结果';
+      return;
+    }
+    let alignment = r.alignment === 'tracking' ? '跟踪中' : '已定位';
+    if (r.alignment === 'alignment_failed') alignment = '未可靠定位表盘';
+    else if (r.temperature_c == null || r.humidity_percent == null) alignment += '，部分指针未读出';
+    $('camResult').innerHTML = kvRows([
+      ['表盘状态', alignment],
+      ['温度', r.temperature_c == null ? '—' : `${escapeHtml(r.temperature_c)} ℃`],
+      ['湿度', r.humidity_percent == null ? '—' : `${escapeHtml(r.humidity_percent)} %RH`],
+    ]);
   } else if (status.report) {
     const r = status.report;
     $('camResult').innerHTML = kvRows([

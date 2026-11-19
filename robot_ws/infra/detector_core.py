@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -252,15 +253,38 @@ class TrashPipeline:
 # Registry used by the camera pipeline
 # ---------------------------------------------------------------------------
 
+class MeterPreview:
+    """Run the same reader and 4K calibration as the wp_11 task."""
+
+    def __init__(self):
+        tools = _WORKSPACE.parent / "opencv"
+        spec = importlib.util.spec_from_file_location("workbench_meter_reader", tools / "meter.py")
+        self.reader_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.reader_module)
+        self.reader = self.reader_module.Reader(tools / "local-profile-4k/profile.json")
+
+    def analyze(self, image: np.ndarray):
+        values, annotated, alignment = self.reader.read(image, camera_view=True)
+        report = {
+            "kind": "meter",
+            "alignment": alignment,
+            "temperature_c": self.reader_module.quantize_reading("temperature", values["temperature"]),
+            "humidity_percent": self.reader_module.quantize_reading("humidity", values["humidity"]),
+        }
+        return annotated, report
+
+
 #: Pseudo detector running the full trash classification pipeline.
 TRASH_PIPELINE = "__trash_pipeline__"
+METER_PREVIEW = "__meter__"
+THERMAL_PREVIEW = "__thermal__"
 NO_DETECTOR = "__none__"
 
 
 def list_detectors(config_path: Path = DEFAULT_CONFIG) -> List[str]:
-    """Detector names from detectors.yaml plus the trash pipeline."""
+    """Detector names from detectors.yaml plus the workbench preview modes."""
     configs = yaml.safe_load(config_path.read_text(encoding="utf-8"))["detectors"]
-    return list(configs) + [TRASH_PIPELINE]
+    return list(configs) + [TRASH_PIPELINE, METER_PREVIEW, THERMAL_PREVIEW]
 
 
 def create_detector(name: str, confidence: Optional[float] = None, iou: Optional[float] = None,
@@ -268,6 +292,8 @@ def create_detector(name: str, confidence: Optional[float] = None, iou: Optional
     """Load a detector by name; ``None`` thresholds use detectors.yaml values."""
     if name == TRASH_PIPELINE:
         return TrashPipeline(config_path, confidence, iou)
+    if name == METER_PREVIEW:
+        return MeterPreview()
     settings, model = load_detector_config(config_path, name)
     if not model.is_file():
         raise FileNotFoundError(f"模型文件不存在：{model}")
