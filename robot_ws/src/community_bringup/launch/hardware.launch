@@ -3,7 +3,7 @@
   <arg name="base_protocol" />
   <arg name="base_port" default="/dev/carserial" />
   <arg name="imu_port" default="/dev/imu" />
-  <arg name="camera_device" default="/dev/video0" />
+  <arg name="camera_device" default="/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._Orbbec_DaBai_DCW2_RGB_Camera_CH8X952020W-video-index0" />
   <arg name="configure_camera" default="false" />
   <include file="$(find lslidar_driver)/launch/lslidar_serial.launch" />
   <node pkg="wit_ros_imu" type="wit_normal_ros.py" name="imu" output="screen">
@@ -20,6 +20,7 @@
   <node pkg="usb_cam" type="usb_cam_node" name="usb_cam" output="screen">
     <param name="video_device" value="$(arg camera_device)" />
   </node>
+  <include file="$(find community_bringup)/launch/meter_camera.launch" />
   <node if="$(arg configure_camera)" pkg="community_bringup" type="configure_camera.py" name="configure_camera" output="screen">
     <param name="device" value="$(arg camera_device)" />
     <rosparam command="load" file="$(find community_bringup)/config/camera.yaml" />

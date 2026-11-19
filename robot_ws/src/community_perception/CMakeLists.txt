@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(community_perception)
 find_package(catkin REQUIRED COMPONENTS cv_bridge message_generation rospy sensor_msgs std_msgs)
-add_service_files(FILES CountFallStand.srv LicensePlateOCR.srv ObjectDetection.srv)
+add_service_files(FILES CountFallStand.srv LicensePlateOCR.srv ObjectDetection.srv MeasureBuildingTemperature.srv)
 generate_messages(DEPENDENCIES sensor_msgs std_msgs)
 catkin_package(CATKIN_DEPENDS cv_bridge message_runtime rospy sensor_msgs std_msgs)
 catkin_install_python(PROGRAMS scripts/fall_counter_server.py scripts/license_plate_server.py scripts/yolo_detector_service.py scripts/thermal_camera.py scripts/building_d_temperature.py DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

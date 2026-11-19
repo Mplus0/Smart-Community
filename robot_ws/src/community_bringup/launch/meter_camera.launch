@@ -1,0 +1,6 @@
+<launch>
+  <arg name="video_device" default="/dev/v4l/by-id/usb-Image+_UGREEN_Camera_4K_LL-0000000001-video-index0" />
+  <node pkg="community_bringup" type="meter_camera_node.py" name="ugreen_4k" output="screen">
+    <param name="video_device" value="$(arg video_device)" />
+  </node>
+</launch>

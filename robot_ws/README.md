@@ -324,11 +324,17 @@ roslaunch community_bringup finals.launch base_protocol:=aa_bb
 
 ## 相机与视觉工具
 
+### UGREEN 仪表相机
+
+`hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 3840×2160 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
+
+`wp_11` 到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。读取超时会按航点任务失败收尾。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
+
 ### Seek 红外热成像采集
 
 `community_perception` 提供独立的 `thermal_camera` 节点。SDK 3.4 的必要文件位于
 `src/community_perception/third_party/seekware/`，支持 Linux x86_64、aarch64 和 armv7l，
-无需额外设置库路径。当前提供采集、温度输出和独立楼宇 D 四分区检测，尚未接入巡检任务。
+无需额外设置库路径。组合启动的 `services.launch` 会启动热像采集和楼宇 D 四分区检测；若已有红外采集节点，单独启动 `services.launch` 时可传 `start_thermal_camera:=false` 共享温度话题。
 已在小车 x86_64 / ROS Noetic 上验证实际采集、温度输出和网页预览；ARM 运行库尚未实机验证。
 
 首次使用，在接入红外相机的电脑上安装 USB 权限规则，然后重新插拔相机：
@@ -366,6 +372,8 @@ python3 tools/camera_web_preview.py --camera ros --topic /thermal_camera/image_r
 浏览器访问 `http://小车IP:8765/`。`Ctrl+C` 停止节点或预览；本功能不控制小车运动、不自动保存图像。
 
 ### 楼宇 D 楼层温度检测（初版）
+
+完整巡检到达 `wp_12` 时，通过 `/building_d_temperature/measure` 等待到点后的温度帧，默认 3 秒内取得各楼层已确认的结果。巡检结果记录各层最高温度与异常楼层。仅在存在异常时播报一句，如 `D大楼在 2、4 楼处发现高温情况`。测温无结果超时会记录任务失败并结束本轮。更新代码后需重新编译工作空间以生成测温服务类型。硬件、定位、导航和服务已运行时，可用 `roslaunch community_mission mission.launch single_waypoint:=wp_12` 验证单点任务。
 
 保持红外采集运行，另开终端加载工作空间后启动：
 
@@ -417,7 +425,7 @@ roscore
 终端 2 启动相机；已有 `hardware.launch` 或其他相机节点运行时跳过：
 
 ```bash
-rosrun usb_cam usb_cam_node _video_device:=/dev/video0 _pixel_format:=mjpeg _image_width:=640 _image_height:=480 _framerate:=30
+rosrun usb_cam usb_cam_node _video_device:=/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._Orbbec_DaBai_DCW2_RGB_Camera_CH8X952020W-video-index0 _pixel_format:=mjpeg _image_width:=640 _image_height:=480 _framerate:=30
 ```
 
 ### 浏览器相机预览
@@ -524,7 +532,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 | `src/community_mission/config/recognition_rules.yaml` | 人员 ROI、车辆去重等识别业务规则 |
 | `src/community_perception/config/detectors.yaml` | 检测模型路径、类别、阈值和保存设置 |
 
-默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`、相机 `/dev/video0`。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
+默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
 默认 `route.yaml` 包含 21 个原任务点和 11 个 `via_...` 转角过渡点，坐标和朝向来自 2026-11-17 新采集记录。航点按当前导航图的通道中心线校正：左右竖向通道 x 分别为 1.02、3.84 m，中间竖向通道 x 为 2.23 m；下、上横向通道 y 分别为 0.41、3.84 m，中间横向通道 y 为 1.62 m。各点保留原任务与朝向，录像起止点 `wp_19/20` 共用 x=1.02 m、yaw=3.1416 rad，保持横移目标排列。完整巡检到达 `wp_04` 后拍照，调用障碍物模型，按标志检测框中心横坐标选择后续顺序；仅导航模式仍按 `obstacle_mode` 手动选择，不调用模型：
 
@@ -545,7 +553,7 @@ rosservice call /navigation_map/reset "{}"                # 恢复底图
 
 更换地图或场地后需同步核对 `navigation_closures` 的坐标；自定义路线可不配置该字段，此时巡检不自动设置封口。`navigation.launch` 支持 `route:=...` 指定封口配置来源，应与巡检使用同一份路线文件。
 
-每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 使用 `task: obstacle` 自动选路；`wp_11` 仪表盘识别、`wp_12` 温度检测尚未接入，使用 `task: navigation` 占位。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；完整任务模式按检测选择的分支执行各航点任务，绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
+每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 使用 `task: obstacle` 自动选路；`wp_11` 使用 `task: meter` 读取温湿度表，`wp_12` 使用 `task: temperature` 检查楼宇 D 温度。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；完整任务模式按检测选择的分支执行各航点任务，绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 

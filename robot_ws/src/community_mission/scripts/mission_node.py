@@ -294,6 +294,18 @@ class Mission:
             pass
         elif task_type == 'traffic_light':
             self.wait_traffic()
+        elif task_type == 'meter':
+            raw_path = self.data_dir/'photo'/f'{index:03d}_meter.jpg'
+            overlay_path = raw_path.with_name(f'{raw_path.stem}_overlay.jpg')
+            self.results.execute('meter', point, self.read_meter, raw_path, overlay_path,
+                                 paths=[raw_path, overlay_path])
+        elif task_type == 'temperature':
+            result = self.results.execute('temperature', point, self.measure_temperature)
+            if result['announcement']:
+                self.check_running()
+                self.speech.put(result['announcement'])
+                if not self.speech.drain():
+                    rospy.logwarn('[温度] 等待播报结束超时或巡检已停止')
         elif task_type == 'announcement':
             pass  # 暂停播报任务，保留 announce() 供后续接入。
         elif task_type == 'record_start':
@@ -314,6 +326,72 @@ class Mission:
                 self.run_inspection(point, task_type, image, image_path)
         self.results.waypoint(point, 'SUCCESS')
         self.transition('NEXT_POINT', '本航点任务完成')
+
+    def read_meter(self, raw_path, overlay_path):
+        import meter_reader
+
+        profile = rospy.get_param('~meter_profile', '')
+        profile_path = Path(profile).expanduser() if profile else (
+            Path(meter_reader.__file__).with_name('meter_profile')/'profile.json')
+        reader = meter_reader.Reader(profile_path)
+        topic = rospy.get_param('~meter_image_topic', '/ugreen_4k/image_raw')
+        last_stamp = rospy.Time.now()
+        deadline = time.monotonic() + self.image_timeout
+        frames = threading.Condition()
+        latest = None
+
+        def receive(image):
+            nonlocal latest
+            with frames:
+                if image.header.stamp > last_stamp and (latest is None or image.header.stamp > latest.header.stamp):
+                    latest = image
+                    frames.notify()
+
+        subscriber = rospy.Subscriber(topic, Image, receive, queue_size=1, buff_size=2**25)
+        frame = None
+        result = None
+        reason = f'{topic} 未收到新的仪表相机图像'
+        try:
+            while time.monotonic() < deadline:
+                self.check_running()
+                with frames:
+                    if latest is None:
+                        frames.wait(min(0.1, max(0.0, deadline - time.monotonic())))
+                        continue
+                    image, latest = latest, None
+                    last_stamp = image.header.stamp
+                frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
+                values, overlay, status = reader.read(frame)
+                if status == 'alignment_failed':
+                    reason = '仪表盘配准失败'
+                elif values['temperature'] is None or values['humidity'] is None:
+                    reason = '未可靠读出温度或湿度指针'
+                else:
+                    result = dict(
+                        temperature_c=meter_reader.quantize_reading('temperature', values['temperature']),
+                        humidity_percent=meter_reader.quantize_reading('humidity', values['humidity']),
+                        camera_topic=topic)
+                    break
+            self.check_running()
+            if frame is not None:
+                meter_reader.save_image(raw_path, frame)
+                meter_reader.save_image(overlay_path, overlay)
+            if result is None:
+                raise RuntimeError(reason)
+            return result
+        finally:
+            subscriber.unregister()
+
+    def measure_temperature(self):
+        reading = self.services.measure_building_temperature()
+        self.check_running()
+        floors = list(reading.abnormal_floors)
+        announcement = ''
+        if floors:
+            floor_text = '、'.join(map(str, floors))
+            announcement = f'D大楼在 {floor_text} 楼处发现高温情况'
+        return dict(abnormal_floors=floors, max_temperatures_c=list(reading.max_temperatures_c),
+                    announcement=announcement)
 
     def select_obstacle_route(self, image):
         objects = detections(self.services.detect('obstacle_detector', image))

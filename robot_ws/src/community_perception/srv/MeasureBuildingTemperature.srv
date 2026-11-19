@@ -1,0 +1,5 @@
+---
+bool success
+string message
+int32[] abnormal_floors
+float32[] max_temperatures_c  # Floors 1 through 4

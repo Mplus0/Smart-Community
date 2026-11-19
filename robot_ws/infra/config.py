@@ -121,7 +121,7 @@ FILE_ARGS: Tuple[str, ...] = ("map", "navigation_map", "route")
 
 # Component names used by the mutual-exclusion check.
 #   hardware: chassis serial + IMU + lidar + chassis TF
-#   camera:   usb_cam on /dev/video0
+#   camera:   main USB camera
 #   localization: ekf + robot_state_publisher (navigation or SLAM mapping)
 #   navigation: map servers + AMCL + move_base
 #   services: perception / speech / recorder services
@@ -141,19 +141,23 @@ COMPONENT_NODES: Dict[str, str] = {
     "mission": "/community_mission",
 }
 
+MAIN_CAMERA_DEVICE = (
+    "/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._Orbbec_DaBai_DCW2_RGB_Camera_CH8X952020W-video-index0"
+)
+
 LAUNCHES: Dict[str, LaunchSpec] = {
     spec.name: spec
     for spec in [
         LaunchSpec(
             name="hardware",
-            description="底盘串口 + IMU + 雷达 + USB 相机",
+            description="底盘串口 + IMU + 雷达 + 主相机和仪表相机",
             package="community_bringup",
             launch_file="hardware.launch",
             args={
                 "base_protocol": "",
                 "base_port": "/dev/carserial",
                 "imu_port": "/dev/imu",
-                "camera_device": "/dev/video0",
+                "camera_device": MAIN_CAMERA_DEVICE,
                 "configure_camera": "false",
             },
             required=("base_protocol",),
@@ -236,7 +240,7 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             description="仅相机 + 识别服务（无底盘、无导航）",
             package="community_bringup",
             launch_file="debug_perception.launch",
-            args={"camera_device": "/dev/video0", "configure_camera": "false"},
+            args={"camera_device": MAIN_CAMERA_DEVICE, "configure_camera": "false"},
             components=frozenset({"camera", "services"}),
         ),
     ]

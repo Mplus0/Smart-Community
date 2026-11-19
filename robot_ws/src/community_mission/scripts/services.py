@@ -8,7 +8,7 @@ from community_mission.srv import Speech
 from community_perception.srv import CountFallStand
 from community_perception.srv import LicensePlateOCR
 from community_mission.srv import StartRecording, StopRecording
-from community_perception.srv import ObjectDetection
+from community_perception.srv import MeasureBuildingTemperature, ObjectDetection
 from dynamic_reconfigure.srv import Reconfigure
 from dynamic_reconfigure.msg import Config, DoubleParameter
 
@@ -29,6 +29,9 @@ class Services:
 
     def detect(self, detector, image):
         return self.call(detector+'/detect', ObjectDetection, image)
+
+    def measure_building_temperature(self):
+        return self.call('building_d_temperature/measure', MeasureBuildingTemperature)
 
     def ocr(self, image):
         return self.call('license_plate_ocr', LicensePlateOCR, image)

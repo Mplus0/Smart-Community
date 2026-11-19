@@ -6,7 +6,7 @@
 
        Batch 4 new launch per WORKBENCH.md §4.4 / §11.4.
   -->
-  <arg name="camera_device" default="/dev/video0"/>
+  <arg name="camera_device" default="/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._Orbbec_DaBai_DCW2_RGB_Camera_CH8X952020W-video-index0"/>
   <arg name="configure_camera" default="false"/>
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
 

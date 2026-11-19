@@ -11,6 +11,7 @@
   <exec_depend>python3-serial</exec_depend>
   <depend>community_mission</depend>
   <depend>community_perception</depend>
+  <depend>cv_bridge</depend>
   <depend>dwa_local_planner</depend>
   <exec_depend>teb_local_planner</exec_depend>
   <depend>global_planner</depend>
@@ -25,6 +26,8 @@
   <depend>robot_state_publisher</depend>
   <depend>std_srvs</depend>
   <depend>rospy</depend>
+  <depend>sensor_msgs</depend>
+  <exec_depend>python3-opencv</exec_depend>
   <depend>tf</depend>
   <depend>usb_cam</depend>
   <depend>wit_ros_imu</depend>

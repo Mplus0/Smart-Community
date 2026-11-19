@@ -67,12 +67,12 @@ points:
   x: 2.8469
   y: 3.84
   yaw: -1.5361
-  task: navigation  # 仪表盘识别占位，尚未实现
+  task: meter
 - id: wp_12
   x: 3.84
   y: 3.0606
   yaw: 1.5956
-  task: navigation  # 温度检测占位，尚未实现
+  task: temperature
 - id: wp_13
   x: 3.84
   y: 2.2853

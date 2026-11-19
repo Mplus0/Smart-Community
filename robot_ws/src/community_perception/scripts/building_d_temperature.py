@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Detect overheated floors in four equal vertical temperature-image regions."""
+from collections import deque
 import threading
 import time
 
@@ -9,6 +10,7 @@ import rospy
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
+from community_perception.srv import MeasureBuildingTemperature, MeasureBuildingTemperatureResponse
 
 
 def floor_temperatures(image):
@@ -62,10 +64,12 @@ class BuildingDTemperature:
         self.threshold = float(rospy.get_param("~threshold", 40.0))
         self.confirm_frames = int(rospy.get_param("~confirm_frames", 3))
         self.timeout = float(rospy.get_param("~timeout", 3.0))
-        if not np.isfinite(self.threshold) or self.confirm_frames < 1 or self.timeout <= 0:
+        if not np.isfinite(self.threshold) or self.confirm_frames < 1 or not 0 < self.timeout < float("inf"):
             raise ValueError("threshold 须为有限温度，confirm_frames 和 timeout 须大于 0")
         self.bridge = CvBridge()
-        self.lock = threading.Lock()
+        self.frames = threading.Condition()
+        self.valid_stamps = deque(maxlen=self.confirm_frames)
+        self.latest_measurement = None
         self.streaks = [0] * 4
         self.last_received = time.monotonic()
         self.last_result = None
@@ -75,6 +79,7 @@ class BuildingDTemperature:
             rospy.get_param("~temperature_topic", "/thermal_camera/temperature"),
             Image, self.receive, queue_size=1, buff_size=2**20)
         self.timer = rospy.Timer(rospy.Duration(1.0), self.check_timeout)
+        self.measure_service = rospy.Service("~measure", MeasureBuildingTemperature, self.measure)
         rospy.loginfo("楼宇D检测：从左到右 4/3/2/1 楼，温度 > %.1f℃，连续 %d 帧确认",
                       self.threshold, self.confirm_frames)
 
@@ -91,18 +96,23 @@ class BuildingDTemperature:
             temperatures = self.bridge.imgmsg_to_cv2(message, "passthrough")
             maxima = floor_temperatures(temperatures)
         except (CvBridgeError, ValueError) as exc:
-            with self.lock:
+            with self.frames:
                 self.streaks = [0] * 4
+                self.valid_stamps.clear()
                 self.publish("楼宇D温度数据无效")
                 self.publish_unavailable("INVALID DATA")
             rospy.logwarn_throttle(2.0, str(exc))
             return
-        with self.lock:
+        with self.frames:
             now = time.monotonic()
             if now - self.last_received > self.timeout:
                 self.streaks = [0] * 4
+                self.valid_stamps.clear()
+            stamp = message.header.stamp
+            if self.valid_stamps and stamp <= self.valid_stamps[-1]:
+                return
             self.last_received = now
-            abnormal, pending, invalid = [], [], []
+            abnormal, pending, invalid, abnormal_floors = [], [], [], []
             for index, temperature in enumerate(maxima):
                 floor = 4 - index
                 if temperature is None:
@@ -112,10 +122,18 @@ class BuildingDTemperature:
                     self.streaks[index] = min(self.streaks[index] + 1, self.confirm_frames)
                     if self.streaks[index] >= self.confirm_frames:
                         abnormal.append("楼宇D {}楼温度异常".format(floor))
+                        abnormal_floors.append(floor)
                     else:
                         pending.append("楼宇D {}楼超温确认中".format(floor))
                 else:
                     self.streaks[index] = 0
+            if invalid:
+                self.valid_stamps.clear()
+            elif not stamp.is_zero():
+                self.valid_stamps.append(stamp)
+            self.latest_measurement = None if pending or invalid else MeasureBuildingTemperatureResponse(
+                success=True, abnormal_floors=abnormal_floors[::-1], max_temperatures_c=maxima[::-1])
+            self.frames.notify_all()
             self.publish("\n".join(abnormal + pending + invalid) or "楼宇D温度正常")
             preview = self.bridge.cv2_to_imgmsg(
                 draw_preview(temperatures, maxima, self.streaks, self.confirm_frames), "bgr8")
@@ -123,6 +141,23 @@ class BuildingDTemperature:
             self.preview_pub.publish(preview)
             rospy.loginfo_throttle(2.0, "各层最高温度 ℃（4/3/2/1）：" +
                                    ", ".join("无效" if t is None else "%.1f" % t for t in maxima))
+
+    def measure(self, _request):
+        """Wait for a complete, settled measurement from frames captured after the request."""
+        started = rospy.Time.now()
+        deadline = time.monotonic() + self.timeout
+        with self.frames:
+            while not rospy.is_shutdown():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                if (self.latest_measurement is not None
+                        and len(self.valid_stamps) == self.confirm_frames
+                        and self.valid_stamps[0] > started
+                        and time.monotonic() - self.last_received <= self.timeout):
+                    return self.latest_measurement
+                self.frames.wait(min(remaining, 0.1))
+        return MeasureBuildingTemperatureResponse(success=False, message="未获得完整且已确认的楼宇D温度结果")
 
     def publish_unavailable(self, text):
         canvas = np.zeros((724, 824, 3), dtype=np.uint8)
@@ -133,9 +168,10 @@ class BuildingDTemperature:
         self.preview_pub.publish(image)
 
     def check_timeout(self, event):
-        with self.lock:
+        with self.frames:
             if time.monotonic() - self.last_received > self.timeout:
                 self.streaks = [0] * 4
+                self.valid_stamps.clear()
                 self.publish("楼宇D温度数据超时")
                 self.publish_unavailable("DATA TIMEOUT")
                 rospy.logwarn_throttle(5.0, "楼宇D检测未收到有效温度帧，请检查红外采集节点")

@@ -28,7 +28,7 @@ def validate_route(route):
         raise ValueError('points must be a nonempty list')
     ids = set()
     allowed = {'navigation', 'person', 'plate', 'traffic_light', 'fire', 'trash', 'obstacle',
-               'vehicle_photo', 'announcement', 'record_start', 'record_stop'}
+               'meter', 'temperature', 'vehicle_photo', 'announcement', 'record_start', 'record_stop'}
     recording = False
     for point in points:
         if not isinstance(point, dict):
