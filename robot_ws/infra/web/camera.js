@@ -133,7 +133,7 @@ function renderStatus({ settings, status }) {
   if (settings.detector === '__none__') {
     $('camResult').textContent = '未选择检测器';
   } else if (settings.detector === '__thermal__') {
-    const message = status.report?.message;
+    const message = status.report?.kind === 'thermal' ? status.report.message : '';
     if (message) {
       $('camResult').innerHTML = message.split('\n').map((line) => `<div>${escapeHtml(line)}</div>`).join('');
     } else {
@@ -153,7 +153,7 @@ function renderStatus({ settings, status }) {
       ['温度', r.temperature_c == null ? '—' : `${escapeHtml(r.temperature_c)} ℃`],
       ['湿度', r.humidity_percent == null ? '—' : `${escapeHtml(r.humidity_percent)} %RH`],
     ]);
-  } else if (status.report) {
+  } else if (settings.detector === '__trash_pipeline__' && status.report) {
     const r = status.report;
     $('camResult').innerHTML = kvRows([
       ['放置结果', escapeHtml(r.placement_status)],
