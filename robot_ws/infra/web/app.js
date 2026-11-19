@@ -6,9 +6,9 @@
 //   * Live log WebSocket and the emergency stop button.
 
 import { api, connectWithRetry, emit, escapeHtml, fmtDuration, on, toast } from './common.js';
-import './nav.js?v=console-dark-1';
-import './camera.js?v=capture-1';
-import './mission.js';
+import './nav.js?v=teleop-keyboard-1';
+import './camera.js?v=workspace-diagnostics-1';
+import './mission.js?v=inspection-auto-branch-1';
 
 const $ = (id) => document.getElementById(id);
 const views = Array.from(document.querySelectorAll('.view'));
@@ -17,18 +17,31 @@ const LOG_MAX_LINES = 300;
 
 // --- Tabs -------------------------------------------------------------------
 
+function viewFromHash() {
+  const name = window.location.hash.slice(1);
+  if (name === 'dashboard') return 'diagnostics';
+  return views.some(view => view.dataset.view === name) ? name : 'teleop';
+}
 function activateView(name) {
+  const tab = name === 'mission-records' ? 'mission' : name;
   for (const btn of navButtons) {
-    const selected = btn.dataset.view === name;
+    const selected = btn.dataset.view === tab;
     btn.classList.toggle('is-active', selected);
-    if (selected) btn.setAttribute('aria-current', 'page');
+    if (selected) btn.setAttribute('aria-current', name === tab ? 'page' : 'location');
     else btn.removeAttribute('aria-current');
   }
   for (const v of views) v.classList.toggle('is-active', v.dataset.view === name);
+  const diagnostics = $('diagnosticsLink');
+  diagnostics.classList.toggle('is-on', name === 'diagnostics');
+  if (name === 'diagnostics') diagnostics.setAttribute('aria-current', 'page');
+  else diagnostics.removeAttribute('aria-current');
   document.querySelector('.main').scrollTop = 0;
   emit('view', name);
 }
-for (const btn of navButtons) btn.addEventListener('click', () => activateView(btn.dataset.view));
+window.addEventListener('hashchange', () => activateView(viewFromHash()));
+for (const btn of navButtons) btn.addEventListener('click', () => {
+  window.location.hash = btn.dataset.view;
+});
 
 // --- Dashboard --------------------------------------------------------------
 
@@ -68,15 +81,30 @@ function renderDashboard(snap) {
   const host = snap.host || {};
   $('hostCpu').textContent = fmtPct(host.cpu);
   $('hostMem').textContent = fmtPct(host.mem);
-  $('hostDisk').textContent = fmtPct(host.disk);
-  setBar('hostCpuBar', host.cpu); setBar('hostMemBar', host.mem); setBar('hostDiskBar', host.disk);
+  setBar('hostCpuBar', host.cpu); setBar('hostMemBar', host.mem);
   const p = snap.pose;
   $('poseText').textContent = p ? `${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${(p.yaw * 180 / Math.PI).toFixed(0)}°` : '—';
   $('poseSource').textContent = `来源: ${p ? (p.source === 'tf' ? 'TF map→base' : '/amcl_pose') : '—'}`;
-  renderTopics(snap.topics || {});
+  lastRosSnapshot = snap;
+  if (viewFromHash() === 'diagnostics') renderDiagnostics();
   renderLaunches(snap.launches || []);
   emit('state', snap);
 }
+
+let lastRosSnapshot = null;
+function renderDiagnostics() {
+  if (!lastRosSnapshot) return;
+  const names = (lastRosSnapshot.ros?.nodes || []).map(node => {
+    const item = document.createElement('code');
+    item.textContent = node;
+    return item;
+  });
+  $('diagnosticNodeCount').textContent = names.length + ' 个';
+  if (names.length) $('diagnosticNodes').replaceChildren(...names);
+  else $('diagnosticNodes').textContent = '没有可用节点';
+  renderTopics(lastRosSnapshot.topics || {});
+}
+on('view', name => { if (name === 'diagnostics') renderDiagnostics(); });
 
 // --- Launches ---------------------------------------------------------------
 
@@ -251,10 +279,10 @@ function appendLog(msg) {
 async function fetchHealth() {
   try {
     const data = await api('/api/health');
-    $('roMode').textContent = data.readonly ? '只读' : '读写';
+    $('robotIp').textContent = data.robot_ip || '—';
     writable = !data.readonly;
     updateRaceButton();
-  } catch { $('roMode').textContent = '未知'; }
+  } catch { return; }
 }
 
 on('launch-changed', fetchLaunchRegistry);
@@ -267,7 +295,7 @@ async function main() {
   });
   connectWithRetry('/api/logs', appendLog);
   setInterval(fetchLaunchRegistry, 30000);
-  emit('view', 'dashboard');
+  activateView(viewFromHash());
 }
 
 main().catch((err) => console.error(err));

@@ -5,7 +5,14 @@ import { api, escapeHtml, fmtDuration, kvRows, on, toast } from './common.js';
 const $ = (id) => document.getElementById(id);
 let active = false;
 let waypointsLoaded = false;
-let lastMissionState = null;
+let lastSnapshot = null;
+const preparing = new Set();
+let missionStarting = false;
+let liveRunId = '';
+let livePending = false;
+let liveNextAt = 0;
+let liveDone = false;
+let liveSignature = '';
 
 const STATE_BADGE = {
   INIT: ['', '初始化'], NAVIGATE: ['ok', '导航中'], TASK: ['ok', '执行任务'], NEXT_POINT: ['ok', '切换航点'],
@@ -23,6 +30,82 @@ async function loadWaypoints() {
   }
 }
 
+function renderReadiness() {
+  const nodes = lastSnapshot?.ros?.nodes || [];
+  const online = Boolean(lastSnapshot?.ros?.master);
+  const launches = (lastSnapshot?.launches || []).filter(record => record.status === 'running');
+  const composite = record => ['community', 'field', 'finals'].includes(record.name);
+  const hardwareLaunch = launches.some(record => record.name === 'hardware' || composite(record));
+  const navigationLaunch = launches.find(record => (record.name === 'navigation' || composite(record))
+    && record.args?.localization_only !== 'true');
+  const servicesLaunch = launches.some(record => record.name === 'services' || composite(record));
+  const hardware = nodes.includes('/community_serial');
+  const navigation = nodes.includes('/move_base');
+  const services = nodes.includes('/speech_server');
+  const noServices = $('misNavOnly').checked;
+  const localizing = !navigation && !navigationLaunch && (nodes.includes('/ekf_localization')
+    || launches.some(record => record.name === 'mapping' || record.args?.localization_only === 'true'));
+  const planner = navigationLaunch ? (navigationLaunch.args?.local_planner || 'dwa').toUpperCase() : '';
+  const mission = nodes.includes('/community_mission') || Boolean(lastSnapshot?.mission?.node_alive)
+    || launches.some(record => ['mission', 'field', 'finals'].includes(record.name)
+      || (record.name === 'community' && record.args?.run_mission === 'true'));
+  const starting = (name, running, ready) => preparing.has(name) || running && !ready;
+
+  const startingHardware = starting('hardware', hardwareLaunch, hardware);
+  const startingNavigation = starting('navigation', Boolean(navigationLaunch), navigation);
+  const startingServices = starting('services', servicesLaunch, services);
+  $('misHardwareStatus').textContent = hardware ? '已就绪' : startingHardware ? '启动中…' : '未启动';
+  $('misPlannerStatus').textContent = navigation ? '已就绪' + (planner ? ' · ' + planner : '')
+    : startingNavigation ? '启动中…' : localizing ? '请先停止建图或取点定位'
+    : hardware ? '未启动' : '等待底盘就绪';
+  $('misServicesStatus').textContent = noServices ? '仅导航无需启动' : services ? '已就绪' : startingServices ? '启动中…' : '未启动';
+  $('misHardwareStart').hidden = hardware || startingHardware;
+  $('misHardwareStart').disabled = !online || mission || startingHardware;
+  $('misNavStart').hidden = navigation || startingNavigation;
+  $('misNavStart').disabled = !online || !hardware || localizing || mission || startingNavigation;
+  $('misPlanner').disabled = navigation || startingNavigation;
+  $('misServicesStart').hidden = noServices || services || startingServices;
+  $('misServicesStart').disabled = !online || mission || startingServices;
+  $('misStart').disabled = !online || !hardware || !navigation || (!noServices && !services) || mission || missionStarting;
+  $('misStop').disabled = !online || !mission;
+}
+
+async function prepareLaunch(name, body, message) {
+  if (preparing.has(name)) return;
+  preparing.add(name);
+  renderReadiness();
+  try {
+    const { record } = await api('/api/launch/' + name + '/start', { method: 'POST', body });
+    if (record?.status === 'running' && lastSnapshot) {
+      const launches = (lastSnapshot.launches || []).filter(item => item.name !== name);
+      lastSnapshot = { ...lastSnapshot, launches: [...launches, record] };
+    }
+    toast(message, 'ok');
+  } catch (err) {
+    toast('启动失败：' + err.message, 'err');
+  } finally {
+    preparing.delete(name);
+    renderReadiness();
+  }
+}
+
+$('misHardwareStart').addEventListener('click', () => prepareLaunch('hardware', { base_protocol: 'aa_bb' }, '已请求启动底盘与传感器'));
+$('misNavStart').addEventListener('click', () => {
+  const planner = $('misPlanner').value;
+  prepareLaunch('navigation', { local_planner: planner }, '已请求启动导航 · ' + planner.toUpperCase());
+});
+$('misServicesStart').addEventListener('click', () => prepareLaunch('services', {}, '已请求启用识别服务'));
+function syncNavigationMode() {
+  const navigationOnly = $('misNavOnly').checked;
+  $('misObstacleField').hidden = !navigationOnly;
+  $('misObstacle').disabled = !navigationOnly;
+  $('misAutoRouteHint').hidden = navigationOnly;
+  $('misNavigationHint').hidden = !navigationOnly;
+  renderReadiness();
+}
+$('misNavOnly').addEventListener('change', syncNavigationMode);
+syncNavigationMode();
+
 $('misScope').addEventListener('change', () => { $('misWaypoint').disabled = $('misScope').value !== 'single'; });
 
 $('misStart').addEventListener('click', async () => {
@@ -31,13 +114,22 @@ $('misStart').addEventListener('click', async () => {
   const body = {
     waypoint: single ? $('misWaypoint').value : '',
     navigation_only: $('misNavOnly').checked,
-    obstacle_mode: $('misObstacle').value,
   };
+  if (body.navigation_only) body.obstacle_mode = $('misObstacle').value;
+  missionStarting = true;
+  renderReadiness();
   try {
-    await api('/api/mission/start', { method: 'POST', body });
+    const { record } = await api('/api/mission/start', { method: 'POST', body });
+    if (record?.status === 'running' && lastSnapshot) {
+      const launches = (lastSnapshot.launches || []).filter(item => item.name !== 'mission');
+      lastSnapshot = { ...lastSnapshot, launches: [...launches, record] };
+    }
     toast(`已启动${single ? `单航点 ${body.waypoint}` : '完整巡检'}${body.navigation_only ? '（仅导航）' : ''}`, 'ok');
   } catch (err) {
     toast(`启动失败：${err.message}`, 'err');
+  } finally {
+    missionStarting = false;
+    renderReadiness();
   }
 });
 
@@ -67,11 +159,83 @@ function renderMission(state) {
     ['航点', `${escapeHtml(state.current_waypoint)}（${state.index + 1}/${state.total}）`],
     ['任务类型', escapeHtml(state.task)],
     ['说明', escapeHtml(state.reason)],
-    ['模式', `${state.single_waypoint ? `单航点 ${escapeHtml(state.single_waypoint)}` : '完整巡检'}${state.navigation_only ? ' · 仅导航' : ''} · ${escapeHtml(state.obstacle_mode)}`],
+    ['模式', `${state.single_waypoint ? `单航点 ${escapeHtml(state.single_waypoint)}` : '完整巡检'}${state.navigation_only ? ' · 仅导航 · ' + (state.obstacle_mode === 'clear' ? '预设直行' : '预设绕行') : ' · 识别后自动选路'}`],
     ['最近操作', op ? `${escapeHtml(op.waypoint_id)} ${escapeHtml(op.task_type)} <span class="badge ${op.status === 'FAILED' ? 'err' : op.status === 'SUCCESS' ? 'ok' : ''}">${escapeHtml(op.status)}</span> ${escapeHtml(op.reason || '')}` : '—'],
     ['run_id', `<code>${escapeHtml(state.run_id)}</code>`],
     ['更新', `${state.received_age_s}s 前`],
   ]);
+}
+
+// --- Live results ------------------------------------------------------------
+
+const TASK_LABELS = {
+  navigation: '导航', person: '人员识别', plate: '车牌识别', traffic_light: '红绿灯',
+  fire: '火焰识别', trash: '垃圾分类', obstacle: '障碍物识别', vehicle_photo: '车辆拍照',
+  announcement: '播报', record_start: '开始录像', record_stop: '结束录像',
+};
+const RESULT_BADGES = {
+  SUCCESS: ['ok', '成功'], FAILED: ['err', '失败'],
+  RUNNING: ['warn', '进行中'], EMPTY_VALID: ['ok', '未检出目标'],
+};
+
+function liveMedia(runId, op, files) {
+  const paths = Array.isArray(op.paths) ? op.paths : [];
+  const evidence = files.filter(file => paths.some(path => typeof path === 'string'
+    && (path === file || path.endsWith('/' + file))));
+  const photos = evidence.filter(file => /\.(jpe?g|png)$/i.test(file));
+  const videos = op.ended_at ? evidence.filter(file => /\.(mp4|avi|mkv)$/i.test(file)) : [];
+  const pictures = photos.length ? '<div class="thumbs">' + photos.map(file => {
+    const url = fileUrl(runId, file);
+    return '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url
+      + '" loading="lazy" alt="' + escapeHtml(file.split('/').pop()) + '"></a>';
+  }).join('') + '</div>' : '';
+  return pictures + videos.map(file => '<video controls preload="metadata" src="' + fileUrl(runId, file) + '"></video>').join('');
+}
+
+function renderLiveResults(runId, operations, files, navigationOnly) {
+  const results = operations.filter(op => navigationOnly || op.task_type !== 'navigation' || op.status === 'FAILED').reverse();
+  const signature = JSON.stringify([runId, results, files]);
+  if (signature === liveSignature) return results.length;
+  liveSignature = signature;
+  $('misLiveResults').innerHTML = results.map(op => {
+    const [badge, label] = RESULT_BADGES[op.status] || ['', op.status || '—'];
+    const result = op.result == null ? '' : typeof op.result === 'object'
+      ? JSON.stringify(op.result, null, 2) : String(op.result);
+    return '<section class="mission-live-result"><header><h3>' + escapeHtml(op.waypoint_id) + ' · '
+      + escapeHtml(TASK_LABELS[op.task_type] || op.task_type)
+      + '</h3><span class="badge ' + badge + '">' + escapeHtml(label) + '</span></header>'
+      + (op.reason ? '<p class="muted">' + escapeHtml(op.reason) + '</p>' : '')
+      + (result ? '<pre>' + escapeHtml(result) + '</pre>' : '')
+      + liveMedia(runId, op, files) + '</section>';
+  }).join('');
+  return results.length;
+}
+
+async function refreshLive(state) {
+  const runId = state?.run_id || '';
+  if (runId !== liveRunId) {
+    liveRunId = runId;
+    liveDone = false;
+    liveNextAt = 0;
+    liveSignature = '';
+    $('misLiveResults').replaceChildren();
+    $('misLiveStatus').textContent = runId ? '等待首个任务结果' : '等待巡检任务开始';
+  }
+  if (!runId || liveDone || livePending || Date.now() < liveNextAt) return;
+  livePending = true;
+  liveNextAt = Date.now() + 1000;
+  try {
+    const { result, files } = await api('/api/mission/runs/' + encodeURIComponent(runId));
+    if (!active || liveRunId !== runId) return;
+    const count = renderLiveResults(runId, result.operations || [], files || [], state.navigation_only);
+    liveDone = ['FINISH', 'ERROR'].includes(result.status);
+    $('misLiveStatus').textContent = count ? '本次巡检 · ' + count + ' 条结果'
+      : liveDone ? '本次巡检没有产生任务结果' : '等待首个任务结果';
+  } catch (err) {
+    if (active && liveRunId === runId) $('misLiveStatus').textContent = '等待车端写入结果…';
+  } finally {
+    livePending = false;
+  }
 }
 
 // --- Runs --------------------------------------------------------------------
@@ -152,18 +316,21 @@ async function showRun(runId) {
 $('runsRefresh').addEventListener('click', loadRuns);
 $('runClose').addEventListener('click', () => { $('runDetail').hidden = true; });
 
-on('state', (snap) => {
-  const state = snap.mission;
-  if (active) renderMission(state);
-  // Refresh the run list when a mission ends.
-  const prev = lastMissionState;
-  lastMissionState = state ? `${state.run_id}:${state.state}` : null;
-  if (active && state && prev !== lastMissionState && ['FINISH', 'ERROR'].includes(state.state)) loadRuns();
+on('state', snap => {
+  lastSnapshot = snap;
+  if (active) {
+    renderMission(snap.mission);
+    renderReadiness();
+    refreshLive(snap.mission);
+  }
 });
 
-on('view', async (name) => {
+on('view', name => {
   active = name === 'mission';
+  if (name === 'mission-records') loadRuns();
   if (!active) return;
-  if (!waypointsLoaded) await loadWaypoints();
-  loadRuns();
+  renderMission(lastSnapshot?.mission);
+  renderReadiness();
+  refreshLive(lastSnapshot?.mission);
+  if (!waypointsLoaded) loadWaypoints();
 });

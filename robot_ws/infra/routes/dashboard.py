@@ -16,7 +16,7 @@ import json
 import logging
 from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from .. import config
 from ..deps import accept_ws
@@ -30,12 +30,14 @@ router = APIRouter(tags=["dashboard"])
 
 
 @router.get("/api/health")
-async def health() -> Dict[str, Any]:
-    """Minimal liveness response for ``run.sh`` / monitoring."""
+async def health(request: Request) -> Dict[str, Any]:
+    """Report liveness and the address of the server-side socket."""
+    server = request.scope.get("server")
     return {
         "ok": True,
         "version": __import__("infra").__version__,
         "readonly": config.READONLY,
+        "robot_ip": server[0] if server else None,
     }
 
 

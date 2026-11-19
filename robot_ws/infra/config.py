@@ -109,6 +109,7 @@ ARG_CHOICES: Dict[str, Tuple[str, ...]] = {
     "local_planner": ("dwa", "teb"),
     "obstacle_mode": ("clear", "blocked"),
     "algorithm": ("cartographer", "gmapping"),
+    "localization_only": ("true", "false"),
     "navigation_only": ("true", "false"),
     "run_mission": ("true", "false"),
     "configure_camera": ("true", "false"),
@@ -163,7 +164,7 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             description="地图 + AMCL + move_base（需先启动 hardware）",
             package="community_bringup",
             launch_file="navigation.launch",
-            args={"map": "", "navigation_map": "", "local_planner": "dwa", "route": ""},
+            args={"map": "", "navigation_map": "", "local_planner": "dwa", "route": "", "localization_only": "false"},
             components=_NAV,
             requires=frozenset({"hardware"}),
         ),
@@ -252,6 +253,8 @@ def launch_components(name: str, args: Dict[str, str]) -> FrozenSet[str]:
     spec = LAUNCHES.get(name)
     if spec is None:
         return frozenset()
+    if name == "navigation" and args.get("localization_only") == "true":
+        return spec.components - {"navigation"}
     if name == "community" and args.get("run_mission") == "true":
         return spec.components | {"mission"}
     return spec.components

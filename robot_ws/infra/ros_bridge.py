@@ -340,13 +340,18 @@ class ROSBridge:
         """Cancel every move_base goal (empty GoalID = cancel all)."""
         self._require(self._pub_cancel, "/move_base/cancel").publish(GoalID())
 
-    def publish_cmd_vel(self, linear: float, angular: float) -> None:
+    def publish_cmd_vel(self, linear: float, angular: float, lateral: float = 0.0) -> None:
         """Publish a clamped velocity; used by teleop."""
         pub = self._require(self._pub_cmd_vel, "/cmd_vel")
         if time.monotonic() < self._teleop_hold_until:
-            linear = angular = 0.0  # just after an e-stop: ignore teleop input
+            linear = angular = lateral = 0.0  # just after an e-stop: ignore teleop input
+        speed = math.hypot(linear, lateral)
+        if speed > config.MAX_LINEAR_SPEED:
+            linear = linear / speed * config.MAX_LINEAR_SPEED
+            lateral = lateral / speed * config.MAX_LINEAR_SPEED
         msg = Twist()
-        msg.linear.x = max(-config.MAX_LINEAR_SPEED, min(config.MAX_LINEAR_SPEED, linear))
+        msg.linear.x = linear
+        msg.linear.y = lateral
         msg.angular.z = max(-config.MAX_ANGULAR_SPEED, min(config.MAX_ANGULAR_SPEED, angular))
         pub.publish(msg)
         self._last_cmd_vel = time.monotonic()
@@ -411,7 +416,7 @@ class ROSBridge:
     def get_topics_snapshot(self) -> Dict[str, Dict[str, float]]:
         return self._tracker.snapshot()
 
-    def _lookup(self, target: str, source: str):
+    def _lookup(self, target: str, source: str, max_age: Optional[float] = None):
         """Return (x, y, yaw) of ``source`` frame in ``target`` frame, or None."""
         if self._tf_buffer is None or not source:
             return None
@@ -421,6 +426,10 @@ class ROSBridge:
             tf = self._tf_buffer.lookup_transform(target, source.lstrip("/"), rospy.Time(0), rospy.Duration(0.05))
         except Exception:
             return None
+        if max_age is not None:
+            age = (rospy.Time.now() - tf.header.stamp).to_sec()
+            if tf.header.stamp.is_zero() or not -0.1 <= age <= max_age:
+                return None
         t = tf.transform.translation
         return t.x, t.y, _yaw(tf.transform.rotation)
 
@@ -439,6 +448,13 @@ class ROSBridge:
         if self._amcl_pose is not None:
             p = self._amcl_pose
             return {"x": round(p["x"], 3), "y": round(p["y"], 3), "yaw": round(p["yaw"], 3), "source": "amcl"}
+        return None
+
+    def get_waypoint_pose(self) -> Optional[Dict[str, float]]:
+        for base in BASE_FRAMES:
+            pose = self._lookup(MAP_FRAME, base, max_age=1.0)
+            if pose is not None and all(math.isfinite(value) for value in pose):
+                return {key: round(value, 4) for key, value in zip(("x", "y", "yaw"), pose)}
         return None
 
     def get_scan_points(self) -> List[List[float]]:

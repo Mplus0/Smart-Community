@@ -103,7 +103,8 @@ function renderStatus({ settings, status }) {
     status.video_path && ((recording ? '录像中：' : '最近录像：') + status.video_path),
     lastPhoto && ('最近图片：' + lastPhoto),
   ].filter(Boolean).join('  ·  ');
-  $('camState').textContent = status.running ? '运行中' : '未运行';
+  $('camState').textContent = status.error ? '相机未就绪'
+    : status.running ? '相机预览中' : settings.source ? '等待相机画面' : '请选择相机源';
   if (status.error) {
     $('camResult').innerHTML = `<div class="form-error">${escapeHtml(status.error)}</div>`;
     return;

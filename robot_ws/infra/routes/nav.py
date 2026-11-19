@@ -8,7 +8,7 @@
 * ``POST /api/nav/pose_estimate``   — 2D Pose Estimate (/initialpose).
 * ``POST /api/nav/goal``            — 2D Nav Goal (/move_base_simple/goal).
 * ``POST /api/nav/cancel``          — cancel every move_base goal.
-* ``WS   /api/nav/teleop``          — {"linear", "angular"} at ≥ 2 Hz;
+* ``WS   /api/nav/teleop``          — {"linear", "lateral", "angular"} at ≥ 2 Hz;
   500 ms without a message → zero velocity (ros_bridge timer).
 """
 
@@ -17,21 +17,29 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import shutil
+import subprocess
+import tempfile
 import threading
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import cv2
 import numpy as np
+import yaml
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from .. import config
 from ..deps import accept_ws, check_writable
 from ..ros_bridge import GRID_TOPICS, get_bridge
 
 _LOG = logging.getLogger("infra.routes.nav")
 
 router = APIRouter(prefix="/api/nav", tags=["navigation"])
+_MAP_DIR = Path.home() / "maps" / "infra_maps"
 
 
 class PoseRequest(BaseModel):
@@ -114,6 +122,78 @@ def get_overlay() -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Saved maps and waypoint capture
+# ---------------------------------------------------------------------------
+
+
+@router.get("/maps")
+def list_saved_maps() -> Dict[str, Any]:
+    return {"maps": [{"name": path.parent.name, "path": str(path)}
+                     for path in sorted(_MAP_DIR.glob("*/map.yaml"), reverse=True)
+                     if path.is_file() and path.with_suffix(".pgm").is_file()]}
+
+
+@router.get("/saved_grid.png")
+def saved_grid(map_file: str = "") -> Response:
+    if map_file:
+        allowed = {item["path"] for item in list_saved_maps()["maps"]}
+        if map_file not in allowed:
+            raise HTTPException(status_code=404, detail="找不到所选地图")
+        path = Path(map_file)
+    else:
+        path = config.ROBOT_WS_DIR / "src/community_bringup/maps/localization_map.yaml"
+    try:
+        meta = yaml.safe_load(path.read_text(encoding="utf-8"))
+        image = cv2.imread(str(path.parent / meta["image"]), cv2.IMREAD_GRAYSCALE)
+        resolution = float(meta["resolution"])
+        x, y, yaw = map(float, meta["origin"])
+        if image is None or resolution <= 0 or not all(math.isfinite(v) for v in (resolution, x, y, yaw)):
+            raise ValueError("invalid map")
+        ok, png = cv2.imencode(".png", cv2.flip(image, 0))
+        if not ok:
+            raise ValueError("PNG encoding failed")
+    except (OSError, TypeError, KeyError, ValueError, yaml.YAMLError, cv2.error) as exc:
+        raise HTTPException(status_code=422, detail="地图文件缺失或格式无效") from exc
+    h, w = image.shape
+    return Response(png.tobytes(), media_type="image/png", headers={
+        "X-Map-Origin": f"{x},{y},{yaw}",
+        "X-Map-Resolution": str(resolution),
+        "X-Map-Size": f"{w},{h}",
+        "Cache-Control": "no-store",
+    })
+
+
+@router.post("/maps/save", dependencies=[Depends(check_writable)])
+def save_mapping_grid() -> Dict[str, Any]:
+    bridge = get_bridge()
+    if not {"/slam_gmapping", "/cartographer_occupancy_grid_node"}.intersection(bridge.get_ros_nodes(max_age=0.0)):
+        raise HTTPException(status_code=409, detail="请先启动建图并等待地图生成")
+    if bridge.get_grid("localization") is None:
+        raise HTTPException(status_code=409, detail="尚未收到建图地图")
+    _MAP_DIR.mkdir(parents=True, exist_ok=True)
+    destination = Path(tempfile.mkdtemp(prefix=datetime.now().strftime("%Y%m%d_%H%M%S-"), dir=_MAP_DIR))
+    try:
+        subprocess.run(["rosrun", "map_server", "map_saver", "-f", str(destination / "map")],
+                       check=True, capture_output=True, text=True, timeout=12)
+        if not all((destination / name).is_file() for name in ("map.pgm", "map.yaml")):
+            raise OSError("地图文件不完整")
+    except (OSError, subprocess.SubprocessError) as exc:
+        shutil.rmtree(destination)
+        _LOG.warning("map save failed: %s", exc)
+        raise HTTPException(status_code=503, detail="保存地图失败，请确认 /map 正在发布") from exc
+    return {"name": destination.name, "path": str(destination / "map.yaml")}
+
+
+@router.get("/waypoint_pose")
+def waypoint_pose() -> Dict[str, Any]:
+    bridge = get_bridge()
+    pose = bridge.get_waypoint_pose() if bridge.get_grid("localization") is not None else None
+    if pose is None:
+        raise HTTPException(status_code=409, detail="没有最新的地图位姿，请加载地图并完成定位，或等待建图更新")
+    return pose
+
+
+# ---------------------------------------------------------------------------
 # Pose / goal / cancel
 # ---------------------------------------------------------------------------
 
@@ -157,7 +237,7 @@ def cancel_nav() -> Dict[str, Any]:
 
 @router.websocket("/teleop")
 async def teleop_ws(websocket: WebSocket) -> None:
-    """Client sends {"linear": m/s, "angular": rad/s} repeatedly while a key
+    """Client sends {"linear": m/s, "lateral": m/s, "angular": rad/s} repeatedly while a key
     or joystick is held. Limits are applied in ros_bridge."""
     if not await accept_ws(websocket, writable=True):
         return
@@ -169,11 +249,12 @@ async def teleop_ws(websocket: WebSocket) -> None:
             except asyncio.TimeoutError:
                 continue  # the 500 ms heartbeat timer already sent zero
             linear = float(msg.get("linear", 0.0))
+            lateral = float(msg.get("lateral", 0.0))
             angular = float(msg.get("angular", 0.0))
-            if not (math.isfinite(linear) and math.isfinite(angular)):
+            if not (math.isfinite(linear) and math.isfinite(lateral) and math.isfinite(angular)):
                 continue
             try:
-                bridge.publish_cmd_vel(linear, angular)
+                bridge.publish_cmd_vel(linear, angular, lateral)
             except RuntimeError as exc:
                 await websocket.send_json({"ok": False, "error": str(exc)})
     except WebSocketDisconnect:

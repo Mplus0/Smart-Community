@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=1200,initial-scale=1">
   <title>Smart-Community控制台</title>
-  <link rel="stylesheet" href="/static/style.css?v=console-dark-1">
+  <link rel="stylesheet" href="/static/style.css?v=compact-mission-readiness-1">
 </head>
 <body>
   <header class="workbench-head">
     <div class="status-row">
       <div class="brand">
-        <div class="brand-mark">SC</div>
+        <div class="brand-mark" aria-hidden="true">🍟</div>
         <div class="brand-text">
           <h1 class="brand-title">Smart-Community控制台</h1>
         </div>
@@ -20,6 +20,10 @@
           <h2>ROS Master</h2>
           <p class="big" id="rosMaster">—</p>
           <div class="muted" id="rosNodes">节点: —</div>
+        </article>
+        <article class="metric">
+          <h2>小车 IP</h2>
+          <p class="big" id="robotIp">—</p>
         </article>
         <article class="metric">
           <h2>机器人位姿（map）</h2>
@@ -36,40 +40,42 @@
           <p class="big"><span id="hostMem">—</span><span class="unit">%</span></p>
           <div class="bar"><div class="bar-fill" id="hostMemBar"></div></div>
         </article>
-        <article class="metric">
-          <h2>磁盘</h2>
-          <p class="big"><span id="hostDisk">—</span><span class="unit">%</span></p>
-          <div class="bar"><div class="bar-fill" id="hostDiskBar"></div></div>
-        </article>
       </div>
       <div class="topbar-meta">
-        <span><b id="roMode">检查中</b></span>
-        <span>更新 <b id="lastUpdate">—</b></span>
+          <span>更新 <b id="lastUpdate">—</b></span>
       </div>
       <div class="status-actions">
         <div class="conn-indicator"><span class="dot" id="connDot"></span><span id="connText">连接中…</span></div>
         <button id="raceStart" class="btn btn-primary" style="white-space: nowrap" disabled title="启动决赛完整巡检流程">比赛一键启动</button>
+        <a id="diagnosticsLink" class="btn btn-ghost" href="#diagnostics">系统诊断</a>
         <button id="estopBtn" class="btn btn-danger btn-estop" title="零速度 → 取消导航 → 停止巡检节点">紧急停止</button>
       </div>
     </div>
-    <nav class="nav" id="nav" aria-label="工作台页面">
-      <button class="nav-item is-active" aria-current="page" data-view="dashboard">
-        <span class="nav-number" aria-hidden="true">01</span><span>总览</span>
-      </button>
-      <button class="nav-item" data-view="teleop">
-        <span class="nav-number" aria-hidden="true">02</span><span>遥控 · 地图</span>
-      </button>
-      <button class="nav-item" data-view="camera">
-        <span class="nav-number" aria-hidden="true">03</span><span>相机 · 检测</span>
-      </button>
-      <button class="nav-item" data-view="mission">
-        <span class="nav-number" aria-hidden="true">04</span><span>巡检任务</span>
-      </button>
+    <nav class="nav" id="nav" aria-labelledby="workspace-nav-label">
+      <span class="nav-label" id="workspace-nav-label">工作模式</span>
+      <div class="nav-options">
+        <button class="nav-item is-active" type="button" aria-current="page" data-view="teleop">
+          <span class="nav-title">遥控·建图·取点</span>
+          <span class="nav-description">全向遥控、SLAM 与航点记录</span>
+        </button>
+        <button class="nav-item" type="button" data-view="camera">
+          <span class="nav-title">相机 · 检测</span>
+          <span class="nav-description">实时预览、识别与采集</span>
+        </button>
+        <button class="nav-item" type="button" data-view="mission">
+          <span class="nav-title">巡检任务</span>
+          <span class="nav-description">任务控制与结果记录</span>
+        </button>
+      </div>
     </nav>
   </header>
 
   <main class="main">
-    <section class="view is-active" data-view="dashboard">
+    <section class="view" data-view="diagnostics">
+      <article class="card card-wide">
+        <header class="card-head"><h2>ROS 节点</h2><span class="muted" id="diagnosticNodeCount"></span></header>
+        <div class="diagnostic-nodes muted" id="diagnosticNodes">等待车端状态</div>
+      </article>
       <article class="card card-wide">
         <header class="card-head"><h2>话题状态</h2><span class="muted">Hz · 距上一条消息</span></header>
         <div class="topic-grid" id="topicGrid"></div>
@@ -90,7 +96,7 @@
     </section>
 
     <!-- 遥控 + 地图 -->
-    <section class="view" data-view="teleop">
+    <section class="view is-active" data-view="teleop">
       <div class="split">
         <article class="card map-card">
           <div class="toolbar">
@@ -98,10 +104,12 @@
               <button class="btn is-on" data-mode="view">浏览</button>
               <button class="btn" data-mode="pose">2D Pose Estimate</button>
               <button class="btn" data-mode="goal">2D Nav Goal</button>
+              <button class="btn" data-mode="waypoint" hidden>地图取点</button>
             </div>
             <select id="mapLayer" class="input">
+              <option value="localization">当前地图 /map</option>
               <option value="navigation">导航图 /navigation_map</option>
-              <option value="localization">定位图 /map</option>
+              <option id="savedLayer" value="saved" disabled>已加载地图</option>
             </select>
             <label class="chk"><input type="checkbox" id="showGlobalCost">全局代价</label>
             <label class="chk"><input type="checkbox" id="showLocalCost" checked>局部代价</label>
@@ -114,21 +122,93 @@
           <div class="muted map-status" id="mapStatus">等待地图…</div>
         </article>
 
+        <aside class="field-tools">
         <article class="card side-card">
-          <header class="card-head"><h2>遥控</h2><span class="muted" id="teleopState">未连接</span></header>
+          <header class="card-head"><h2>麦轮遥控</h2><span class="muted" id="teleopState">未连接</span></header>
+          <div class="field-actions">
+            <button type="button" class="btn" id="fieldHardware" disabled>启动底盘与传感器</button>
+            <button type="button" class="btn" id="keyboardToggle" aria-pressed="false" disabled>启用键盘控制</button>
+          </div>
+          <p class="muted" id="teleopHardwareStatus" role="status">等待车端状态</p>
           <div class="pad">
-            <span></span><button class="btn pad-btn" data-dir="fwd">↑</button><span></span>
-            <button class="btn pad-btn" data-dir="left">↺</button><button class="btn pad-btn" data-dir="stop">■</button><button class="btn pad-btn" data-dir="right">↻</button>
-            <span></span><button class="btn pad-btn" data-dir="back">↓</button><span></span>
+            <button class="btn pad-btn" data-dir="strafeleft" aria-label="左平移">⇠</button>
+            <button class="btn pad-btn" data-dir="fwd" aria-label="前进">↑</button>
+            <button class="btn pad-btn" data-dir="straferight" aria-label="右平移">⇢</button>
+            <button class="btn pad-btn" data-dir="left" aria-label="左转">↺</button>
+            <button class="btn pad-btn" data-dir="stop" aria-label="停车">■</button>
+            <button class="btn pad-btn" data-dir="right" aria-label="右转">↻</button>
+            <span></span><button class="btn pad-btn" data-dir="back" aria-label="后退">↓</button><span></span>
           </div>
           <label class="field">线速度 <b id="linVal">0.15</b> m/s
             <input type="range" id="linSpeed" min="0.05" max="0.25" step="0.01" value="0.15"></label>
           <label class="field">角速度 <b id="angVal">0.20</b> rad/s
             <input type="range" id="angSpeed" min="0.05" max="0.30" step="0.01" value="0.20"></label>
-          <p class="muted">按住方向键或 W/A/S/D（Q/E 前进中转向）。松开或 0.5 s 无指令自动停车；导航运行时遥控会与 move_base 抢占 /cmd_vel。</p>
+          <p class="muted">启用键盘后，W/S 前后、A/D 转向、Q/E 左右平移、空格停车。松手或失联自动停车。</p>
           <header class="card-head sub-head"><h2>导航</h2></header>
           <div class="kv" id="navInfo"></div>
         </article>
+        <div class="field-mode-selector" role="group" aria-label="地图操作模式">
+          <button type="button" class="btn is-on" data-field-mode="mapping" aria-controls="fieldMappingPane" aria-pressed="true">建图与定位</button>
+          <button type="button" class="btn" data-field-mode="waypoints" aria-controls="fieldWaypointPane" aria-pressed="false">航点</button>
+        </div>
+        <article class="card side-card" id="fieldMappingPane">
+          <header class="card-head"><h2>建图与定位</h2></header>
+          <label class="field">建图算法
+            <select id="slamAlgorithm" class="input">
+              <option value="cartographer">Cartographer</option>
+              <option value="gmapping">GMapping</option>
+            </select>
+          </label>
+          <div class="field-actions">
+            <button type="button" class="btn btn-primary" id="slamStart">开始建图</button>
+            <button type="button" class="btn" id="slamSave" disabled>保存地图</button>
+            <button type="button" class="btn" id="slamStop" disabled>停止建图</button>
+          </div>
+          <label class="field">定位地图
+            <select id="fieldMap" class="input"><option value="">当前配置地图</option></select>
+          </label>
+          <div class="field-actions">
+            <button type="button" class="btn btn-primary" id="fieldPreview">加载地图</button>
+            <button type="button" class="btn" id="fieldLocalize">启动定位</button>
+            <button type="button" class="btn" id="fieldLocalizeStop" disabled>停止定位</button>
+          </div>
+          <p class="muted" id="fieldStatus" role="status">等待车端状态</p>
+        </article>
+        <article class="card side-card" id="fieldWaypointPane" hidden>
+          <header class="card-head"><h2>航点</h2><span class="muted" id="waypointCount">0 个</span></header>
+          <div class="field-actions">
+            <button type="button" class="btn btn-primary" id="recordWaypoint">记录当前位姿</button>
+            <button type="button" class="btn" id="undoWaypoint" disabled>撤销上一个</button>
+            <button type="button" class="btn" id="exportWaypoints" disabled>保存 YAML</button>
+          </div>
+          <div class="waypoint-task-fields">
+            <label class="field">标注航点
+              <select id="waypointTarget" class="input"><option value="">下一航点</option></select>
+            </label>
+            <label class="field">任务类型
+              <select id="waypointTask" class="input">
+                <option value="navigation">仅导航</option>
+                <option value="traffic_light">红绿灯</option>
+                <option value="person">人员识别</option>
+                <option value="plate">车牌识别</option>
+                <option value="fire">火焰识别</option>
+                <option value="trash">垃圾分类</option>
+                <option value="vehicle_photo">车辆拍照</option>
+                <option value="record_start">开始录像</option>
+                <option value="record_stop">结束录像</option>
+              </select>
+            </label>
+            <label class="field" id="waypointAreaField" hidden>街区
+              <select id="waypointArea" class="input"><option value="A">A 区</option><option value="B">B 区</option></select>
+            </label>
+            <label class="field" id="waypointLotField" hidden>车位编号
+              <input id="waypointLot" class="input" type="number" min="1" step="1" value="1">
+            </label>
+          </div>
+          <p class="muted">在地图上取点或记录车身位置。航点按取点顺序连线。</p>
+          <ol class="waypoint-list" id="waypointList"></ol>
+        </article>
+        </aside>
       </div>
     </section>
 
@@ -143,6 +223,7 @@
             <label class="chk">FPS <input type="number" id="camFps" required class="input num" min="1" max="30" step="1" value="10"></label>
             <button class="btn" id="camSnap">保存快照</button>
           </div>
+          <div class="muted camera-ready" id="camState" role="status">等待相机</div>
           <div class="video-wrap"><img id="camStream" alt="相机画面"></div>
         </article>
         <article class="card side-card">
@@ -154,7 +235,7 @@
             <button id="captureVideo" class="btn btn-primary" disabled>开始录像 AVI</button>
           </div>
           <div id="captureStatus" class="kv-v muted" role="status"></div>
-          <header class="card-head sub-head"><h2>识别结果</h2><span class="muted" id="camState">—</span></header>
+          <header class="card-head sub-head"><h2>识别结果</h2></header>
           <div id="camResult" class="cam-result muted">未开始</div>
           <header class="card-head sub-head"><h2>最近快照</h2></header>
           <div class="thumbs" id="camSnaps"></div>
@@ -166,7 +247,46 @@
     <section class="view" data-view="mission">
       <div class="split">
         <article class="card">
-          <header class="card-head"><h2>任务控制</h2><span class="muted">启动 mission.launch，需先运行 hardware + navigation（完整任务还需 services）</span></header>
+          <header class="card-head">
+            <h2>任务控制</h2>
+            <div class="mission-prep-actions">
+              <span class="muted" id="misFullStartStatus">待接入</span>
+              <button type="button" class="btn" id="misFullStart" aria-describedby="misFullStartStatus" disabled>全量启动</button>
+            </div>
+          </header>
+          <div class="mission-readiness" aria-label="巡检准备">
+            <section class="mission-prep">
+              <div class="mission-prep-head">
+                <h3>底盘与传感器</h3>
+                <p class="muted" id="misHardwareStatus" role="status">等待状态</p>
+              </div>
+              <div class="mission-prep-actions">
+                <button type="button" class="btn" id="misHardwareStart" disabled>启动底盘与传感器</button>
+              </div>
+            </section>
+            <section class="mission-prep">
+              <div class="mission-prep-head">
+                <h3>导航</h3>
+                <p class="muted" id="misPlannerStatus" role="status">等待状态</p>
+              </div>
+              <div class="mission-prep-actions">
+                <select id="misPlanner" class="input" aria-label="局部规划器">
+                  <option value="dwa">DWA</option>
+                  <option value="teb">TEB</option>
+                </select>
+                <button type="button" class="btn" id="misNavStart" disabled>启动导航</button>
+              </div>
+            </section>
+            <section class="mission-prep">
+              <div class="mission-prep-head">
+                <h3>识别服务</h3>
+                <p class="muted" id="misServicesStatus" role="status">等待状态</p>
+              </div>
+              <div class="mission-prep-actions">
+                <button type="button" class="btn" id="misServicesStart" disabled>启用识别服务</button>
+              </div>
+            </section>
+          </div>
           <div class="form-grid">
             <label class="field">任务范围
               <select id="misScope" class="input">
@@ -177,17 +297,20 @@
             <label class="field">航点
               <select id="misWaypoint" class="input" disabled></select>
             </label>
-            <label class="field">obstacle_mode
-              <select id="misObstacle" class="input">
-                <option value="blocked">blocked</option>
-                <option value="clear">clear</option>
-              </select>
-            </label>
-            <label class="field chk-field"><span><input type="checkbox" id="misNavOnly"> 仅导航（navigation_only）</span></label>
+            <label class="field chk-field"><span><input type="checkbox" id="misNavOnly"> 仅导航</span></label>
+            <div id="misObstacleField" hidden>
+              <label class="field">预设分支
+                <select id="misObstacle" class="input" disabled>
+                  <option value="blocked">绕行（blocked）</option>
+                  <option value="clear">直行（clear）</option>
+                </select>
+              </label>
+            </div>
           </div>
-          <p class="hint">勾选「仅导航」时会跳过<b>全部</b>航点任务：红绿灯等待、拍照识别、录像都不执行，小车只按顺序导航；wp_04 之后按 obstacle_mode 选择分支。未勾选时 wp_04 分支由障碍物识别决定。</p>
+          <p class="hint" id="misAutoRouteHint">完整巡检到达 wp_04 后，根据障碍物识别结果自动选择直行或绕行。</p>
+          <p class="hint" id="misNavigationHint" hidden>仅导航会跳过所有航点任务。到达 wp_04 后使用所选分支。</p>
           <div class="row-actions">
-            <button class="btn btn-primary" id="misStart">启动任务</button>
+            <button class="btn btn-primary" id="misStart" disabled>启动任务</button>
             <button class="btn" id="misStop">停止任务</button>
           </div>
         </article>
@@ -198,7 +321,24 @@
       </div>
 
       <article class="card card-wide">
-        <header class="card-head"><h2>巡检记录</h2><button class="btn btn-ghost" id="runsRefresh">刷新</button></header>
+        <header class="card-head">
+          <h2>任务结果实时预览</h2>
+          <a class="btn" href="#mission-records">巡检记录</a>
+        </header>
+        <p class="muted" id="misLiveStatus" role="status">等待巡检任务开始</p>
+        <div class="mission-live-results" id="misLiveResults"></div>
+      </article>
+    </section>
+
+    <section class="view" data-view="mission-records">
+      <article class="card card-wide">
+        <header class="card-head">
+          <h2>巡检记录</h2>
+          <div class="row-actions">
+            <a class="btn btn-ghost" href="#mission">返回巡检任务</a>
+            <button type="button" class="btn" id="runsRefresh">刷新</button>
+          </div>
+        </header>
         <table class="table">
           <thead><tr><th>run_id</th><th>结果</th><th>开始时间</th><th>耗时</th><th>完成航点</th><th>任务成功/失败</th><th>照片/视频</th><th>操作</th></tr></thead>
           <tbody id="runsTbody"></tbody>
@@ -228,6 +368,6 @@
 
   <div class="toasts" id="toasts"></div>
 
-  <script type="module" src="/static/app.js?v=capture-1"></script>
+  <script type="module" src="/static/app.js?v=teleop-keyboard-1"></script>
 </body>
 </html>
