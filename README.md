@@ -11,7 +11,6 @@ Smart-Community/
 ├── docker/            # 仿真镜像、Compose 配置和部署说明
 ├── models/            # 模型权重与导出模型
 ├── yolo_train/        # 训练脚本、数据集及已有训练结果
-├── opencv/            # 指针仪表离线标定、读数与调试图片
 ├── docs/              # 历史测绘报告
 ├── .gitignore
 ├── LICENSE
@@ -22,13 +21,9 @@ Smart-Community/
 
 ## 主要功能
 
-- **实车**：串口底盘控制、里程计、雷达/IMU/相机接入、定位导航、七类 YOLO 检测、OCR、倒伏统计、路线调度、语音和录像。
+- **实车**：串口底盘控制、里程计、雷达/IMU/相机接入、定位导航、七类 YOLO 检测、OCR、指针温湿度表识读、倒伏统计、路线调度、语音和录像。
 - **仿真**：麦克纳姆底盘与传感器仿真、Cartographer 建图、AMCL 定位、双地图导航和 TEB 规划；人物、车牌及交通灯识别，多航点任务与绿灯等待。
 - **运行控制**：仿真支持集中启动、人工确认后执行比赛和 PyQt5 控制台，保存任务状态、统计及图像证据。任务完成不代表每项识别均成功，应查看结果状态。
-
-## 仪表离线读数
-
-Windows 下使用单目相机识别得力 No.9011 的温度和湿度，提供单图读数、标定和相机预览。安装、命令和实测流程见 [OpenCV 模块说明](opencv/README.md)。
 
 ## 实车环境与启动
 
@@ -100,6 +95,6 @@ GUI 入口：`python3 /workspace/simulation_ws/src/tools/gui.py`；不要与终�
 - `build/`、`devel/` 等产物可能含绝对路径，迁移工作空间后应重新编译。
 - 仿真结果写入 `simulation_ws/results/<run_id>/`，实车默认输出至 `~/.ros/community`；编译产物、缓存和新增运行结果由 `.gitignore` 忽略，必要模型、地图和配置继续保留。
 - 原实车示例 `robot_ws/src/robot_description/world/test.world` 含历史 `/home/mowen/test_ws` 资源路径，默认实车入口不加载它；本次按限制保留模型文件。旧仿真辅助脚本 `start_simulation.sh` 仍有 Melodic 环境探测，推荐使用上述 Noetic 集中入口，该既有问题未在目录适配中修改。
-- 当前实车巡检任务尚未接入楼层温度检测、仪表识读和动态指示牌判断，尚缺独立泊车结果校验和全程 300 秒预算控制。
+- 当前实车巡检任务尚未接入楼层温度检测和动态指示牌判断，尚缺独立泊车结果校验和全程 300 秒预算控制。
 
 项目许可证见 [LICENSE](LICENSE)，第三方模型及依赖授权见 [视觉包声明](simulation_ws/src/robot_perception/NOTICE.md) 和原文件说明。

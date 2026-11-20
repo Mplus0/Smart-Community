@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import re
 import sys
 import threading
@@ -316,11 +315,11 @@ class MeterPreview:
     """Run the same reader and 4K calibration as the wp_11 task."""
 
     def __init__(self):
-        tools = _WORKSPACE.parent / "opencv"
-        spec = importlib.util.spec_from_file_location("workbench_meter_reader", tools / "meter.py")
-        self.reader_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.reader_module)
-        self.reader = self.reader_module.Reader(tools / "local-profile-4k/profile.json")
+        import meter_reader
+
+        self.reader_module = meter_reader
+        profile = Path(meter_reader.__file__).with_name("meter_profile") / "profile.json"
+        self.reader = meter_reader.Reader(profile)
 
     def analyze(self, image: np.ndarray):
         values, annotated, alignment = self.reader.read(image, camera_view=True)

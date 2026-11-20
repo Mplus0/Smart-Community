@@ -1,5 +1,4 @@
-"""Windows tools for reading a Deli 9011 with a monocular camera."""
-import argparse
+"""Read temperature and humidity from images of a Deli 9011."""
 import json
 import math
 from pathlib import Path
@@ -11,8 +10,6 @@ import numpy as np
 
 SCALES = {"temperature": range(-30, 51, 10), "humidity": range(0, 101, 10)}
 READING_STEPS = {"temperature": 1, "humidity": 2}
-CAMERA_RESOLUTIONS = {"720p": (1280, 720), "1080p": (1920, 1080), "4k": (3840, 2160)}
-DEFAULT_PROFILE = Path(__file__).parent / "example" / "profile.json"
 
 
 def load_image(path):
@@ -22,20 +19,12 @@ def load_image(path):
     return image
 
 
-def save_image(path, image):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    ok, data = cv.imencode(path.suffix, image)
-    if not ok:
-        raise ValueError(f"Cannot encode {path}")
-    data.tofile(path)
-
-
 def dial_geometry(spec):
     center = np.asarray(spec["center"], np.float32)
     offsets = np.asarray(spec["ticks"], np.float32) - center
     angles = np.unwrap(np.arctan2(offsets[:, 1], offsets[:, 0]))
     if not np.all(np.diff(angles) > 0) or angles[-1] - angles[0] >= 2 * np.pi:
-        raise ValueError("Click major ticks clockwise in increasing value order")
+        raise ValueError("Specify major ticks clockwise in increasing value order")
     return center, angles, np.median(np.linalg.norm(offsets, axis=1))
 
 
@@ -205,153 +194,3 @@ class Reader:
                 start, end = np.rint(points[0]).astype(int)
                 cv.line(overlay, tuple(start), tuple(end), (255, 0, 255), 2, cv.LINE_AA)
         return result, overlay, status
-
-
-def display_image(image):
-    factor = min(1, 850 / image.shape[0], 1100 / image.shape[1])
-    return cv.resize(image, None, fx=factor, fy=factor), factor
-
-
-def calibrate(image_path, folder):
-    image = load_image(image_path)
-    folder.mkdir(parents=True, exist_ok=True)
-    if any((folder / name).exists() for name in ("face.png", "profile.json")):
-        raise ValueError("Choose a fresh calibration directory")
-    preview, factor = display_image(image)
-    profile = {"template": "face.png"}
-    for name, values in SCALES.items():
-        points = []
-        labels = ["pivot"] + [f"{v} tick" for v in values]
-        window = "Calibration"
-        cv.namedWindow(window)
-
-        def click(event, x, y, flags, data):
-            if event == cv.EVENT_LBUTTONDOWN and len(points) < len(labels):
-                points.append([round(x / factor), round(y / factor)])
-
-        cv.setMouseCallback(window, click)
-        while True:
-            canvas = preview.copy()
-            for point in points:
-                cv.circle(canvas, tuple(np.rint(np.array(point) * factor).astype(int)), 3, (255, 0, 255), -1)
-            prompt = labels[len(points)] if len(points) < len(labels) else "Enter to accept"
-            cv.putText(canvas, f"{name}: {prompt} | U undo, Esc cancel", (8, 26),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.58, (0, 0, 220), 2)
-            cv.imshow(window, canvas)
-            key = cv.waitKey(25) & 255
-            if key == 27 or cv.getWindowProperty(window, cv.WND_PROP_VISIBLE) < 1:
-                return
-            if key in (ord("u"), 8) and points:
-                points.pop()
-            if key in (10, 13) and len(points) == len(labels):
-                break
-        profile[name] = {"center": points[0], "ticks": points[1:]}
-        dial_geometry(profile[name])
-    save_image(folder / "face.png", image)
-    (folder / "profile.json").write_text(json.dumps(profile, indent=2), encoding="utf-8")
-
-
-def open_camera(index, width, height):
-    stream = cv.VideoCapture(index, cv.CAP_DSHOW)
-    if not stream.isOpened():
-        stream.release()
-        raise ValueError(f"Cannot open camera {index}")
-    stream.set(cv.CAP_PROP_FRAME_WIDTH, width)
-    stream.set(cv.CAP_PROP_FRAME_HEIGHT, height)
-    return stream
-
-
-def capture_template(index, output):
-    if output.exists():
-        raise ValueError(f"Choose a new output path: {output}")
-    width, height = CAMERA_RESOLUTIONS["4k"]
-    stream = open_camera(index, width, height)
-    window = "4K template capture"
-    try:
-        while True:
-            ok, frame = stream.read()
-            if not ok:
-                raise ValueError("Camera frame unavailable")
-            if frame.shape[1::-1] != (width, height):
-                actual_width, actual_height = frame.shape[1::-1]
-                raise ValueError(f"Requested 3840x2160, got {actual_width}x{actual_height}")
-            preview, _ = display_image(frame)
-            cv.putText(preview, "3840x2160 | S save, Esc cancel", (8, 28),
-                       cv.FONT_HERSHEY_SIMPLEX, 0.64, (255, 0, 255), 2)
-            cv.imshow(window, preview)
-            key = cv.waitKey(1) & 255
-            if key == 27 or cv.getWindowProperty(window, cv.WND_PROP_VISIBLE) < 1:
-                return
-            if key in (ord("s"), ord("S")):
-                save_image(output, frame)
-                print(f"Saved {width}x{height}: {output}")
-                return
-    finally:
-        stream.release()
-
-
-def camera(reader, index, resolution="720p"):
-    stream = open_camera(index, *CAMERA_RESOLUTIONS[resolution])
-    try:
-        while True:
-            ok, frame = stream.read()
-            if not ok:
-                raise ValueError("Camera frame unavailable")
-            values, overlay, status = reader.read(frame, camera_view=True)
-            shown = {name: quantize_reading(name, value) for name, value in values.items()}
-            canvas, _ = display_image(overlay)
-            height, width = frame.shape[:2]
-            label = f"{width}x{height}  {status}  C: {shown['temperature']}  %RH: {shown['humidity']}"
-            cv.putText(canvas, label,
-                       (8, 28), cv.FONT_HERSHEY_SIMPLEX, 0.64, (255, 0, 255), 2)
-            cv.imshow("Meter", canvas)
-            if cv.waitKey(1) & 255 in (27, ord("q")) or cv.getWindowProperty("Meter", cv.WND_PROP_VISIBLE) < 1:
-                break
-    finally:
-        stream.release()
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    modes = parser.add_subparsers(dest="mode", required=True)
-    read = modes.add_parser("read")
-    read.add_argument("image", type=Path)
-    read.add_argument("--overlay", type=Path)
-    live = modes.add_parser("camera")
-    live.add_argument("--index", type=int, default=0)
-    live.add_argument("--resolution", choices=CAMERA_RESOLUTIONS, default="720p",
-                      help="requested capture resolution (default: 720p)")
-    capture = modes.add_parser("capture", help="save a full-resolution 4K reference frame")
-    capture.add_argument("output", type=Path)
-    capture.add_argument("--index", type=int, default=0)
-    for sub in (read, live):
-        sub.add_argument("--profile", type=Path, default=DEFAULT_PROFILE)
-    setup = modes.add_parser("calibrate")
-    setup.add_argument("image", type=Path)
-    setup.add_argument("folder", type=Path)
-    args = parser.parse_args()
-    try:
-        if args.mode == "capture":
-            capture_template(args.index, args.output)
-            return
-        if args.mode == "calibrate":
-            calibrate(args.image, args.folder)
-            return
-        reader = Reader(args.profile)
-        if args.mode == "camera":
-            camera(reader, args.index, args.resolution)
-            return
-        values, overlay, status = reader.read(load_image(args.image))
-        if args.overlay:
-            save_image(args.overlay, overlay)
-        readings = {name: quantize_reading(name, value) for name, value in values.items()}
-        print(json.dumps({"status": status, **readings}))
-    except (OSError, ValueError, cv.error) as exc:
-        parser.exit(1, f"{exc}\n")
-    finally:
-        if args.mode in ("capture", "camera", "calibrate"):
-            cv.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    main()

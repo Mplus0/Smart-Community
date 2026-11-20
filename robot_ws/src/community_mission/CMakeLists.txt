@@ -8,17 +8,13 @@ catkin_install_python(PROGRAMS scripts/mission_node.py scripts/speech_server.py 
 install(DIRECTORY launch config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 # 同目录辅助模块同时提供给 devel 中的节点入口与 install 空间。
-foreach(module inspection.py rules.py services.py result_manager.py)
+foreach(module inspection.py rules.py services.py result_manager.py meter_reader.py)
   configure_file(scripts/${module} ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_BIN_DESTINATION}/${module} COPYONLY)
   install(FILES scripts/${module} DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 endforeach()
 
-# 与 Windows 读表工具共用识别代码和 4K 标定资产。
-set(meter_source "${CMAKE_CURRENT_SOURCE_DIR}/../../../opencv")
-set(meter_devel "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_BIN_DESTINATION}")
-configure_file("${meter_source}/meter.py" "${meter_devel}/meter_reader.py" COPYONLY)
-install(FILES "${meter_source}/meter.py" DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION} RENAME meter_reader.py)
+# 巡检和 Web 工作台共用同一套 4K 仪表标定。
 foreach(asset profile.json face.png)
-  configure_file("${meter_source}/local-profile-4k/${asset}" "${meter_devel}/meter_profile/${asset}" COPYONLY)
-  install(FILES "${meter_source}/local-profile-4k/${asset}" DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}/meter_profile)
+  configure_file(scripts/meter_profile/${asset} ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_BIN_DESTINATION}/meter_profile/${asset} COPYONLY)
+  install(FILES scripts/meter_profile/${asset} DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}/meter_profile)
 endforeach()
