@@ -321,7 +321,7 @@ class MeterPreview:
 
         self.reader_module = meter_reader
         profile = Path(meter_reader.__file__).with_name("meter_profile") / "profile.json"
-        self.reader = meter_reader.Reader(profile)
+        self.reader = meter_reader.Reader(profile, match_max_side=3840)
 
     def analyze(self, image: np.ndarray):
         debug = {} if self.show_debug else None
@@ -386,9 +386,7 @@ NO_DETECTOR = "__none__"
 def list_detectors(config_path: Path = DEFAULT_CONFIG) -> List[str]:
     """Detector names from detectors.yaml plus the workbench preview modes."""
     configs = yaml.safe_load(config_path.read_text(encoding="utf-8"))["detectors"]
-    return list(configs) + [
-        TRASH_PIPELINE, METER_PREVIEW, METER_DEBUG_PREVIEW, THERMAL_PREVIEW, PLATE_PREVIEW, BUILDING_FIRE_PREVIEW,
-    ]
+    return list(configs) + [TRASH_PIPELINE, METER_PREVIEW, METER_DEBUG_PREVIEW, THERMAL_PREVIEW, PLATE_PREVIEW, BUILDING_FIRE_PREVIEW]
 
 
 def create_detector(name: str, confidence: Optional[float] = None, iou: Optional[float] = None,

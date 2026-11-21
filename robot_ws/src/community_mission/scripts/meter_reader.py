@@ -103,8 +103,9 @@ def valid_projection(matrix, face_quad, frame_shape):
 
 
 class Reader:
-    def __init__(self, path):
+    def __init__(self, path, *, match_max_side=1400):
         self.profile = json.loads(path.read_text(encoding="utf-8-sig"))
+        self.match_max_side = match_max_side
         self.template = load_image(path.parent / self.profile["template"])
         self.features = cv.SIFT_create(nfeatures=2200)
         self.matcher = cv.BFMatcher()
@@ -131,9 +132,11 @@ class Reader:
         self.tracking_anchor = None
 
     def match_face(self, gray):
-        factor = min(1, 1400 / max(gray.shape))
-        small = cv.resize(gray, None, fx=factor, fy=factor, interpolation=cv.INTER_AREA)
-        keys, desc = self.features.detectAndCompute(small, None)
+        factor = min(1, self.match_max_side / max(gray.shape))
+        match_image = gray
+        if factor < 1:
+            match_image = cv.resize(gray, None, fx=factor, fy=factor, interpolation=cv.INTER_AREA)
+        keys, desc = self.features.detectAndCompute(match_image, None)
         if desc is None or len(desc) < 2:
             return None
         points = np.float32([key.pt for key in keys]) / factor
