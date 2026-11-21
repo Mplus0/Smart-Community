@@ -7,7 +7,7 @@
 
 import { api, connectWithRetry, emit, escapeHtml, fmtDuration, on, toast } from './common.js';
 import './nav.js?v=teleop-keyboard-1';
-import './camera.js?v=plate-building-fire-1';
+import './camera.js?v=meter-debug-1';
 import './mission.js?v=inspection-auto-branch-1';
 
 const $ = (id) => document.getElementById(id);

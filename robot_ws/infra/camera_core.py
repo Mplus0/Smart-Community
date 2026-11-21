@@ -28,7 +28,7 @@ import numpy as np
 
 from . import config, overlay
 from .detector_core import (
-    BUILDING_FIRE_PREVIEW, METER_PREVIEW, NO_DETECTOR, PLATE_PREVIEW, THERMAL_PREVIEW,
+    BUILDING_FIRE_PREVIEW, METER_DEBUG_PREVIEW, METER_PREVIEW, NO_DETECTOR, PLATE_PREVIEW, THERMAL_PREVIEW,
     TRASH_PIPELINE, PreviewOCR, building_name, create_detector,
 )
 
@@ -36,7 +36,11 @@ _LOG = logging.getLogger("infra.camera")
 THERMAL_IMAGE_TOPIC = "/building_d_temperature/image"
 METER_IMAGE_TOPIC = "/ugreen_4k/image_raw"
 MAIN_CAMERA_SOURCE = "ros:/usb_cam/image_raw"
-PREVIEW_SOURCES = {THERMAL_PREVIEW: f"ros:{THERMAL_IMAGE_TOPIC}", METER_PREVIEW: f"ros:{METER_IMAGE_TOPIC}"}
+PREVIEW_SOURCES = {
+    THERMAL_PREVIEW: f"ros:{THERMAL_IMAGE_TOPIC}",
+    METER_PREVIEW: f"ros:{METER_IMAGE_TOPIC}",
+    METER_DEBUG_PREVIEW: f"ros:{METER_IMAGE_TOPIC}",
+}
 SOURCE_LABELS = {THERMAL_IMAGE_TOPIC: "楼宇 D 红外热图", METER_IMAGE_TOPIC: "UGREEN 4K 仪表相机"}
 
 
@@ -500,7 +504,7 @@ class CameraService:
             return frame
         start = time.monotonic()
         try:
-            if name == METER_PREVIEW:
+            if name in (METER_PREVIEW, METER_DEBUG_PREVIEW):
                 annotated, report = self._detector(name, None, None).analyze(frame)
                 self.status.update(report=report, detections=[], error=None)
                 return annotated

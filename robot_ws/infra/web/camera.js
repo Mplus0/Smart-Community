@@ -16,6 +16,7 @@ const detectorLabels = {
   __trash_pipeline__: '垃圾分类完整流程',
   __thermal__: '红外测温（楼宇 D）',
   __meter__: '仪表盘识别（UGREEN 4K）',
+  __meter_debug__: '仪表盘调试（实时过程图）',
   __plate__: '车牌识别',
   __building_fire__: '楼宇火灾识别',
 };
@@ -53,7 +54,7 @@ function syncSelection(settings) {
   selectedSource = settings.source;
   showSources(availableSources, selectedSource);
   $('camDetector').value = settings.detector;
-  $('camConf').disabled = ['__thermal__', '__meter__', '__plate__'].includes(settings.detector);
+  $('camConf').disabled = ['__thermal__', '__meter__', '__meter_debug__', '__plate__'].includes(settings.detector);
 }
 
 async function loadOptions() {
@@ -141,7 +142,7 @@ function renderStatus({ settings, status }) {
     } else {
       $('camResult').textContent = '等待楼宇 D 测温结果';
     }
-  } else if (settings.detector === '__meter__') {
+  } else if (['__meter__', '__meter_debug__'].includes(settings.detector)) {
     const r = status.report;
     if (r?.kind !== 'meter') {
       $('camResult').textContent = '等待读表结果';
@@ -152,6 +153,7 @@ function renderStatus({ settings, status }) {
     else if (r.temperature_c == null || r.humidity_percent == null) alignment += '，部分指针未读出';
     $('camResult').innerHTML = kvRows([
       ['表盘状态', alignment],
+      ...(r.inlier_count == null ? [] : [['匹配内点', escapeHtml(r.inlier_count)]]),
       ['温度', r.temperature_c == null ? '—' : `${escapeHtml(r.temperature_c)} ℃`],
       ['湿度', r.humidity_percent == null ? '—' : `${escapeHtml(r.humidity_percent)} %RH`],
     ]);

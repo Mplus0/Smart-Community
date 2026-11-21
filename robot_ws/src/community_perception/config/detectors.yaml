@@ -45,6 +45,7 @@ detectors:
     model_name: trash_bin_detector
     conf_threshold: 0.5
     iou_threshold: 0.4
+    letterbox: true
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/trash_bin
     class_names:

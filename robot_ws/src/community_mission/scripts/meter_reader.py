@@ -19,6 +19,31 @@ def load_image(path):
     return image
 
 
+def save_image(path, image):
+    ok, data = cv.imencode(path.suffix, image)
+    if not ok:
+        raise ValueError(f"Cannot encode {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    data.tofile(path)
+
+
+def draw_inlier_matches(template, frame, reference_points, frame_points, max_side=1000):
+    """Draw accepted matches between the template and the original frame."""
+    previews = []
+    keypoints = []
+    indices = np.linspace(0, len(reference_points) - 1,
+                          num=min(len(reference_points), 60), dtype=int)
+    for image, points in ((template, reference_points), (frame, frame_points)):
+        scale = min(1.0, max_side / max(image.shape[:2]))
+        previews.append(cv.resize(image, None, fx=scale, fy=scale,
+                                  interpolation=cv.INTER_AREA))
+        keypoints.append([cv.KeyPoint(float(x), float(y), 5)
+                          for x, y in points[indices] * scale])
+    matches = [cv.DMatch(index, index, 0.0) for index in range(len(indices))]
+    return cv.drawMatches(previews[0], keypoints[0], previews[1], keypoints[1],
+                          matches, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+
+
 def dial_geometry(spec):
     center = np.asarray(spec["center"], np.float32)
     offsets = np.asarray(spec["ticks"], np.float32) - center
@@ -154,8 +179,11 @@ class Reader:
             return None
         return self.fit_face(ref[forward][keep], moved[keep, 0], gray.shape, 2)
 
-    def read(self, frame, *, camera_view=False):
+    def read(self, frame, *, camera_view=False, debug=None):
+        """Read one frame and optionally collect intermediate images and alignment data."""
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        if debug is not None:
+            debug["gray"] = gray
         now = monotonic()
         alignment = self.match_face(gray)
         status = "aligned"
@@ -173,7 +201,7 @@ class Reader:
         if alignment is None:
             self.tracking_anchor = None
             return dict.fromkeys(SCALES), frame.copy(), "alignment_failed"
-        matrix, _, _ = alignment
+        matrix, ref, src = alignment
         h, w = self.template.shape[:2]
         image = gray if camera_view else frame
         border = 255 if camera_view else (255, 255, 255)
@@ -181,6 +209,9 @@ class Reader:
                                      flags=cv.INTER_LINEAR | cv.WARP_INVERSE_MAP,
                                      borderMode=cv.BORDER_CONSTANT, borderValue=border)
         aligned_gray = aligned if camera_view else cv.cvtColor(aligned, cv.COLOR_BGR2GRAY)
+        if debug is not None:
+            debug.update(matrix=matrix, reference_points=ref, frame_points=src,
+                         aligned=aligned if camera_view else aligned.copy(), aligned_gray=aligned_gray)
         overlay = frame.copy() if camera_view else aligned
         result = {}
         for name, values in SCALES.items():

@@ -314,27 +314,69 @@ class PreviewOCR:
 class MeterPreview:
     """Run the same reader and 4K calibration as the wp_11 task."""
 
-    def __init__(self):
+    def __init__(self, show_debug=False):
         import meter_reader
+
+        self.show_debug = show_debug
 
         self.reader_module = meter_reader
         profile = Path(meter_reader.__file__).with_name("meter_profile") / "profile.json"
         self.reader = meter_reader.Reader(profile)
 
     def analyze(self, image: np.ndarray):
-        values, annotated, alignment = self.reader.read(image, camera_view=True)
+        debug = {} if self.show_debug else None
+        values, annotated, alignment = self.reader.read(image, camera_view=True, debug=debug)
         report = {
             "kind": "meter",
             "alignment": alignment,
             "temperature_c": self.reader_module.quantize_reading("temperature", values["temperature"]),
             "humidity_percent": self.reader_module.quantize_reading("humidity", values["humidity"]),
         }
+        if debug is not None:
+            matches = None
+            if alignment != "alignment_failed":
+                matches = self.reader_module.draw_inlier_matches(
+                    self.reader.template, image, debug["reference_points"], debug["frame_points"], max_side=480)
+            report["inlier_count"] = len(debug.get("frame_points", ()))
+            annotated = meter_debug_grid(annotated, debug["gray"], matches, debug.get("aligned_gray"))
         return annotated, report
+
+
+def meter_debug_grid(overlay, gray, matches, aligned):
+    """Lay out intermediate images in a fixed-size MJPEG frame."""
+    width, height, header = 640, 360, 28
+    row_height = height + header
+    grid = np.full((row_height * 2, width * 2, 3), 24, dtype=np.uint8)
+    panels = (
+        ("Camera + needles", overlay),
+        ("Input grayscale", gray),
+        ("Template / camera alignment", matches),
+        ("Perspective-corrected grayscale", aligned),
+    )
+    for index, (title, image) in enumerate(panels):
+        x, y = (index % 2) * width, (index // 2) * row_height
+        cv2.putText(grid, title, (x + 10, y + 20), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.55, (235, 235, 235), 1, cv2.LINE_AA)
+        if image is None:
+            cv2.putText(grid, "Alignment unavailable", (x + 20, y + header + height // 2),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (180, 180, 180), 1, cv2.LINE_AA)
+            continue
+        h, w = image.shape[:2]
+        scale = min(width / w, height / h)
+        image = cv2.resize(image, (max(1, round(w * scale)), max(1, round(h * scale))),
+                           interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR)
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        h, w = image.shape[:2]
+        left, top = x + (width - w) // 2, y + header + (height - h) // 2
+        grid[top:top + h, left:left + w] = image
+    return grid
 
 
 #: Pseudo detector running the full trash classification pipeline.
 TRASH_PIPELINE = "__trash_pipeline__"
 METER_PREVIEW = "__meter__"
+METER_DEBUG_PREVIEW = "__meter_debug__"
 THERMAL_PREVIEW = "__thermal__"
 PLATE_PREVIEW = "__plate__"
 BUILDING_FIRE_PREVIEW = "__building_fire__"
@@ -344,7 +386,9 @@ NO_DETECTOR = "__none__"
 def list_detectors(config_path: Path = DEFAULT_CONFIG) -> List[str]:
     """Detector names from detectors.yaml plus the workbench preview modes."""
     configs = yaml.safe_load(config_path.read_text(encoding="utf-8"))["detectors"]
-    return list(configs) + [TRASH_PIPELINE, METER_PREVIEW, THERMAL_PREVIEW, PLATE_PREVIEW, BUILDING_FIRE_PREVIEW]
+    return list(configs) + [
+        TRASH_PIPELINE, METER_PREVIEW, METER_DEBUG_PREVIEW, THERMAL_PREVIEW, PLATE_PREVIEW, BUILDING_FIRE_PREVIEW,
+    ]
 
 
 def create_detector(name: str, confidence: Optional[float] = None, iou: Optional[float] = None,
@@ -352,8 +396,8 @@ def create_detector(name: str, confidence: Optional[float] = None, iou: Optional
     """Load a detector by name; ``None`` thresholds use detectors.yaml values."""
     if name == TRASH_PIPELINE:
         return TrashPipeline(config_path, confidence, iou)
-    if name == METER_PREVIEW:
-        return MeterPreview()
+    if name in (METER_PREVIEW, METER_DEBUG_PREVIEW):
+        return MeterPreview(show_debug=name == METER_DEBUG_PREVIEW)
     settings, model = load_detector_config(config_path, name)
     if not model.is_file():
         raise FileNotFoundError(f"模型文件不存在：{model}")
