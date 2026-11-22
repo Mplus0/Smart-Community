@@ -10,7 +10,7 @@ python yolo_train/scripts/trashbin_new/train.py --device 0
 python yolo_train/scripts/trashbin_new/train.py --device cpu
 ```
 
-读取 `datasets/trashbin_new/data.yaml`，使用训练集 235 张、验证集 26 张，检测 8 类垃圾桶颜色与开闭状态。默认训练 100 轮、图片尺寸 640、batch 16、随机种子 42；`patience: 30` 允许提前停止，需完整训练 100 轮时设为 `0`。
+读取 `datasets/trashbin/data.yaml`，使用训练集 444 张、验证集 48 张，检测 8 类垃圾桶颜色与开闭状态。默认最多训练 150 轮，图片尺寸 640，batch 8，随机种子 42。验证指标连续 40 轮没有改善时提前停止。
 
 同目录 `config.yaml` 可调整参数；支持 `--config`、`--model`、`--device`。配置中的模型、数据和输出相对路径及 `--model` 的相对路径以 `yolo_train/` 为基准。不传 `--device` 时自动选择 CUDA GPU 或 CPU。
 

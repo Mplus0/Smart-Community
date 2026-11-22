@@ -484,7 +484,7 @@ python3 tools/detector_preview.py --detector trash_bin_detector --conf 0.5 --iou
 | `fire_detector` | 火焰 |
 | `obstacle_detector` | 障碍物 |
 | `trash_bin_detector` | 垃圾桶颜色及开闭状态 |
-| `waste_detector` | 有害、厨余、其他、可回收四类垃圾 |
+| `waste_detector` | 24 类具体垃圾物品 |
 | `bicycle_detector` | 电动车站立、倒伏 |
 
 自定义配置或单张图片测试：
@@ -542,7 +542,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 | `src/community_mission/config/recognition_rules.yaml` | 人员 ROI、车辆去重等识别业务规则 |
 | `src/community_perception/config/detectors.yaml` | 检测模型路径、类别、阈值和保存设置 |
 
-默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
+默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
 默认 `route.yaml` 包含 21 个原任务点和 11 个 `via_...` 转角过渡点，坐标和朝向来自 2026-11-17 新采集记录。航点按当前导航图的通道中心线校正：左右竖向通道 x 分别为 1.02、3.84 m，中间竖向通道 x 为 2.23 m；下、上横向通道 y 分别为 0.41、3.84 m，中间横向通道 y 为 1.62 m。各点保留原任务与朝向，录像起止点 `wp_19/20` 共用 x=1.02 m、yaw=3.1416 rad，保持横移目标排列。完整巡检到达 `wp_04` 后拍照，调用障碍物模型，按标志检测框中心横坐标选择后续顺序；仅导航模式仍按 `obstacle_mode` 手动选择，不调用模型：
 
@@ -569,7 +569,7 @@ rosservice call /navigation_map/reset "{}"                # 恢复底图
 
 ### 垃圾桶与垃圾分类
 
-`wp_16` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用新训练导出的 `trash_sorting.onnx`，输入为 1024×1024、等比例缩放补边，检测四类垃圾；其他检测器保持原预处理。模型副本位于 `yolo_train/model/trash_sorting.onnx`。
+`wp_16` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_24cls.pt` 导出的 `trash_sorting.onnx`，以 1024×1024 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
 
 垃圾框还原到原图坐标后，按横向最近的桶匹配；距离不超过该桶宽度的 `0.6`，并要求垃圾中心位于桶高度 45% 以下至桶底下方半个桶高的范围。每个垃圾最多归属一个桶；一个桶只对应一个垃圾时比较类别。红/绿/灰/蓝桶分别对应有害/厨余/其他/可回收。漏检或多个目标对应同一桶时记录 `UNKNOWN`；类别不一致记录 `INCORRECT`；只有四种桶均对应正确且无未匹配目标时才输出全部 `CORRECT`。桶盖开关单独记录。
 

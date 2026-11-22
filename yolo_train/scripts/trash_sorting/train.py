@@ -1,4 +1,4 @@
-"""Fine-tune YOLO26 on the four-class trash sorting detection train/val dataset."""
+"""Fine-tune YOLO26 on the trash sorting detection train/val dataset."""
 import argparse
 from pathlib import Path
 import tempfile

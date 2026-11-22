@@ -1,0 +1,32 @@
+# This ONNX export uses standard YOLO detection output with external NMS.
+type: yolo11
+name: trash_sorting_24cls
+display_name: Trash sorting (24 classes)
+model_path: ../robot_ws/src/community_perception/models/trash_sorting.onnx
+conf_threshold: 0.25
+iou_threshold: 0.45
+classes:
+- button_battery
+- fluorescent_lamp
+- used_film_roll
+- paint
+- pills
+- mercury_thermometer
+- fruit_core
+- fish_bone
+- vegetable_leaves
+- bread
+- tea_leaves
+- leftover_rice
+- cigarette_butt
+- tissue
+- broken_ceramic
+- shell
+- disposable_chopsticks
+- discarded_glasses
+- plastic_bottle
+- newspaper
+- glass_bottle
+- beverage_can
+- old_clothing
+- cardboard_box

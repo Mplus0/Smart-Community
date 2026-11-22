@@ -1,14 +1,14 @@
 # Paths are relative to yolo_train/.
 model: ../models/yolo26n.pt
-data: datasets/trashbin_new/data.yaml
+data: datasets/trashbin/data.yaml
 output:
   project: results/trashbin_new
   name: yolo26n
 train:
-  epochs: 100
+  epochs: 150
   imgsz: 640
-  batch: 16
+  batch: 8
   workers: 4
-  patience: 30
+  patience: 40
   seed: 42
   deterministic: true

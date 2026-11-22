@@ -1,0 +1,16 @@
+# This ONNX export uses standard YOLO detection output with external NMS.
+type: yolo11
+name: trashbin
+display_name: Trash bin detection
+model_path: ../yolo_train/model/trashbin.onnx
+conf_threshold: 0.25
+iou_threshold: 0.45
+classes:
+- blue_close
+- blue_open
+- grey_close
+- grey_open
+- green_close
+- green_open
+- red_close
+- red_open

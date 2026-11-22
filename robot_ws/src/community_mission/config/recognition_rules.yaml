@@ -25,3 +25,27 @@ recognition_rules:
     food_trash: 厨余
     other_trash: 其他
     recyclable_trash: 可回收
+    button_battery: 有害
+    fluorescent_lamp: 有害
+    used_film_roll: 有害
+    paint: 有害
+    pills: 有害
+    mercury_thermometer: 有害
+    fruit_core: 厨余
+    fish_bone: 厨余
+    vegetable_leaves: 厨余
+    bread: 厨余
+    tea_leaves: 厨余
+    leftover_rice: 厨余
+    cigarette_butt: 其他
+    tissue: 其他
+    broken_ceramic: 其他
+    shell: 其他
+    disposable_chopsticks: 其他
+    discarded_glasses: 其他
+    plastic_bottle: 可回收
+    newspaper: 可回收
+    glass_bottle: 可回收
+    beverage_can: 可回收
+    old_clothing: 可回收
+    cardboard_box: 可回收

@@ -64,21 +64,13 @@ robot_ws/**/*.yaml.lock
 /WORKBENCH.md
 /robot_ws/infra/.infra.pid
 
-# Local camera captures, training caches and new training runs.
+# Local camera captures, datasets, training caches and new training runs.
 simulation_ws/datasets/
 robot_ws/datasets/
 datasets/**/*.cache
-yolo_train/datasets/**/*.cache
+/yolo_train/datasets/
 yolo_train/runs/
 yolo_train/results/*
-!yolo_train/results/traffic_light/
-yolo_train/results/traffic_light/*
-!yolo_train/results/traffic_light/yolo11n_baseline/
-yolo_train/results/traffic_light/yolo11n_baseline/*
-!yolo_train/results/traffic_light/yolo11n_baseline/weights/
-yolo_train/results/traffic_light/yolo11n_baseline/weights/*
-!yolo_train/results/traffic_light/yolo11n_baseline/weights/best.pt
-!yolo_train/results/traffic_light/yolo11n_baseline/weights/last.pt
 /runs/
 /results/
 # Existing tracked training weights remain versioned.

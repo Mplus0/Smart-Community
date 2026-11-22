@@ -1,6 +1,0 @@
-path: D:/Desktop/智慧社区/Smart-Community/yolo_train/datasets/traffic_light_real_yolo
-train: train/images
-val: val/images
-names:
-  0: stop
-  1: go

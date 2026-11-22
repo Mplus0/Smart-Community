@@ -76,11 +76,31 @@ detectors:
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/waste
     class_names:
-    - hazardous_trash
-    - food_trash
-    - other_trash
-    - recyclable_trash
-    save_classes: [0, 1, 2, 3]
+    - button_battery
+    - fluorescent_lamp
+    - used_film_roll
+    - paint
+    - pills
+    - mercury_thermometer
+    - fruit_core
+    - fish_bone
+    - vegetable_leaves
+    - bread
+    - tea_leaves
+    - leftover_rice
+    - cigarette_butt
+    - tissue
+    - broken_ceramic
+    - shell
+    - disposable_chopsticks
+    - discarded_glasses
+    - plastic_bottle
+    - newspaper
+    - glass_bottle
+    - beverage_can
+    - old_clothing
+    - cardboard_box
+    save_classes: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
     service_name: /waste_detector/detect
   bicycle_detector:
     model_path: $(find community_perception)/models/byc.onnx
