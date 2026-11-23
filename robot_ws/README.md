@@ -104,7 +104,7 @@ roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yam
 
 ### 局部规划器（默认 DWA）
 
-DWA 使用实车低速导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.25/0.12/0.08 m/s，合成平移速度上限为 0.25 m/s，角速度上限为 0.3 rad/s，平移加速度为 0.6 m/s²、角加速度为 1.0 rad/s²。到点容差为 0.05 m / 0.05236 rad。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
+DWA 使用实车低速导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.35/0.12/0.10 m/s，合成平移速度上限为 0.35 m/s，角速度下限和上限为 0.15/0.45 rad/s，平移加速度为 0.6 m/s²、角加速度为 2.0 rad/s²。到点容差为 0.05 m / 0.05236 rad。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
 
 导航默认使用 DWA，`navigation.launch`、`community.launch` 及调用后者的 `finals.launch` 均生效。默认启动无需指定规划器；可通过 `local_planner:=teb` 在前两个入口切换为 TEB。使用 TEB 前，先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
 
@@ -296,6 +296,8 @@ roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
+仅导航整条路线时，可在 `route.yaml` 的 `via_*` 过渡点上设置 `pass_radius`（米）。进入半径后直接切向下一航点，无需在过渡点对齐朝向。默认仅 `via_02_03` 配置了 `0.10` m。定位反馈不可用时按原规则判定到点，单航点运行和最终停车点也沿用原规则。
+
 ### 单航点运行
 
 先启动硬件、定位和导航，确认当前定位；通过 `single_waypoint` 指定 `route.yaml` 中的航点 ID，直接导航到该点，坐标、朝向和任务沿用路线配置：
@@ -326,7 +328,7 @@ roslaunch community_bringup finals.launch base_protocol:=aa_bb
 
 ### UGREEN 仪表相机
 
-`hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 3840×2160 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
+`hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机以 1920×1080 MJPEG 采集，发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 3840×2160 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
 
 `wp_11` 到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。读取超时会按航点任务失败收尾。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
 
@@ -435,7 +437,7 @@ roscore
 终端 2 启动相机；已有 `hardware.launch` 或其他相机节点运行时跳过：
 
 ```bash
-rosrun usb_cam usb_cam_node _video_device:=/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._Orbbec_DaBai_DCW2_RGB_Camera_CH8X952020W-video-index0 _pixel_format:=mjpeg _image_width:=640 _image_height:=480 _framerate:=30
+rosrun usb_cam usb_cam_node _video_device:=/dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._Orbbec_DaBai_DCW2_RGB_Camera_CH8X952020W-video-index0 _pixel_format:=mjpeg _image_width:=1920 _image_height:=1080 _framerate:=30
 ```
 
 ### 浏览器相机预览

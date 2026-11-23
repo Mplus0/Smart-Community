@@ -6,7 +6,7 @@
     <param name="frame_id" value="laser_link"/>                                       #激光坐标
     <param name="scan_topic" value="scan"/>                                           #设置激光数据topic名称
 
-    <param name="min_range" value="0.1"/>                                             #雷达接收距离最小值
+    <param name="min_range" value="0.13"/>                                             #雷达接收距离最小值
     <param name="max_range" value="6"/>                                           #雷达接收距离最大值
     <param name="use_gps_ts" value="false"/>                                          #雷达是否使用GPS授时
     <param name="compensation" value="true"/>                                        #雷达是否使用角度补偿功能

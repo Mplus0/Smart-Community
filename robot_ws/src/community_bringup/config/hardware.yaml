@@ -14,7 +14,7 @@ odometry_publisher:
   linear_scale_y: 1.0
   max_interval: 1.0
 usb_cam:
-  image_width: 640
-  image_height: 480
+  image_width: 1920
+  image_height: 1080
   pixel_format: mjpeg
   camera_frame_id: camera_link

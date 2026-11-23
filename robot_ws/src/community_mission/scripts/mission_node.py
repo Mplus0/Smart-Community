@@ -34,6 +34,12 @@ class Mission:
         if type(self.navigation_only) is not bool:
             raise ValueError('navigation_only must be a boolean')
         self.route = validate_route(rospy.get_param('~'))
+        for point in self.route['points']:
+            if 'pass_radius' in point:
+                radius = point['pass_radius']
+                if (not point['id'].startswith('via_') or point['task'] != 'navigation'
+                        or type(radius) not in (int, float) or not math.isfinite(radius) or radius <= 0):
+                    raise ValueError(f"{point['id']}: pass_radius must be positive and is only for via_ navigation points")
         self.obstacle_mode = rospy.get_param('~obstacle_mode', 'blocked')
         if self.obstacle_mode not in ('blocked', 'clear'):
             raise ValueError('obstacle_mode must be blocked or clear')
@@ -154,7 +160,7 @@ class Mission:
             time.sleep(0.05)
         raise RuntimeError('CANCEL_TIMEOUT: no new navigation goal will be sent')
 
-    def move_to(self, coordinates):
+    def move_to(self, coordinates, pass_radius=None):
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = 'map'
         x, y, yaw = coordinates
@@ -162,12 +168,19 @@ class Mission:
         goal.target_pose.pose.position.y = y
         goal.target_pose.pose.orientation.z = math.sin(yaw/2)
         goal.target_pose.pose.orientation.w = math.cos(yaw/2)
+        feedback_pose = None
+
+        def update_pose(feedback):
+            nonlocal feedback_pose
+            feedback_pose = feedback.base_position
+
         try:
             for attempt in range(self.navigation_retries + 1):
+                feedback_pose = None
                 with self.condition:
                     self.check_running()
                     goal.target_pose.header.stamp = rospy.Time.now()
-                    self.client.send_goal(goal)
+                    self.client.send_goal(goal, feedback_cb=update_pose if pass_radius is not None else None)
                 deadline = time.monotonic() + self.goal_timeout
                 while True:
                     self.check_running()
@@ -187,6 +200,15 @@ class Mission:
                     if time.monotonic() >= deadline:
                         reason = 'NAV_TIMEOUT: Navigation goal timed out'
                         break
+                    pose = feedback_pose
+                    if (pass_radius is not None and state == GoalStatus.ACTIVE and pose is not None
+                            and pose.header.frame_id == goal.target_pose.header.frame_id
+                            and abs((rospy.Time.now() - pose.header.stamp).to_sec()) <= 0.5):
+                        position = pose.pose.position
+                        distance = math.hypot(position.x - x, position.y - y)
+                        if distance <= pass_radius:
+                            # 下一航点直接接替当前目标，避免等待转角点的朝向对齐。
+                            return {'outcome': 'PASSED', 'attempts': attempt + 1, 'distance_m': distance}
                     time.sleep(0.05)
                 if attempt == self.navigation_retries:
                     raise RuntimeError(reason)
@@ -273,12 +295,19 @@ class Mission:
         rospy.loginfo('[导航封口] %s', response.message)
 
     def navigate(self):
-        rospy.loginfo('[导航] 前往航点=%s', self.route['points'][self.index]['id'])
         point = self.route['points'][self.index]
+        rospy.loginfo('[导航] 前往航点=%s', point['id'])
+        pass_radius = None
+        if self.navigation_only and not self.single_waypoint and self.index + 1 < len(self.route['points']):
+            pass_radius = point.get('pass_radius')
         self.results.waypoint(point, 'RUNNING')
-        self.results.execute('navigation', point, self.move_to,
-                             (point['x'], point['y'], point['yaw']))
-        self.transition('TASK', '已到达航点')
+        result = self.results.execute('navigation', point, self.move_to,
+                                      (point['x'], point['y'], point['yaw']), pass_radius)
+        if result['outcome'] == 'PASSED':
+            self.results.waypoint(point, 'SUCCESS')
+            self.transition('NEXT_POINT', '已进入航点通过范围')
+        else:
+            self.transition('TASK', '已到达航点')
 
     def wait_traffic(self):
         rospy.loginfo('[红绿灯] 航点=%s，等待绿灯', self.route['points'][self.index]['id'])

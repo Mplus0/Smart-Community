@@ -2,15 +2,15 @@
 # 车体轮廓、地图分层和硬件接口由当前工作空间保留。
 DWAPlannerROS:
   meter_scoring: true
-  max_vel_x: 0.25
+  max_vel_x: 0.35
   min_vel_x: -0.12
-  max_vel_y: 0.08
-  min_vel_y: -0.08
-  max_vel_trans: 0.25
+  max_vel_y: 0.10
+  min_vel_y: -0.10
+  max_vel_trans: 0.35
   min_vel_trans: 0.04
-  max_vel_theta: 0.3
-  min_vel_theta: 0.08
-  acc_lim_theta: 1.0
+  max_vel_theta: 0.45
+  min_vel_theta: 0.15
+  acc_lim_theta: 2.0
   acc_lim_x: 0.6
   acc_lim_y: 0.6
   holonomic_robot: true

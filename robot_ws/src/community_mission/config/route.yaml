@@ -19,6 +19,7 @@ points:
   y: 0.41
   yaw: 1.5708
   task: navigation
+  pass_radius: 0.10
 - id: wp_03
   x: 3.84
   y: 1.0787
