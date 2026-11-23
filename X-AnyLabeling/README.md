@@ -25,3 +25,7 @@ xanylabeling
 3. 保存原始 JSON 标注文件。
 4. 导出 YOLO Detection 格式标签。
 5. 将标注完成的数据集用于 YOLO 模型训练。
+
+在自动标注面板加载自定义模型时，选择 `person.yaml` 使用原版人员模型，或选择 `person_half.yaml` 使用半身人员模型。两个配置都从 `yolo_train/model/` 加载对应的 ONNX 模型，并识别 `community_person` 和 `outsider`。
+
+选择 `traffic_light.yaml` 加载实车红绿灯模型，输出 `stop` 和 `go` 矩形框。

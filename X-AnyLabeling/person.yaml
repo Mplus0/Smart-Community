@@ -1,0 +1,10 @@
+# This ONNX export uses standard YOLO detection output with external NMS.
+type: yolo11
+name: person_yolo26n
+display_name: Person (original)
+model_path: ../yolo_train/model/person.onnx
+conf_threshold: 0.25
+iou_threshold: 0.45
+classes:
+  - community_person
+  - outsider

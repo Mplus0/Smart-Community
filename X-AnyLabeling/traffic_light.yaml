@@ -1,0 +1,10 @@
+# This ONNX export uses standard YOLO detection output with external NMS.
+type: yolo11
+name: traffic_light_yolo26n
+display_name: Traffic Light (Stop / Go)
+model_path: ../yolo_train/model/traffic_light.onnx
+conf_threshold: 0.25
+iou_threshold: 0.45
+classes:
+  - stop
+  - go

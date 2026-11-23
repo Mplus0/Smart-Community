@@ -26,6 +26,18 @@ python yolo_train/scripts/person/train.py --model D:/Desktop/智慧社区/Smart-
 
 训练读取 `datasets/person/data.yaml` 中的训练集 313 张和验证集 35 张，类别为 `community_person`、`outsider`。不设置测试集，最终效果通过真机测试。
 
+`person_half.yaml` 使用本地 `datasets/person_half/data.yaml`，训练集 839 张，验证集 40 张，使用相同的类别编号。验证集包含两组编号图片和一段完整的 3 fps 抽帧，具体文件见数据集目录下的 `split_manifest.csv`。训练结果写入 `yolo_train/results/person_half/`。
+
+```bash
+python yolo_train/scripts/person/train.py --config yolo_train/scripts/person/person_half.yaml
+```
+
+`person_half_aug.yaml` 使用本地 `datasets/person_half_aug/data.yaml`。839 张训练原图各有 2 张增强图，合计 2,517 张训练图。40 张验证原图也各有 2 张增强图，合计 120 张验证图。增强参数见数据集目录下的 `augmentation_manifest.csv`，训练结果写入 `yolo_train/results/person_half_aug/`。
+
+```bash
+python yolo_train/scripts/person/train.py --config yolo_train/scripts/person/person_half_aug.yaml
+```
+
 结果默认位于 `yolo_train/results/person/yolo26n/`，包括训练曲线、验证指标、`weights/best.pt` 和 `weights/last.pt`。重复运行会自动递增目录名称。脚本不会覆盖部署目录的现有模型，真机部署时选择本次训练的 `best.pt`。
 
 接口参考：[Ultralytics YOLO26](https://docs.ultralytics.com/models/yolo26/)。

@@ -1,0 +1,9 @@
+type: yolo26
+name: person_half_yolo26n
+display_name: Person Half (YOLO26n)
+model_path: ../yolo_train/model/person_half.onnx
+conf_threshold: 0.25
+max_det: 300
+classes:
+  - community_person
+  - outsider
