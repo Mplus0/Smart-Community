@@ -1,194 +1,337 @@
-# 21 个原任务点及 11 个转角过渡点；坐标来自旋转后地图取点文件 route_points_20261117_223732_864220066.yaml。
-# 坐标按当前导航图通道中心线校正；邻近任务点共用位置，保留各自采集朝向。
-# 录像 wp_19/20 共用 x=1.02、yaw=3.1416，保持横移目标排列。
-# navigation_only:=true 时跳过全部任务，wp_04 后按 obstacle_mode 选择顺序。
+# 2026-11-24 新采集航点；前 42 点保留 clear 顺序，末尾 4 点仅供 blocked 绕角。
+# wp_04_obstacle 完成障碍物识别后选路，两条分支均在 wp_41 结束。
+# 每个执行点均等待 move_base 到点成功；wp_07/wp_09 保留 navigation。
 points:
 - id: wp_01
-  x: 1.5887
+  x: 1.6078
   y: 0.41
-  yaw: 0.0452
+  yaw: 0.0
   task: traffic_light
 - id: wp_02
-  x: 2.9953
+  x: 2.9899
   y: 0.41
-  yaw: 1.6092
+  yaw: 0.0
   task: person
   area: A
-- id: via_02_03
+- id: wp_03
+  x: 3.84
+  y: 0.41
+  yaw: 0.0
+  task: navigation
+- id: wp_04
   x: 3.84
   y: 0.41
   yaw: 1.5708
   task: navigation
-  pass_radius: 0.10
-- id: wp_03
+- id: wp_04_obstacle
   x: 3.84
-  y: 1.0787
-  yaw: -3.0608
-  task: person
-  area: A
-- id: wp_04
-  x: 3.84
-  y: 1.0787
-  yaw: 1.5675
-  task: obstacle  # 根据标志中心横坐标自动选择 clear / blocked
+  y: 0.7
+  yaw: 1.5708
+  task: obstacle
 - id: wp_05
-  x: 3.0
-  y: 1.62
-  yaw: -1.5674
+  x: 3.84
+  y: 0.9854
+  yaw: 1.5708
   task: person
   area: A
 - id: wp_06
-  x: 3.0
-  y: 1.62
-  yaw: 1.6038
+  x: 3.84
+  y: 2.2492
+  yaw: 1.5708
   task: person
   area: B
 - id: wp_07
-  x: 2.23
-  y: 1.62
-  yaw: -3.1251
-  task: fire
+  x: 3.84
+  y: 2.9997
+  yaw: 1.5708
+  task: navigation
 - id: wp_08
-  x: 2.23
-  y: 2.3373
-  yaw: 0.028
-  task: person
-  area: B
+  x: 3.84
+  y: 3.84
+  yaw: 1.5708
+  task: navigation
 - id: wp_09
-  x: 2.23
-  y: 2.3373
-  yaw: 3.0976
-  task: fire
+  x: 2.8607
+  y: 3.84
+  yaw: 3.1416
+  task: navigation
 - id: wp_10
   x: 2.23
-  y: 2.3373
-  yaw: 1.5677
-  task: traffic_light
-- id: wp_11
-  x: 2.8469
   y: 3.84
-  yaw: -1.5361
-  task: meter
+  yaw: 3.1416
+  task: navigation
+- id: wp_11
+  x: 2.23
+  y: 2.3026
+  yaw: -1.5708
+  task: person
+  area: B
 - id: wp_12
-  x: 3.84
-  y: 3.0606
-  yaw: 1.5956
-  task: temperature
+  x: 2.23
+  y: 1.62
+  yaw: -1.5708
+  task: navigation
 - id: wp_13
-  x: 3.84
-  y: 2.2853
-  yaw: -3.1149
+  x: 3.0
+  y: 1.62
+  yaw: 0.0
   task: person
   area: B
 - id: wp_14
-  x: 1.02
-  y: 3.84
-  yaw: -3.0881
-  task: plate
-  parking_lot: 1
+  x: 3.0
+  y: 1.62
+  yaw: 3.1416
+  task: person
+  area: A
 - id: wp_15
-  x: 1.02
-  y: 3.198
-  yaw: -3.094
-  task: plate
-  parking_lot: 2
+  x: 2.23
+  y: 1.62
+  yaw: 3.1416
+  task: fire
 - id: wp_16
-  x: 1.02
-  y: 3.0672
-  yaw: 0.0663
-  task: trash
+  x: 2.23
+  y: 1.62
+  yaw: 1.5708
+  task: navigation
 - id: wp_17
-  x: 1.02
-  y: 2.5842
-  yaw: -3.123
-  task: plate
-  parking_lot: 3
+  x: 2.23
+  y: 2.0785
+  yaw: 1.5708
+  task: navigation
 - id: wp_18
-  x: 1.02
-  y: 2.0516
-  yaw: 0.0648
+  x: 2.23
+  y: 2.0785
+  yaw: 1.2373
   task: fire
 - id: wp_19
+  x: 2.23
+  y: 2.0785
+  yaw: 1.5708
+  task: navigation
+- id: wp_20
+  x: 2.23
+  y: 2.3206
+  yaw: 1.5708
+  task: traffic_light
+- id: wp_21
+  x: 2.23
+  y: 3.84
+  yaw: 1.5708
+  task: navigation
+- id: wp_22
+  x: 2.23
+  y: 3.84
+  yaw: 3.1416
+  task: navigation
+- id: wp_23
   x: 1.02
-  y: 2.1437
+  y: 3.84
+  yaw: 3.1416
+  task: plate
+  parking_lot: 1
+- id: wp_24
+  x: 1.02
+  y: 3.84
+  yaw: -1.5708
+  task: navigation
+- id: wp_25
+  x: 1.02
+  y: 3.2
+  yaw: -1.5708
+  task: navigation
+- id: wp_26
+  x: 1.02
+  y: 3.2
+  yaw: 3.1416
+  task: plate
+  parking_lot: 2
+- id: wp_27
+  x: 1.02
+  y: 3.2
+  yaw: -1.5708
+  task: navigation
+- id: wp_28
+  x: 1.02
+  y: 3.2
+  yaw: 0.0
+  task: trash
+- id: wp_29
+  x: 1.02
+  y: 3.2
+  yaw: -1.5708
+  task: navigation
+- id: wp_30
+  x: 1.02
+  y: 2.65
+  yaw: -1.5708
+  task: navigation
+- id: wp_31
+  x: 1.02
+  y: 2.65
+  yaw: 3.1416
+  task: plate
+  parking_lot: 3
+- id: wp_32
+  x: 1.02
+  y: 2.65
+  yaw: -1.5708
+  task: navigation
+- id: wp_33
+  x: 1.02
+  y: 2.3877
+  yaw: -2.0043
+  task: fire
+- id: wp_34
+  x: 1.02
+  y: 2.15
+  yaw: 3.1416
+  task: navigation
+- id: wp_35
+  x: 1.02
+  y: 2.15
+  yaw: -1.5708
+  task: navigation
+- id: wp_36
+  x: 1.02
+  y: 2.15
   yaw: 3.1416
   task: record_start
-- id: wp_20
+- id: wp_37
   x: 1.02
-  y: 0.9685
+  y: 0.8392
   yaw: 3.1416
   task: record_stop
-- id: wp_21
-  x: 0.41
+- id: wp_38
+  x: 1.02
+  y: 0.8392
+  yaw: -1.5708
+  task: navigation
+- id: wp_39
+  x: 1.02
   y: 0.41
-  yaw: 0.0472
-  task: navigation  # 最终停车
-
-# 分支过渡点仅引导绕角；各分支按下方 ID 顺序选择，未选分支的过渡点不执行。
-- id: via_04_05
+  yaw: -1.5708
+  task: navigation
+- id: wp_40
+  x: 1.02
+  y: 0.41
+  yaw: 3.1416
+  task: navigation
+- id: wp_41
+  x: 0.4325
+  y: 0.41
+  yaw: 0.0
+  task: navigation
+- id: via_blocked_entry
   x: 3.84
   y: 1.62
   yaw: 3.1416
   task: navigation
-- id: via_10_13_a
+- id: via_blocked_top_middle_east
   x: 2.23
   y: 3.84
   yaw: 0.0
   task: navigation
-- id: via_10_13_b
+- id: via_blocked_top_right_down
   x: 3.84
   y: 3.84
   yaw: -1.5708
   task: navigation
-- id: via_13_11
+- id: via_blocked_top_right_west
   x: 3.84
   y: 3.84
   yaw: 3.1416
   task: navigation
-- id: via_11_12
-  x: 3.84
-  y: 3.84
-  yaw: -1.5708
-  task: navigation
-- id: via_12_14
-  x: 3.84
-  y: 3.84
-  yaw: 3.1416
-  task: navigation
-- id: via_11_08
-  x: 2.23
-  y: 3.84
-  yaw: -1.5708
-  task: navigation
-- id: via_08_06
-  x: 2.23
-  y: 1.62
-  yaw: 0
-  task: navigation
-- id: via_10_14
-  x: 2.23
-  y: 3.84
-  yaw: 3.1416
-  task: navigation
-- id: via_20_21
-  x: 1.02
-  y: 0.41
-  yaw: 3.1416
-  task: navigation
-
-# wp_01～wp_04 为公共前段；完整巡检自动选路，仅导航测试由 obstacle_mode 手动选择。
+finish_waypoint: wp_41
 navigation_branches:
-  blocked: [via_04_05, wp_05, wp_06, wp_07, wp_08, wp_09, wp_10, via_10_13_a, via_10_13_b, wp_13, via_13_11, wp_11, via_11_12, wp_12, via_12_14, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, via_20_21, wp_21]
-  clear: [wp_13, wp_12, via_13_11, wp_11, via_11_08, wp_08, via_08_06, wp_06, wp_05, wp_07, wp_09, wp_10, via_10_14, wp_14, wp_15, wp_16, wp_17, wp_18, wp_19, wp_20, via_20_21, wp_21]
-
-# 分支入口封口：法向始终仅一格（当前地图 1 cm），span 接入两侧静态禁行区。
-# blocked 封右侧竖道；clear 封中间横向入口。坐标对应当前旋转后的地图。
+  clear:
+  - wp_05
+  - wp_06
+  - wp_07
+  - wp_08
+  - wp_09
+  - wp_10
+  - wp_11
+  - wp_12
+  - wp_13
+  - wp_14
+  - wp_15
+  - wp_16
+  - wp_17
+  - wp_18
+  - wp_19
+  - wp_20
+  - wp_21
+  - wp_22
+  - wp_23
+  - wp_24
+  - wp_25
+  - wp_26
+  - wp_27
+  - wp_28
+  - wp_29
+  - wp_30
+  - wp_31
+  - wp_32
+  - wp_33
+  - wp_34
+  - wp_35
+  - wp_36
+  - wp_37
+  - wp_38
+  - wp_39
+  - wp_40
+  - wp_41
+  blocked:
+  - wp_05
+  - via_blocked_entry
+  - wp_14
+  - wp_13
+  - wp_15
+  - wp_16
+  - wp_17
+  - wp_18
+  - wp_19
+  - wp_11
+  - wp_20
+  - wp_21
+  - via_blocked_top_middle_east
+  - via_blocked_top_right_down
+  - wp_06
+  - wp_07
+  - wp_08
+  - via_blocked_top_right_west
+  - wp_09
+  - wp_10
+  - wp_22
+  - wp_23
+  - wp_24
+  - wp_25
+  - wp_26
+  - wp_27
+  - wp_28
+  - wp_29
+  - wp_30
+  - wp_31
+  - wp_32
+  - wp_33
+  - wp_34
+  - wp_35
+  - wp_36
+  - wp_37
+  - wp_38
+  - wp_39
+  - wp_40
+  - wp_41
 navigation_closures:
   blocked:
     axis: y
     coordinate: 1.935
-    span: [3.53, 4.15]
+    span:
+    - 3.53
+    - 4.15
   clear:
     axis: x
     coordinate: 3.535
-    span: [1.30, 1.94]
+    span:
+    - 1.3
+    - 1.94

@@ -44,8 +44,8 @@ def validate_route(route):
         task = point.get('task')
         if not isinstance(task, str) or task not in allowed or 'tasks' in point:
             raise ValueError(f'{name}: task must name one supported task')
-        if task == 'obstacle' and (name != 'wp_04' or not isinstance(route.get('navigation_branches'), dict)):
-            raise ValueError('obstacle task requires wp_04 and navigation_branches')
+        if task == 'obstacle' and not isinstance(route.get('navigation_branches'), dict):
+            raise ValueError('obstacle task requires navigation_branches')
         if task == 'person' and point.get('area') not in ('A', 'B'):
             raise ValueError(f'{name}: person requires area A or B')
         if task == 'plate' and (type(point.get('parking_lot')) is not int or point['parking_lot'] < 1):
@@ -58,7 +58,52 @@ def validate_route(route):
             recording = False
     if recording:
         raise ValueError('Recording requires a stop task')
+    validate_navigation_branches(route)
     return route
+
+
+def validate_navigation_branches(route):
+    branches = route.get('navigation_branches')
+    if branches is None:
+        return
+    if not isinstance(branches, dict) or set(branches) != {'clear', 'blocked'}:
+        raise ValueError('navigation_branches requires clear and blocked')
+    points = route['points']
+    triggers = [i for i, p in enumerate(points) if p['task'] == 'obstacle']
+    if len(triggers) != 1:
+        raise ValueError('Branched routes require exactly one obstacle task')
+    split = triggers[0]
+    remaining = {p['id']: p for p in points[split + 1:]}
+    required = {name for name, p in remaining.items() if p['task'] != 'navigation'}
+    if any(p['id'].startswith('via_') and p['task'] != 'navigation' for p in points):
+        raise ValueError('Transition waypoints must use task navigation')
+    clear = branches['clear']
+    if not isinstance(clear, list) or not clear:
+        raise ValueError('clear branch must be a nonempty list')
+    finish = route.get('finish_waypoint', clear[-1])
+    if not isinstance(finish, str) or finish not in remaining:
+        raise ValueError('finish_waypoint must follow the obstacle task')
+    for mode, order in branches.items():
+        if (not isinstance(order, list) or not order
+                or any(not isinstance(name, str) for name in order)):
+            raise ValueError(f'{mode}: branch must be a nonempty waypoint ID list')
+        selected = set(order)
+        if len(order) != len(selected) or not required <= selected <= set(remaining):
+            raise ValueError(f'{mode}: branch must visit every task once and use known waypoints')
+        if order[-1] != finish:
+            raise ValueError(f'{mode}: branch must end at finish_waypoint')
+        recording = False
+        for point in points[:split + 1] + [remaining[name] for name in order]:
+            if point['task'] == 'record_start':
+                if recording:
+                    raise ValueError(f'{mode}: recording already started')
+                recording = True
+            elif point['task'] == 'record_stop':
+                if not recording:
+                    raise ValueError(f'{mode}: recording stop must follow recording start')
+                recording = False
+        if recording:
+            raise ValueError(f'{mode}: recording requires a stop task')
 
 
 def obstacle_route(objects, width, clear_x_ratio):

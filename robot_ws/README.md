@@ -155,7 +155,7 @@ move_base 关闭仅按平移进展判断的振荡超时（`oscillation_timeout: 
 roslaunch community_bringup navigation.launch
 ```
 
-在 RViz 使用 `2D Pose Estimate` 设置实际初始位姿，确认激光与围栏对齐，再以 `2D Nav Goal` 试跑。该地图与 DWA 组合尚未在本车验证。默认路线已更新为旋转后地图下重新采集的 21 个原任务点，并补充 11 个转角过渡点；正式巡检前先使用仅导航模式确认路线。
+在 RViz 使用 `2D Pose Estimate` 设置实际初始位姿，确认激光与围栏对齐，再以 `2D Nav Goal` 试跑。默认路线已接入 2026-11-24 采集的新航点及两条分支；正式巡检前先使用仅导航模式确认路线，任务取景和整圈运行尚需实车验证。
 
 更换地图时同时指定匹配的 `map` 和 `navigation_map`：
 
@@ -296,7 +296,7 @@ roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
-仅导航整条路线时，可在 `route.yaml` 的 `via_*` 过渡点上设置 `pass_radius`（米）。进入半径后直接切向下一航点，无需在过渡点对齐朝向。默认仅 `via_02_03` 配置了 `0.10` m。定位反馈不可用时按原规则判定到点，单航点运行和最终停车点也沿用原规则。
+所有执行点（包括纯导航点和转角过渡点）均等待 `move_base` 返回到点成功，再处理任务并切换到下一点；仅导航模式也遵循相同的到点判定。
 
 ### 单航点运行
 
@@ -307,8 +307,8 @@ roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=
 roslaunch community_mission mission.launch single_waypoint:=wp_05 navigation_only:=true
 # 导航到 wp_05，执行人员及违停识别后结束；须先启动相机和相关服务
 roslaunch community_mission mission.launch single_waypoint:=wp_05 navigation_only:=false
-# 导航到 wp_04，识别障碍物并记录选路结果，随后结束，不执行后续路线
-roslaunch community_mission mission.launch single_waypoint:=wp_04 navigation_only:=false
+# 导航到 wp_04_obstacle，识别障碍物并记录选路结果，随后结束，不执行后续路线
+roslaunch community_mission mission.launch single_waypoint:=wp_04_obstacle navigation_only:=false
 ```
 
 不指定 `single_waypoint` 时仍执行完整路线。单点红绿灯任务沿用连续确认及超时规则；人员统计仅代表该点。录像开始/结束任务依赖配对，单点执行会在导航前拒绝，但可使用 `navigation_only:=true` 导航到录像点。结果仍记录全部航点，仅执行的航点更新状态，其余保留 `NOT_EXECUTED`。不要与正在运行的巡检或其他导航目标同时使用。
@@ -330,7 +330,7 @@ roslaunch community_bringup finals.launch base_protocol:=aa_bb
 
 `hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机以 1920×1080 MJPEG 采集，发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 3840×2160 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
 
-`wp_11` 到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。读取超时会按航点任务失败收尾。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
+配置 `task: meter` 的航点到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。读取超时会按航点任务失败收尾。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
 
 在 Web 工作台的相机页选择 **仪表盘调试（实时过程图）**，自动切到 UGREEN 4K 视频源。四格画面依次显示原图与指针、原图灰度、模板与当前帧的匹配点、透视校正后的读针灰度图，右侧显示读数和匹配内点数。
 
@@ -385,7 +385,7 @@ python3 tools/camera_web_preview.py --camera ros --topic /thermal_camera/image_r
 
 ### 楼宇 D 楼层温度检测（初版）
 
-完整巡检到达 `wp_12` 时，通过 `/building_d_temperature/measure` 等待到点后的温度帧，默认 3 秒内取得各楼层已确认的结果。巡检结果记录各层最高温度与异常楼层。仅在存在异常时播报一句，如 `D大楼在 2、4 楼处发现高温情况`。测温无结果超时会记录任务失败并结束本轮。更新代码后需重新编译工作空间以生成测温服务类型。硬件、定位、导航和服务已运行时，可用 `roslaunch community_mission mission.launch single_waypoint:=wp_12` 验证单点任务。
+配置 `task: temperature` 的航点通过 `/building_d_temperature/measure` 等待到点后的温度帧，默认 3 秒内取得各楼层已确认的结果。巡检结果记录各层最高温度与异常楼层，仅在存在异常时播报。测温无结果超时会记录任务失败并结束本轮。当前默认新路线未配置测温任务；需先为目标航点设置该任务，再进行单点验收。更新代码后需重新编译工作空间以生成测温服务类型。
 
 保持红外采集运行，另开终端加载工作空间后启动：
 
@@ -462,7 +462,7 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 ### 模型检测浏览器预览
 
-人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。完整巡检在 `wp_04` 调用障碍物服务自动选路；仅导航模式由 `obstacle_mode` 手动指定。
+人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。完整巡检在 `wp_04_obstacle` 调用障碍物服务自动选路；仅导航模式由 `obstacle_mode` 手动指定。
 
 `tools/detector_preview.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
 
@@ -546,14 +546,16 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route.yaml` 包含 21 个原任务点和 11 个 `via_...` 转角过渡点，坐标和朝向来自 2026-11-17 新采集记录。航点按当前导航图的通道中心线校正：左右竖向通道 x 分别为 1.02、3.84 m，中间竖向通道 x 为 2.23 m；下、上横向通道 y 分别为 0.41、3.84 m，中间横向通道 y 为 1.62 m。各点保留原任务与朝向，录像起止点 `wp_19/20` 共用 x=1.02 m、yaw=3.1416 rad，保持横移目标排列。完整巡检到达 `wp_04` 后拍照，调用障碍物模型，按标志检测框中心横坐标选择后续顺序；仅导航模式仍按 `obstacle_mode` 手动选择，不调用模型：
+默认 `route.yaml` 使用 2026-11-24 重新采集的航点，保留新文件的 ID、坐标、朝向和任务。前 42 项为 clear 顺序，另有 4 个 `via_blocked_*` 绕角点；clear / blocked 分别执行 42 / 45 个目标，两条路线均执行全部 18 项任务并在 `finish_waypoint: wp_41` 结束。所有执行点均等待导航成功，不按靠近半径提前切换。
 
-- `blocked`（默认）：01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 13 → 11 → 12 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
-- `clear`：01 → 02 → 03 → 04 → 13 → 12 → 11 → 08 → 06 → 05 → 07 → 09 → 10 → 14 → 15 → 16 → 17 → 18 → 19 → 20 → 21。
+公共前段为 `wp_01 → wp_02 → wp_03 → wp_04 → wp_04_obstacle`。障碍物点位于 `(3.84, 0.70)`、朝北，识别后按 `navigation_branches` 中的 ID 顺序选择后续航点；选路依据 `task: obstacle`，不依赖特定编号。仅导航模式用 `obstacle_mode:=clear` 或 `blocked` 手动选择。
 
-上述编号均为 `wp_XX`，仅列原任务点顺序。实际路线在直角处增加普通导航过渡点：公共前段 `wp_02 → via_02_03(3.84, 0.41) → wp_03`；右侧中部交叉口 `(3.84, 1.62)`、中部交叉口 `(2.23, 1.62)`、右上角 `(3.84, 3.84)`、中上交叉口 `(2.23, 3.84)` 和返回停车位前的 `(1.02, 0.41)` 按分支需要使用。过渡点朝向对齐后续行驶方向，两分支分别执行 29 / 27 个目标；录像 `wp_19 → wp_20` 之间不插点。原任务、任务点坐标及朝向不变，新增转角路线尚未进行实车验证。两条路线共用 YAML 中的航点坐标，分支只引用 ID；从 `wp_14` 起沿公共路线执行，到达 `wp_21` 后正常结束并保存结果。`obstacle_mode` 仅支持 `blocked` 和 `clear`，作为手动参数仅在导航测试模式生效；完整巡检由检测结果决定。
+- `clear`：选路后继续 `wp_05～wp_41`，保持新采集顺序。
+- `blocked`：`wp_05 → via_blocked_entry → wp_14 → wp_13 → wp_15 → wp_16 → wp_17 → wp_18 → wp_19 → wp_11 → wp_20 → wp_21 → via_blocked_top_middle_east → via_blocked_top_right_down → wp_06 → wp_07 → wp_08 → via_blocked_top_right_west → wp_09 → wp_10 → wp_22 → wp_23～wp_41`。
 
-封口参数位于 `route.yaml` 的 `navigation_closures`：`blocked` 封右侧竖道的 y=1.93–1.94 m，`clear` 封横向支路的 x=3.53–3.54 m；封口向禁行支路内侧放置，两端接入静态禁行区，不扩张到相邻转角。每轮开始先恢复底图；仅导航模式在起步前按 `obstacle_mode` 封口，完整巡检在 `wp_04` 识别完成后封口并锁定本轮选择。更新后在停车点等待一个全局代价地图更新周期，再下发目标。`blocked` 的 `wp_10 → wp_13` 改为从中上交叉口、右上转角绕行，原任务点和任务顺序不变。此封口方案尚未进行实车整圈验证。
+blocked 从右侧中部入口进入中路，完成中部任务后经顶部绕到右侧，再沿顶部向左进入公共收尾路线。任务点每条分支各执行一次，纯导航点按分支需要选择。`wp_15` fire 朝正西，`wp_18`、`wp_33` fire 保留采集偏转角；录像 `wp_36 → wp_37` 共用 x=1.02 m、yaw=3.1416 rad，期间不插点。地图通道中心线为 x=1.02 / 2.23 / 3.84 m，y=0.41 / 1.62 / 3.84 m。
+
+`navigation_closures` 中 blocked 封右侧竖道的 y=1.93–1.94 m，clear 封横向入口的 x=3.53–3.54 m。每轮恢复底图；仅导航模式在起步前按参数封口，完整巡检在障碍物识别后封口。更新后等待一个全局代价地图更新周期，再发送目标。静态地图通行空间已检查；障碍物新视角、任务取景及整圈运行尚未实车验证。
 
 调试时停止巡检和其他导航目标后，可手动切换封口（服务仅更新地图，不发送运动目标）：
 
@@ -565,19 +567,19 @@ rosservice call /navigation_map/reset "{}"                # 恢复底图
 
 更换地图或场地后需同步核对 `navigation_closures` 的坐标；自定义路线可不配置该字段，此时巡检不自动设置封口。`navigation.launch` 支持 `route:=...` 指定封口配置来源，应与巡检使用同一份路线文件。
 
-每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04` 使用 `task: obstacle` 自动选路；`wp_11` 使用 `task: meter` 读取温湿度表，`wp_12` 使用 `task: temperature` 检查楼宇 D 温度。`wp_19`、`wp_20` 配置录像开始、结束，`wp_21` 为最终停车点。仅导航模式会跳过所有任务；完整任务模式按检测选择的分支执行各航点任务，绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
+每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04_obstacle` 识别障碍物并自动选路；`wp_36`、`wp_37` 为录像起止点；`wp_41` 为最终停车点。`wp_07`、`wp_09` 按新采集文件保留 `navigation`，当前默认路线未启用仪表和楼宇测温任务。仅导航模式跳过所有任务；红绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 
 ### 垃圾桶与垃圾分类
 
-`wp_16` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_24cls.pt` 导出的 `trash_sorting.onnx`，以 1024×1024 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
+`wp_28` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_24cls.pt` 导出的 `trash_sorting.onnx`，以 1024×1024 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
 
 垃圾框还原到原图坐标后，按横向最近的桶匹配；距离不超过该桶宽度的 `0.6`，并要求垃圾中心位于桶高度 45% 以下至桶底下方半个桶高的范围。每个垃圾最多归属一个桶；一个桶只对应一个垃圾时比较类别。红/绿/灰/蓝桶分别对应有害/厨余/其他/可回收。漏检或多个目标对应同一桶时记录 `UNKNOWN`；类别不一致记录 `INCORRECT`；只有四种桶均对应正确且无未匹配目标时才输出全部 `CORRECT`。桶盖开关单独记录。
 
 ROI 与匹配参数位于 `community_mission/config/recognition_rules.yaml`；置信度位于 `community_perception/config/detectors.yaml`，任务模式下桶为 `0.75`、垃圾为 `0.5`。任务正常返回后，原图、`*_roi.jpg`、带框和匹配连线的 `*_trash.jpg` 保存到本次运行的 `photo/`，JSON 记录 ROI、桶/垃圾框、置信度和匹配结果。橙色表示无法确认，绿色表示对应正确，红色表示投放错误；不触发语音。
 
-更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_16 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
+更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_28 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
 
 停车查看完整垃圾识别流程时，在 `robot_ws` 目录运行以下工具。它直接加载本地两个 ONNX 模型，复用巡检的 ROI 与匹配规则，无需启动巡检、导航或检测服务：
 
@@ -598,4 +600,4 @@ python3 tools/detector_preview.py --trash --image ../yolo_train/datasets/trash_s
 
 红绿灯航点使用 `community_perception/models/traffic_light.onnx` 两分类模型（0=`stop`、1=`go`）。默认连续 3 帧有效且仅含 `go` 的检测结果才放行，继续下一航点导航；`stop`、空结果、混合结果或无效检测打断连续计数，重复时间戳同样重置计数。连续确认帧数仍由 `green_confirm_frames` 配置，默认 30 秒超时后终止任务。
 
-障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。
+障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04_obstacle 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。
