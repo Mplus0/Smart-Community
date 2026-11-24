@@ -9,7 +9,7 @@ import numpy as np
 
 
 SCALES = {"temperature": range(-30, 51, 10), "humidity": range(0, 101, 10)}
-READING_STEPS = {"temperature": 1, "humidity": 2}
+READING_STEPS = {"temperature": 1, "humidity": 1}
 
 
 def load_image(path):

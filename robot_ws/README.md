@@ -328,11 +328,11 @@ roslaunch community_bringup finals.launch base_protocol:=aa_bb
 
 ### UGREEN 仪表相机
 
-`hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机以 1920×1080 MJPEG 采集，发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 3840×2160 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
+`hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机以 1920×1080 MJPEG 采集，发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 1920×1080 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
 
 配置 `task: meter` 的航点到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。读取超时会按航点任务失败收尾。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
 
-在 Web 工作台的相机页选择 **仪表盘调试（实时过程图）**，自动切到 UGREEN 4K 视频源。四格画面依次显示原图与指针、原图灰度、模板与当前帧的匹配点、透视校正后的读针灰度图，右侧显示读数和匹配内点数。
+在 Web 工作台的相机页选择 **仪表盘调试（实时过程图）**，自动切到 UGREEN 1080p 视频源。四格画面依次显示原图与指针、原图灰度、模板与当前帧的匹配点、透视校正后的读针灰度图，右侧显示读数和匹配内点数。
 
 在 `robot_ws/` 下可用单张照片离线检查表盘识别过程，例如：
 
@@ -464,6 +464,8 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。完整巡检在 `wp_04_obstacle` 调用障碍物服务自动选路；仅导航模式由 `obstacle_mode` 手动指定。
 
+`fire.onnx` 已更新为 2026-11-25 光照增强训练的最佳模型（训练集 4737 张、验证集 79 张，第 80 轮最佳，第 130 轮早停），使用静态 FP32 640×640 输入及外部 NMS，与 `yolo_train/model/fire.onnx` 一致。火焰检测启用 `letterbox: true`，通过等比例缩放补边保持与训练一致的预处理，避免直接拉伸造成漏检。替换后需重启正在运行的火焰检测服务或浏览器预览以重新加载模型。
+
 `tools/detector_preview.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
 
 保持相机运行，另开终端执行：
@@ -573,7 +575,7 @@ rosservice call /navigation_map/reset "{}"                # 恢复底图
 
 ### 垃圾桶与垃圾分类
 
-`wp_28` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_24cls.pt` 导出的 `trash_sorting.onnx`，以 1024×1024 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
+`wp_28` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_aug_autodl.pt` 导出的 `trash_sorting.onnx`，以 1920×1920 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
 
 垃圾框还原到原图坐标后，按横向最近的桶匹配；距离不超过该桶宽度的 `0.6`，并要求垃圾中心位于桶高度 45% 以下至桶底下方半个桶高的范围。每个垃圾最多归属一个桶；一个桶只对应一个垃圾时比较类别。红/绿/灰/蓝桶分别对应有害/厨余/其他/可回收。漏检或多个目标对应同一桶时记录 `UNKNOWN`；类别不一致记录 `INCORRECT`；只有四种桶均对应正确且无未匹配目标时才输出全部 `CORRECT`。桶盖开关单独记录。
 
@@ -601,3 +603,15 @@ python3 tools/detector_preview.py --trash --image ../yolo_train/datasets/trash_s
 红绿灯航点使用 `community_perception/models/traffic_light.onnx` 两分类模型（0=`stop`、1=`go`）。默认连续 3 帧有效且仅含 `go` 的检测结果才放行，继续下一航点导航；`stop`、空结果、混合结果或无效检测打断连续计数，重复时间戳同样重置计数。连续确认帧数仍由 `green_confirm_frames` 配置，默认 30 秒超时后终止任务。
 
 障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04_obstacle 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。
+
+
+### 电表读数验收
+
+配置 `task: meter` 的仪表任务从 `/ugreen_4k/image_raw` 获取到点后的新帧，同时读取温度、湿度和电量。电表通过 `/electricity_meter_ocr` 复用 PaddleOCR，在整帧中定位 `kWh`，读取其上方相邻数字行，连续两帧读数一致后确认。UGREEN 画面需同时包含温湿度表、电表数字和单位。
+
+任务默认等待 60 秒，可通过 `mission.launch meter_timeout:=90` 调整。三项全部有效才完成任务，超时记录失败及现场图片。结果中的 `electricity_kwh` 为保留小数点及前导零的字符串，`electricity_unit` 为 `kWh`，并记录 `electricity_confidence`。原图和叠加图与温湿度读数一起保存。
+
+现场参考图片已通过 OCR 读取 `123.4 kWh`，实际停车视角和不同读数仍需现场验收。
+
+
+楼宇火灾预览与火焰航点共用 ROS 服务 `/building_name_ocr_preview` 及任务模块中的楼名提取规则。识别到火焰后才请求同一原始图像的楼名；楼名缺失或 OCR 失败时仍记录火情，使用默认楼名“大厦”。航点仅依赖 ROS 识别服务，可在工作台关闭时独立运行。

@@ -1,0 +1,17 @@
+# RTX PRO 6000 96GB; paths are relative to yolo_train/.
+model: ../models/yolo26n.pt
+data: datasets/fire_aug/data.yaml
+output:
+  project: results/fire_aug
+  name: yolo26n_640_cloud
+train:
+  epochs: 200
+  imgsz: 640
+  batch: 256
+  workers: 16
+  cache: ram
+  amp: true
+  patience: 50
+  seed: 42
+  deterministic: false
+  close_mosaic: 20

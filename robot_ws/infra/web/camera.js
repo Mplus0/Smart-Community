@@ -15,7 +15,7 @@ const detectorLabels = {
   __none__: '不检测（原始画面）',
   __trash_pipeline__: '垃圾分类完整流程',
   __thermal__: '红外测温（楼宇 D）',
-  __meter__: '仪表盘识别（UGREEN 4K）',
+  __meter__: '仪表盘识别（UGREEN 1080p）',
   __meter_debug__: '仪表盘调试（实时过程图）',
   __plate__: '车牌识别',
   __building_fire__: '楼宇火灾识别',
@@ -156,6 +156,9 @@ function renderStatus({ settings, status }) {
       ...(r.inlier_count == null ? [] : [['匹配内点', escapeHtml(r.inlier_count)]]),
       ['温度', r.temperature_c == null ? '—' : `${escapeHtml(r.temperature_c)} ℃`],
       ['湿度', r.humidity_percent == null ? '—' : `${escapeHtml(r.humidity_percent)} %RH`],
+      ['电量', r.electricity_kwh == null ? '—' : `${escapeHtml(r.electricity_kwh)} kWh`],
+      ['电表状态', r.electricity_pending ? '正在识别' : escapeHtml(r.electricity_error || '已返回读数')],
+
     ]);
   } else if (settings.detector === '__plate__') {
     const r = status.report;

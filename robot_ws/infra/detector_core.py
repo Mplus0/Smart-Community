@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import re
 import sys
 import threading
 import time
@@ -39,6 +38,9 @@ except ImportError:
     def trash_result(*args, **kwargs):
         """Fallback stub."""
         return {"placement_status": "N/A", "matches": [], "unmatched": []}
+
+
+from rules import building_name
 
 
 DEFAULT_CONFIG = _WORKSPACE / "src/community_perception/config/detectors.yaml"
@@ -255,15 +257,6 @@ class TrashPipeline:
 # Registry used by the camera pipeline
 # ---------------------------------------------------------------------------
 
-def building_name(texts):
-    """Accept a single plausible building sign from the fire frame."""
-    candidates = set()
-    signs = re.compile(r'楼宇[A-D]|(?<![A-Z0-9])[A-D](?:号)?(?:大楼|大厦|楼|栋)|[\u4e00-\u9fff]{1,12}(?:大楼|大厦)')
-    for text in texts:
-        candidates.update(signs.findall(''.join(text.upper().split())))
-    if not candidates:
-        candidates.update(signs.findall(''.join(''.join(text.upper().split()) for text in texts)))
-    return next(iter(candidates)) if len(candidates) == 1 else ''
 
 
 class PreviewOCR:
@@ -299,7 +292,7 @@ class PreviewOCR:
             rospy.wait_for_service(service, timeout=1.0)
             message = CvBridge().cv2_to_imgmsg(image, encoding='bgr8')
             response = rospy.ServiceProxy(service, LicensePlateOCR)(message)
-            if response.status_message not in ('', '未识别到文字', '未识别到车牌'):
+            if response.status_message not in ('', 'kWh', '未识别到文字', '未识别到车牌'):
                 raise RuntimeError(response.status_message)
             result = dict(texts=list(response.plate_texts), scores=list(response.confidences), error='')
         except Exception as error:

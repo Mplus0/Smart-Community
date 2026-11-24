@@ -29,3 +29,5 @@ xanylabeling
 在自动标注面板加载自定义模型时，选择 `person.yaml` 使用原版人员模型，或选择 `person_half.yaml` 使用半身人员模型。两个配置都从 `yolo_train/model/` 加载对应的 ONNX 模型，并识别 `community_person` 和 `outsider`。
 
 选择 `traffic_light.yaml` 加载实车红绿灯模型，输出 `stop` 和 `go` 矩形框。
+
+选择 `fire.yaml` 加载 `yolo_train/model/fire.onnx`，输出 `fire` 矩形框。当前为 2026-11-25 光照增强训练的最佳火焰模型，自动标注置信度阈值为 0.25、IoU 阈值为 0.45，可用于标注或审核 `yolo_train/datasets/fire/images/` 中的图片。更新后重新加载模型以使用新权重。

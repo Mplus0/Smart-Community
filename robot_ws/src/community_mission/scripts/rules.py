@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from collections import Counter
 import math
+import re
 
 
 @dataclass(frozen=True)
@@ -239,3 +240,14 @@ def trash_result(bins, waste, settings):
 def vehicle_announcement(illegal, stand, fall):
     return (f'A街区有{illegal["A"]}辆电动车违停，B街区有{illegal["B"]}辆电动车违停。'
             f'停车区内电动车正常{stand}辆，倒伏{fall}辆')
+
+
+def building_name(texts):
+    """Accept a single plausible building sign from the fire frame."""
+    candidates = set()
+    signs = re.compile(r'楼宇[A-D]|(?<![A-Z0-9])[A-D](?:号)?(?:大楼|大厦|楼|栋)|[\u4e00-\u9fff]{1,12}(?:大楼|大厦)')
+    for text in texts:
+        candidates.update(signs.findall(''.join(text.upper().split())))
+    if not candidates:
+        candidates.update(signs.findall(''.join(''.join(text.upper().split()) for text in texts)))
+    return next(iter(candidates)) if len(candidates) == 1 else ''

@@ -1,7 +1,7 @@
 <launch>
   <arg name="video_device" default="/dev/v4l/by-id/usb-Image+_UGREEN_Camera_4K_LL-0000000001-video-index0" />
-  <arg name="width" default="3840" />
-  <arg name="height" default="2160" />
+  <arg name="width" default="1920" />
+  <arg name="height" default="1080" />
   <node pkg="community_bringup" type="meter_camera_node.py" name="ugreen_4k" output="screen">
     <param name="video_device" value="$(arg video_device)" />
     <param name="width" type="int" value="$(arg width)" />

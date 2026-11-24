@@ -11,6 +11,7 @@
   <arg name="image_topic" default="/usb_cam/image_raw" />
   <arg name="meter_image_topic" default="/ugreen_4k/image_raw" />
   <arg name="meter_profile" default="" />
+  <arg name="meter_timeout" default="60.0" />
   <arg name="route" default="$(find community_mission)/config/route.yaml" />
   <node pkg="community_mission" type="mission_node.py" name="community_mission" output="screen" required="true">
     <rosparam command="load" file="$(find community_mission)/config/recognition_rules.yaml" />
@@ -28,6 +29,7 @@
     <param name="image_topic" value="$(arg image_topic)" />
     <param name="meter_image_topic" value="$(arg meter_image_topic)" />
     <param name="meter_profile" type="str" value="$(arg meter_profile)" />
+    <param name="meter_timeout" type="double" value="$(arg meter_timeout)" />
     <param name="planner_namespace" value="/move_base/DWAPlannerROS" />
   </node>
 </launch>

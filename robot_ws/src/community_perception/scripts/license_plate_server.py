@@ -40,6 +40,8 @@ class LicensePlateOCRServer:
             'license_plate_ocr_preview', LicensePlateOCR, self.handle_plate_preview)
         self.building_preview = rospy.Service(
             'building_name_ocr_preview', LicensePlateOCR, self.handle_building_preview)
+        self.energy_service = rospy.Service(
+            'electricity_meter_ocr', LicensePlateOCR, self.handle_energy_request)
         rospy.loginfo("License Plate OCR Server 已启动，等待请求...")
         rospy.loginfo("处理图像中心区域：x轴保留 %.0f%%，y轴全高", self.crop_ratio * 100)
 
@@ -137,6 +139,7 @@ class LicensePlateOCRServer:
 
                 texts = []
                 scores = []
+                boxes = []
 
                 for line in result:
                     if line is None:
@@ -154,11 +157,13 @@ class LicensePlateOCRServer:
                         if text and isinstance(score, (int, float)):
                             texts.append(text)
                             scores.append(score)
+                            boxes.append(word_info[0])
 
                 if texts:
                     return {
                         'texts': texts,
                         'scores': scores,
+                        'boxes': boxes,
                         'success': True
                     }
 
@@ -292,6 +297,42 @@ class LicensePlateOCRServer:
                     confidences=[],
                     status_message=f"处理失败: {str(e)[:50]}"
                 )
+
+    def handle_energy_request(self, req):
+        """Read the numeric line immediately above a kWh label."""
+        with self.processing_lock:
+            try:
+                frame = self.bridge.imgmsg_to_cv2(req.image, 'bgr8')
+                result = self.safe_ocr_process(frame)
+                if not result:
+                    return LicensePlateOCRResponse(status_message='未识别到电表文字')
+                words = list(zip(result['texts'], result['scores'], result['boxes']))
+                candidates = []
+                for text, score, box in words:
+                    normalized = re.sub(r'\s+', '', text).replace('．', '.')
+                    if score < self.conf or not re.fullmatch(r'\d+(?:\.\d+)?', normalized):
+                        continue
+                    points = np.asarray(box, dtype=float)
+                    left, top = points.min(axis=0)
+                    right, bottom = points.max(axis=0)
+                    height = bottom - top
+                    for unit, unit_score, unit_box in words:
+                        if re.sub(r'\s+', '', unit).lower() != 'kwh' or unit_score < self.conf:
+                            continue
+                        unit_points = np.asarray(unit_box, dtype=float)
+                        unit_left, unit_top = unit_points.min(axis=0)
+                        unit_right, _ = unit_points.max(axis=0)
+                        if (height > 0 and -0.25 * height <= unit_top - bottom <= 1.5 * height
+                                and min(right, unit_right) > max(left, unit_left)):
+                            candidates.append((normalized, float(min(score, unit_score))))
+                if len(candidates) != 1:
+                    return LicensePlateOCRResponse(status_message='无法唯一确定 kWh 对应的电表读数')
+                text, score = candidates[0]
+                return LicensePlateOCRResponse(
+                    plate_texts=[text], confidences=[score], status_message='kWh')
+            except Exception as error:
+                rospy.logerr('电表 OCR 处理失败: %s', error)
+                return LicensePlateOCRResponse(status_message=f'电表 OCR 处理失败: {error}')
 
     def handle_plate_preview(self, req):
         return self.handle_preview(req, plate=True)

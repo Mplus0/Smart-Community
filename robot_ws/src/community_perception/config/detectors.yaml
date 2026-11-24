@@ -33,6 +33,7 @@ detectors:
     model_name: fire_detector
     conf_threshold: 0.9
     iou_threshold: 0.4
+    letterbox: true
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/fire
     class_names:

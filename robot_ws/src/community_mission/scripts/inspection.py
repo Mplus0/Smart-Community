@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import time
 
 from rules import (Detection, detections, people_counts, illegal_parking_count,
-                   trash_roi, trash_result)
+                   trash_roi, trash_result, building_name)
 
 
 class Inspection:
@@ -54,8 +54,8 @@ class Inspection:
         building = '大厦'
         ocr_error = ''
         try:
-            response = self.services.ocr(image)
-            building = response.plate_texts[0] if response.plate_texts else building
+            response = self.services.building_ocr(image)
+            building = building_name(response.plate_texts) or building
         except Exception as error:
             ocr_error = str(error)
 

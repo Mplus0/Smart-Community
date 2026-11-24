@@ -11,8 +11,8 @@ from sensor_msgs.msg import Image
 def main():
     rospy.init_node('ugreen_4k')
     device = rospy.get_param('~video_device')
-    width = rospy.get_param('~width', 3840)
-    height = rospy.get_param('~height', 2160)
+    width = rospy.get_param('~width', 1920)
+    height = rospy.get_param('~height', 1080)
     publisher = rospy.Publisher('~image_raw', Image, queue_size=1)
     bridge = CvBridge()
     cv2.setNumThreads(1)

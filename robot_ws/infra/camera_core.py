@@ -506,6 +506,11 @@ class CameraService:
         try:
             if name in (METER_PREVIEW, METER_DEBUG_PREVIEW):
                 annotated, report = self._detector(name, None, None).analyze(frame)
+                reading = self._ocr.sample(frame, '/electricity_meter_ocr')
+                report.update(electricity_kwh=None, electricity_pending=reading is None, electricity_error='')
+                if reading is not None:
+                    report.update(electricity_kwh=next(iter(reading['texts']), None),
+                                  electricity_error=reading['error'])
                 self.status.update(report=report, detections=[], error=None)
                 return annotated
             if name == PLATE_PREVIEW:

@@ -321,7 +321,10 @@ class Mission:
         reader = meter_reader.Reader(profile_path)
         topic = rospy.get_param('~meter_image_topic', '/ugreen_4k/image_raw')
         last_stamp = rospy.Time.now()
-        deadline = time.monotonic() + self.image_timeout
+        timeout = float(rospy.get_param('~meter_timeout', 60.0))
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError('meter_timeout must be positive')
+        deadline = time.monotonic() + timeout
         frames = threading.Condition()
         latest = None
 
@@ -336,6 +339,8 @@ class Mission:
         frame = None
         result = None
         reason = f'{topic} 未收到新的仪表相机图像'
+        previous_energy = None
+        energy_frames = 0
         try:
             while time.monotonic() < deadline:
                 self.check_running()
@@ -347,15 +352,33 @@ class Mission:
                     last_stamp = image.header.stamp
                 frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
                 values, overlay, status = reader.read(frame)
+                reading = self.services.read_electricity(image)
+                self.check_running()
+                energy_text = reading.plate_texts[0] if len(reading.plate_texts) == 1 else None
+                if energy_text is not None and energy_text == previous_energy:
+                    energy_frames += 1
+                else:
+                    energy_frames = 1 if energy_text is not None else 0
+                previous_energy = energy_text
+                if time.monotonic() >= deadline:
+                    reason = '仪表读取超时，三项读数未完成确认'
+                    break
                 if status == 'alignment_failed':
                     reason = '仪表盘配准失败'
                 elif values['temperature'] is None or values['humidity'] is None:
                     reason = '未可靠读出温度或湿度指针'
+                elif energy_frames < 2:
+                    reason = '电表读数未连续两帧确认：' + reading.status_message
                 else:
                     result = dict(
                         temperature_c=meter_reader.quantize_reading('temperature', values['temperature']),
                         humidity_percent=meter_reader.quantize_reading('humidity', values['humidity']),
+                        electricity_kwh=energy_text,
+                        electricity_unit='kWh',
+                        electricity_confidence=float(reading.confidences[0]),
                         camera_topic=topic)
+                    cv2.putText(overlay, f'Energy: {energy_text} kWh', (30, 60),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 180, 0), 3)
                     break
             self.check_running()
             if frame is not None:

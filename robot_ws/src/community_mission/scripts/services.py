@@ -36,6 +36,15 @@ class Services:
     def ocr(self, image):
         return self.call('license_plate_ocr', LicensePlateOCR, image)
 
+    def building_ocr(self, image):
+        response = self.call('building_name_ocr_preview', LicensePlateOCR, image)
+        if response.status_message not in ('', '未识别到文字'):
+            raise RuntimeError(response.status_message)
+        return response
+
+    def read_electricity(self, image):
+        return self.call('electricity_meter_ocr', LicensePlateOCR, image)
+
     def say(self, text):
         return self.call('speech_say', Speech, text)
 

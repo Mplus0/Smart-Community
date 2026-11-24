@@ -1,0 +1,9 @@
+# Standard YOLO detection output with external NMS.
+type: yolo11
+name: fire_yolo26n
+display_name: Fire (YOLO26n)
+model_path: ../yolo_train/model/fire.onnx
+conf_threshold: 0.25
+iou_threshold: 0.45
+classes:
+  - fire
