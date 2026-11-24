@@ -29,6 +29,63 @@ class MissionRouteTests(unittest.TestCase):
         exec(compile(ast.Module(body=[method], type_ignores=[]), 'mission_node.py', 'exec'), namespace)
         return namespace[name]
 
+    def test_new_clear_route_tasks_and_recording(self):
+        route = yaml.safe_load((SCRIPTS.parent / 'config/route_clear.yaml').read_text())
+        validate_route(route)
+        self.assertNotIn('navigation_branches', route)
+        self.assertEqual([p['id'] for p in route['points']],
+                         [f'wp_{i:02d}' for i in range(1, 40)])
+        expected = {
+            'traffic_light': ['wp_01', 'wp_24'],
+            'person': ['wp_02', 'wp_06', 'wp_07', 'wp_14', 'wp_17', 'wp_18'],
+            'fire': ['wp_19', 'wp_22', 'wp_34'],
+            'plate': ['wp_27', 'wp_28', 'wp_31'], 'trash': ['wp_29'],
+            'record_start': ['wp_35'], 'record_stop': ['wp_36'], 'obstacle': []}
+        for task, ids in expected.items():
+            self.assertEqual([p['id'] for p in route['points'] if p['task'] == task], ids)
+        self.assertEqual([p['area'] for p in route['points'] if p['task'] == 'person'],
+                         ['A', 'A', 'B', 'B', 'B', 'A'])
+        self.assertEqual([p['parking_lot'] for p in route['points'] if p['task'] == 'plate'], [1, 2, 3])
+        self.assertEqual(route['points'][34]['y'], 2.3729)
+        self.assertEqual(route['points'][35]['y'], 0.8364)
+
+    def test_new_clear_route_completes_without_branching(self):
+        route = yaml.safe_load((SCRIPTS.parent / 'config/route_clear.yaml').read_text())
+        for mode in ('clear', 'blocked'):
+            transitions, visited = [], []
+            obj = SimpleNamespace(route=copy.deepcopy(route), index=0, single_waypoint='',
+                                  obstacle_mode=mode,
+                                  transition=lambda state, reason: transitions.append(state))
+            for _ in route['points']:
+                visited.append(obj.route['points'][obj.index]['id'])
+                self.method('next_point')(obj)
+            self.assertEqual(visited, [p['id'] for p in route['points']])
+            self.assertEqual(transitions[-1], 'FINISH')
+
+    def test_initialize_single_map_ignores_old_closures(self):
+        transitions = []
+        obj = SimpleNamespace(
+            route={'navigation_closures': {'clear': {}}},
+            runtime={'server_timeout': 30.0}, navigation_only=True,
+            client=SimpleNamespace(wait_for_server=lambda timeout: True),
+            transition=lambda *args: transitions.append(args))
+        initialize = self.method('initialize')
+        initialize.__globals__['rospy'].Duration = lambda value: value
+        initialize(obj)
+        self.assertEqual(transitions[-1][0], 'NAVIGATE')
+
+    def test_obstacle_selection_does_not_require_map_service(self):
+        image = SimpleNamespace(width=640)
+        result = {'mode': 'clear', 'center_x_ratio': 0.2}
+        obj = SimpleNamespace(
+            route={'navigation_closures': {'clear': {}}},
+            services=SimpleNamespace(detect=lambda detector, frame: []),
+            check_running=lambda: None, obstacle_clear_x_ratio=0.35)
+        select = self.method('select_obstacle_route', detections=lambda objects: objects,
+                             obstacle_route=lambda *args: result)
+        self.assertEqual(select(obj, image), result)
+        self.assertEqual(obj.obstacle_mode, 'clear')
+
     def test_both_branches_run_every_task_once_and_finish(self):
         validate_route(self.route)
         points = self.route['points']

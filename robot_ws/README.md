@@ -97,14 +97,14 @@ rosrun map_server map_saver -f ~/maps/community_test
 停止建图和键盘控制，保留硬件，再启动新地图导航：
 
 ```bash
-roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test.yaml
+roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml
 ```
 
 本地 RViz 启动方式见下一节。RViz 的 Fixed Frame 设为 `map`，通过 `2D Pose Estimate` 初始化定位，再使用 `2D Nav Goal` 测试导航。建图与导航不同时运行。
 
 ### 局部规划器（默认 DWA）
 
-DWA 使用实车低速导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.35/0.12/0.10 m/s，合成平移速度上限为 0.35 m/s，角速度下限和上限为 0.15/0.45 rad/s，平移加速度为 0.6 m/s²、角加速度为 2.0 rad/s²。到点容差为 0.05 m / 0.05236 rad。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
+DWA 使用实车全向导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.50/0.12/0.08 m/s，普通导航保留低速横移修正，完整巡检的 `normal_lateral_speed` 同为 0.08 m/s，录像段 `recording_lateral_speed` 保持 0.15 m/s；合成平移速度上限为 0.50 m/s，角速度下限和上限为 0.523599/0.872665 rad/s（30/50°/s），平移加速度为 0.6 m/s²、角加速度为 2.0 rad/s²。到点容差为 0.10 m / 0.087266 rad（5°）。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
 
 导航默认使用 DWA，`navigation.launch`、`community.launch` 及调用后者的 `finals.launch` 均生效。默认启动无需指定规划器；可通过 `local_planner:=teb` 在前两个入口切换为 TEB。使用 TEB 前，先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
 
@@ -123,7 +123,7 @@ rospack find teb_local_planner
 ```bash
 roslaunch community_bringup navigation.launch
 # 切换 TEB：停止当前导航，再运行 roslaunch community_bringup navigation.launch local_planner:=teb
-# 使用新地图时同时指定 map:=... 和 navigation_map:=...
+# 使用新地图时指定 map:=...
 # 恢复 DWA：停止当前导航，再使用默认命令或 local_planner:=dwa 启动
 ```
 
@@ -135,35 +135,28 @@ rosparam get /move_base/base_local_planner
 rostopic info /move_base/local_plan
 ```
 
-TEB 参数保留在 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`，本次未随 DWA 更新；其速度、加速度和到点容差与当前 DWA 配置不同。
+TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`。当前为全向提速试验配置：前进/倒车/横移上限为 0.70/0.25/0.70 m/s，最大转速为 1.2 rad/s（约 68.8°/s），允许接近目标时自然减速；前后/横向加速度为 1.0 m/s²，角加速度为 3.0 rad/s²，到点容差为 10 cm / 5°。`weight_kinematics_nh` 和 `weight_kinematics_forward_drive` 均为 0，不添加横移惩罚或前进方向偏好。当前安装的 TEB 不支持 `max_vel_trans`，前进和横移同时达到上限时合成速度约 0.99 m/s。保留车体轮廓和到点停车配置；全局/局部代价地图膨胀半径均为 0.18 m、衰减系数为 10.0，TEB 障碍间距为 0.10 m、障碍膨胀距离为 0.18 m；这组值不是已测得的底盘极限，尚需实车验证。
 
 move_base 关闭仅按平移进展判断的振荡超时（`oscillation_timeout: 0`），避免同位置转向任务被误判；`oscillation_distance: 0.05` 在此超时关闭时不触发振荡恢复。关闭默认恢复行为中的自动旋转（`clearing_rotation_allowed: false`），保留清图恢复和正常导航转向。无有效控制等待上限仍为 3 秒，全局规划等待上限为 5 秒，巡检单目标超时仍为 120 秒。修改恢复行为后需重启导航生效。
 
 两种规划器的局部路径统一发布到 `/move_base/local_plan`，供 RViz 显示。已在实车确认 TEB 插件加载并运行导航，定位、绕障及通行稳定性仍需现场验证。
 
-### 定位地图与导航地图
+### 单地图导航
 
-定位地图和导航地图分别保存为 `src/community_bringup/maps/localization_map.yaml/.pgm` 与 `navigation_map.yaml/.pgm`。定位图主要包含外框围栏，规划图包含固定禁行区域；两图均为 431 × 431 像素，分辨率为 1 cm/格，原点为 `(-0.03, -0.03, 0)`，对应约 4.25 m 场地。两张地图已绕栅格中心旋转 180°，YAML 原点不变，停车起点位于左下侧。相对旋转前地图的坐标转换为 `x_new = 4.25 - x_old`、`y_new = 4.25 - y_old`，朝向增加 π 并归一化。AMCL 默认初始位姿为 `(0.411719, 0.409062, 0)`，仅适用于小车停在该停车起点且车头沿地图 +x 的情况；其他摆放位置通过 RViz 设置实际位姿。
+AMCL、全局和局部代价地图统一使用 `/map`，由一个 `map_server` 发布。默认加载 `src/community_bringup/maps/localization_map.yaml`，分辨率 0.01 m，原点为 `(-0.03, -0.03, 0)`。全局和局部代价地图保留静态层、激光障碍层与膨胀层，实时激光避障继续生效。
 
-两图分别发布到 `/map` 和 `/navigation_map`。保留当前全局和局部代价地图的静态层、激光障碍层与膨胀层，车体轮廓保留原值（包围尺寸约 34 × 28 cm），全局和局部 `footprint_padding` 均为 0，不额外扩张车体。规划底图包含固定禁行区，`navigation_map_node.py` 订阅 `/navigation_map_base` 并发布 `/navigation_map`。选路后只在对应入口叠加一格厚的占用封口（当前地图为 1 cm），定位图和磁盘底图不变。全局和局部静态层均接收更新，激光实时避障继续保留。
+AMCL 默认初始位姿为 `(0.411719, 0.409062, 0)`，其他摆放位置通过 RViz 的 `2D Pose Estimate` 设置实际位姿，确认激光与地图对齐后再运行。
 
-场地布局分析图仍保存在 `src/community_bringup/maps/gazebo_layout_analysis.png`，原始参考图为同目录的 `field_reference.png`。导航调参前的基线备份位于 `backups/navigation/20261117_210643_before_tuning/`。
-
-停止已有建图或导航，保留硬件运行，在已加载 ROS 环境的终端启动：
+停止已有建图或导航，保留硬件，在已加载 ROS 环境的终端启动：
 
 ```bash
-roslaunch community_bringup navigation.launch
+roslaunch community_bringup navigation.launch local_planner:=teb
+# 使用 DWA：local_planner:=dwa；不指定时默认 DWA。
+# 使用其他地图：
+roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml
 ```
 
-在 RViz 使用 `2D Pose Estimate` 设置实际初始位姿，确认激光与围栏对齐，再以 `2D Nav Goal` 试跑。默认路线已接入 2026-11-24 采集的新航点及两条分支；正式巡检前先使用仅导航模式确认路线，任务取景和整圈运行尚需实车验证。
-
-更换地图时同时指定匹配的 `map` 和 `navigation_map`：
-
-```bash
-roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yaml navigation_map:=$HOME/maps/community_test_nav.yaml
-```
-
-`community.launch` 和 `finals.launch` 同样支持 `map`、`navigation_map` 参数。RViz 添加 Map 显示并选择 `/navigation_map` 可查看导航原图。
+组合启动同样仅使用 `map` 指定地图。RViz 地图话题选择 `/map`。分支选择只切换航点顺序；激光和所加载地图中的障碍决定实际通行范围。默认场地图主要包含外围围栏，使用前核对现场障碍和地图一致性。单地图配置尚未完成实车验证，重新采集的航点需在对应地图下验收。
 
 保持建图或定位运行，将小车停在目标点后记录航点和任务（保存为新文件）：
 
@@ -176,29 +169,6 @@ python3 tools/record_waypoints.py --output ~/maps/route.yaml
 ```bash
 roslaunch community_mission mission.launch route:=$HOME/maps/route.yaml
 ```
-
-### 按场地图生成新扫描地图的禁行区
-
-`tools/generate_forbidden_map.py` 从随附的 `maps/field_reference.png` 白线计算三个禁行区，不读取仿真手点坐标。参考原图与 Gazebo 地面纹理一致，整图对应 4.2 × 4.2 米，内侧白框约为 4.0 米。方向按停车区在左、起始停车位在左下解释。
-
-先保存新的扫描地图，再确定场地左下、右下、右上、左上四角在扫描图 `map` 坐标系中的位置。角点应对应实际 4.2 米场地边界，而非参考图内侧白框；以起始停车位确认四角方向。四角仅用于一次场地标定，禁行区顶点由图片自动计算。将下面的 `X0 Y0 ... X3 Y3` 替换为实际角点坐标（米）：
-
-```bash
-python3 tools/generate_forbidden_map.py \
-  --map "$HOME/maps/community_new.yaml" \
-  --output "$HOME/maps/community_new_nav" \
-  --corners X0 Y0 X1 Y1 X2 Y2 X3 Y3
-```
-
-脚本只拟合旋转和平移，不缩放或旋转扫描图；默认角点最大标定误差超过 8 cm 时拒绝生成。输出新的导航图 `.pgm/.yaml`、禁行区及标定记录 `_zones.yaml`、角点和区域轮廓预览 `_preview.png`，不覆盖已有输出，不修改航点或自动启动导航。核对预览及实测禁行边界后显式加载：
-
-```bash
-roslaunch community_bringup navigation.launch \
-  map:="$HOME/maps/community_new.yaml" \
-  navigation_map:="$HOME/maps/community_new_nav.yaml"
-```
-
-场地布局或尺寸与参考图片不同，需先核对实际区域；脚本不会自动识别道具或推断正方形朝向。离线几何检查：`python3 tools/test_generate_forbidden_map.py -v`。实际定位、避障和通行效果仍需实车验证。
 
 ## Ubuntu 本地 RViz 调试
 
@@ -287,28 +257,23 @@ roslaunch community_bringup services.launch
 roslaunch community_mission mission.launch
 ```
 
-当前阶段使用仅导航模式：启动硬件、定位和导航后，选择以下任一命令，无需启动识别、语音和录像服务。所有航点均只导航，跳过识别、红绿灯等待、播报和录像：
+当前阶段使用独立 clear 路线验收。启动硬件、定位和导航后运行，无需启动识别、语音和录像服务；所有航点只导航，跳过全部任务：
 
 ```bash
-# 前方被障碍物阻挡，向左绕行（默认 blocked）
-roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=blocked
-# 障碍物偏左，前方可直行
-roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
+roslaunch community_mission mission.launch navigation_only:=true
 ```
 
 所有执行点（包括纯导航点和转角过渡点）均等待 `move_base` 返回到点成功，再处理任务并切换到下一点；仅导航模式也遵循相同的到点判定。
 
 ### 单航点运行
 
-先启动硬件、定位和导航，确认当前定位；通过 `single_waypoint` 指定 `route.yaml` 中的航点 ID，直接导航到该点，坐标、朝向和任务沿用路线配置：
+先启动硬件、定位和导航，确认当前定位；通过 `single_waypoint` 指定 `route_clear.yaml` 中的航点 ID，直接导航到该点，坐标、朝向和任务沿用路线配置：
 
 ```bash
 # 只导航到 wp_05，到达后结束；无需识别服务
 roslaunch community_mission mission.launch single_waypoint:=wp_05 navigation_only:=true
-# 导航到 wp_05，执行人员及违停识别后结束；须先启动相机和相关服务
-roslaunch community_mission mission.launch single_waypoint:=wp_05 navigation_only:=false
-# 导航到 wp_04_obstacle，识别障碍物并记录选路结果，随后结束，不执行后续路线
-roslaunch community_mission mission.launch single_waypoint:=wp_04_obstacle navigation_only:=false
+# 导航到 wp_06，执行人员及违停识别后结束；须先启动相机和相关服务
+roslaunch community_mission mission.launch single_waypoint:=wp_06 navigation_only:=false
 ```
 
 不指定 `single_waypoint` 时仍执行完整路线。单点红绿灯任务沿用连续确认及超时规则；人员统计仅代表该点。录像开始/结束任务依赖配对，单点执行会在导航前拒绝，但可使用 `navigation_only:=true` 导航到录像点。结果仍记录全部航点，仅执行的航点更新状态，其余保留 `NOT_EXECUTED`。不要与正在运行的巡检或其他导航目标同时使用。
@@ -462,7 +427,7 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 ### 模型检测浏览器预览
 
-人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。完整巡检在 `wp_04_obstacle` 调用障碍物服务自动选路；仅导航模式由 `obstacle_mode` 手动指定。
+人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。当前默认 clear 路线不调用障碍物服务。
 
 `fire.onnx` 已更新为 2026-11-25 光照增强训练的最佳模型（训练集 4737 张、验证集 79 张，第 80 轮最佳，第 130 轮早停），使用静态 FP32 640×640 输入及外部 NMS，与 `yolo_train/model/fire.onnx` 一致。火焰检测启用 `letterbox: true`，通过等比例缩放补边保持与训练一致的预处理，避免直接拉伸造成漏检。替换后需重启正在运行的火焰检测服务或浏览器预览以重新加载模型。
 
@@ -534,54 +499,52 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认定位图 `src/community_bringup/maps/localization_map.yaml` 与规划图 `navigation_map.yaml` 为配套场地先验地图。`route.yaml` 已按旋转后地图下的新采集顺序更新坐标和朝向，原任务与两条分支顺序保留；尚未完成整条路线的实车验证。
+默认使用 `src/community_bringup/maps/localization_map.yaml` 作为定位与规划共用地图。默认路线为 `route_clear.yaml`，使用 2026-11-25 单地图重新采集的 39 个航点；尚未完成整条路线的实车验证。
 
 | 位置 | 用途 |
 |---|---|
 | `src/community_bringup/config/hardware.yaml` | 硬件节点参数 |
 | `src/community_bringup/config/camera.yaml` | 相机控制参数，启动时通过 `configure_camera:=true` 启用配置 |
 | `src/community_bringup/config/navigation/` | EKF、定位、规划和代价地图参数 |
-| `src/community_mission/config/route.yaml` | 巡检航点及每个点的任务 |
+| `src/community_mission/config/route_clear.yaml` | 当前 clear 巡检航点及任务 |
 | `src/community_mission/config/runtime.yaml` | 等待时间、重试、录像和语音参数 |
 | `src/community_mission/config/recognition_rules.yaml` | 人员 ROI、车辆去重等识别业务规则 |
 | `src/community_perception/config/detectors.yaml` | 检测模型路径、类别、阈值和保存设置 |
 
-默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
+默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route.yaml` 使用 2026-11-24 重新采集的航点，保留新文件的 ID、坐标、朝向和任务。保留原 clear 顺序并补充转向、到达点，另有 blocked 绕角点；clear / blocked 分别执行 45 / 57 个目标，两条路线均执行全部 18 项任务并在 `finish_waypoint: wp_41` 结束。所有执行点均等待导航成功，不按靠近半径提前切换。
+默认 `route_clear.yaml` 按 `wp_01` 至 `wp_39` 顺序执行，任务点及最终停车位保留实测坐标和朝向；普通导航点经过直线投影和转角对齐，单点位置调整不超过 8.5 cm，不额外插入中间点。相邻转向点共用位置，车牌 3 后的回退点已对齐到任务位置。每点仍等待导航成功后再继续，最终停车点为 `wp_39`。任务对应如下：
 
-公共前段为 `wp_01 → wp_02 → wp_03 → wp_04 → wp_04_obstacle`。障碍物点位于 `(3.84, 0.70)`、朝北，识别后按 `navigation_branches` 中的 ID 顺序选择后续航点；选路依据 `task: obstacle`，不依赖特定编号。仅导航模式用 `obstacle_mode:=clear` 或 `blocked` 手动选择。
+| 航点 | 任务 |
+|---|---|
+| `wp_01`、`wp_24` | 红绿灯 |
+| `wp_02`、`wp_06`、`wp_18` | A 区人员及违停 |
+| `wp_07`、`wp_14`、`wp_17` | B 区人员及违停 |
+| `wp_19`、`wp_22`、`wp_34` | 火灾 |
+| `wp_27`、`wp_28`、`wp_31` | 车位 1、2、3 车牌 |
+| `wp_29` | 垃圾分类 |
+| `wp_35`、`wp_36` | 录像开始、结束，朝西横移 |
+| 其余点 | 普通导航 |
 
-- `clear`：按新采集顺序执行，`wp_26 → wp_28` 在同坐标直接旋转 180°；跳过多余的 `wp_27`、`wp_34`、`wp_35`。`wp_33` 后先朝南行驶，到达 `wp_36` 后转西开始录像，随后直接横移到 `wp_37`，录像区间不插中间点。其他路段保留转向和到达点。
-- `blocked` 主要原航点顺序（各点间另有转向和到达点）：`wp_05 → via_blocked_entry → wp_14 → wp_13 → wp_15 → wp_16 → wp_17 → wp_18 → wp_19 → wp_11 → wp_20 → wp_21 → via_blocked_top_middle_east → via_blocked_top_right_down → wp_06 → wp_07 → wp_08 → via_blocked_top_right_west → wp_09 → wp_10 → wp_22 → wp_23～wp_41`。
-
-blocked 从右侧中部入口进入中路，完成中部任务后经顶部绕到右侧，再沿顶部向左进入公共收尾路线。任务点每条分支各执行一次，纯导航点按分支需要选择。blocked 暂保留现有 57 点，等待重新采集中间差异路段后调整。对齐点中，`via_turn_*` 在出发位置朝向行驶方向，`via_arrive_*` 到达下一位置后再原地转向任务角度。除 clear 录像区域外，各行驶段用同坐标转向点对齐行驶方向。`wp_15` fire 朝正西，`wp_18`、`wp_33` fire 保留采集偏转角；录像起止任务 `wp_36`、`wp_37` 保留 x=1.02 m、yaw=3.1416 rad；clear 两点间直接朝西横移；blocked 暂保留朝南行驶及起止转向点。录像拍摄视野需实车确认。地图通道中心线为 x=1.02 / 2.23 / 3.84 m，y=0.41 / 1.62 / 3.84 m。
-
-`navigation_closures` 中 blocked 封右侧竖道的 y=1.93–1.94 m，clear 封横向入口的 x=3.53–3.54 m。每轮恢复底图；仅导航模式在起步前按参数封口，完整巡检在障碍物识别后封口。更新后等待一个全局代价地图更新周期，再发送目标。静态地图通行空间已检查；障碍物新视角、任务取景及整圈运行尚未实车验证。
-
-调试时停止巡检和其他导航目标后，可手动切换封口（服务仅更新地图，不发送运动目标）：
+`wp_05` 保留原障碍识别位置，但当前为普通导航。该路线独立执行 clear，不调用障碍识别或分支选择，`obstacle_mode` 不改变路线。仅导航验收跳过上述全部任务：
 
 ```bash
-rosservice call /navigation_map/set_blocked "data: true"   # blocked
-rosservice call /navigation_map/set_blocked "data: false"  # clear
-rosservice call /navigation_map/reset "{}"                # 恢复底图
+roslaunch community_mission mission.launch navigation_only:=true
 ```
 
-更换地图或场地后需同步核对 `navigation_closures` 的坐标；自定义路线可不配置该字段，此时巡检不自动设置封口。`navigation.launch` 支持 `route:=...` 指定封口配置来源，应与巡检使用同一份路线文件。
-
-每点只配置一个 `task`：人物任务同时执行所属 A/B 区违停检测；`wp_04_obstacle` 识别障碍物并自动选路；`wp_36`、`wp_37` 为录像起止点；`wp_41` 为最终停车点。`wp_07`、`wp_09` 按新采集文件保留 `navigation`，当前默认路线未启用仪表和楼宇测温任务。仅导航模式跳过所有任务；红绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
+当前默认路线未启用仪表和楼宇测温任务。红绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 
 ### 垃圾桶与垃圾分类
 
-`wp_28` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_aug_autodl.pt` 导出的 `trash_sorting.onnx`，以 1920×1920 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
+`wp_29` 先用 `trashbin.onnx` 检测整图中的桶，再合并桶框，向左右、上方、下方分别扩展最大桶框宽/高的 `0.5 / 0.1 / 0.5`，裁剪原图生成一个整体 ROI。无桶时不调用垃圾检测。`waste_detector` 使用 `trash_sorting_aug_autodl.pt` 导出的 `trash_sorting.onnx`，以 1920×1920 等比例缩放补边输入识别 24 类物品。投放判断通过 `waste_types` 将具体物品归入有害、厨余、其他和可回收四大类。
 
 垃圾框还原到原图坐标后，按横向最近的桶匹配；距离不超过该桶宽度的 `0.6`，并要求垃圾中心位于桶高度 45% 以下至桶底下方半个桶高的范围。每个垃圾最多归属一个桶；一个桶只对应一个垃圾时比较类别。红/绿/灰/蓝桶分别对应有害/厨余/其他/可回收。漏检或多个目标对应同一桶时记录 `UNKNOWN`；类别不一致记录 `INCORRECT`；只有四种桶均对应正确且无未匹配目标时才输出全部 `CORRECT`。桶盖开关单独记录。
 
 ROI 与匹配参数位于 `community_mission/config/recognition_rules.yaml`；置信度位于 `community_perception/config/detectors.yaml`，任务模式下桶为 `0.75`、垃圾为 `0.5`。任务正常返回后，原图、`*_roi.jpg`、带框和匹配连线的 `*_trash.jpg` 保存到本次运行的 `photo/`，JSON 记录 ROI、桶/垃圾框、置信度和匹配结果。橙色表示无法确认，绿色表示对应正确，红色表示投放错误；不触发语音。
 
-更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_28 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
+更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_29 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
 
 停车查看完整垃圾识别流程时，在 `robot_ws` 目录运行以下工具。它直接加载本地两个 ONNX 模型，复用巡检的 ROI 与匹配规则，无需启动巡检、导航或检测服务：
 
@@ -601,9 +564,6 @@ python3 tools/detector_preview.py --trash --image ../yolo_train/datasets/trash_s
 实车巡检流程当前不触发任何语音播报，也不在结束时等待播报队列；语音服务、队列和播报函数保留，供后续接入。
 
 红绿灯航点使用 `community_perception/models/traffic_light.onnx` 两分类模型（0=`stop`、1=`go`）。默认连续 3 帧有效且仅含 `go` 的检测结果才放行，继续下一航点导航；`stop`、空结果、混合结果或无效检测打断连续计数，重复时间戳同样重置计数。连续确认帧数仍由 `green_confirm_frames` 配置，默认 30 秒超时后终止任务。
-
-障碍物选路规则：检测框中心横坐标除以图像宽度，小于 `mission.obstacle_clear_x_ratio`（默认 `0.35`）选 `clear`，否则选 `blocked`。该阈值依据固定视角下偏左与居中两个摆放位置设置，需在 wp_04_obstacle 实车视角复核。无有效障碍物、检测到多个障碍物、无效框或服务异常时终止任务；照片、检测框、置信度、坐标比例和所选分支记录到本次运行结果。
-
 
 ### 电表读数验收
 

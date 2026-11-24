@@ -1,7 +1,7 @@
 """ROS bridge: one rospy node owning every subscription and publisher.
 
 * Topic health (Hz / age) for the dashboard.
-* Cached map / navigation_map / costmaps, laser scan, plans and pose for
+* Cached map / costmaps, laser scan, plans and pose for
   the navigation view.
 * Publishers for 2D Pose Estimate, 2D Nav Goal, teleop ``/cmd_vel`` and
   ``/move_base/cancel``.
@@ -54,7 +54,6 @@ TOPIC_SCAN = "/scan"
 TOPIC_AMCL = "/amcl_pose"
 TOPIC_CAMERA = "/usb_cam/image_raw"
 TOPIC_MAP = "/map"
-TOPIC_NAV_MAP = "/navigation_map"
 # global_planner/GlobalPlanner publishes ~/plan; move_base.launch remaps
 # both local planners' local_plan to /move_base/local_plan.
 TOPIC_GLOBAL_PLAN = "/move_base/GlobalPlanner/plan"
@@ -70,7 +69,6 @@ MISSION_NODE = "/community_mission"
 #: Grid layers served by ``/api/nav/*.png``.
 GRID_TOPICS = {
     "localization": TOPIC_MAP,
-    "navigation": TOPIC_NAV_MAP,
     "global_costmap": TOPIC_GLOBAL_COSTMAP,
     "local_costmap": TOPIC_LOCAL_COSTMAP,
 }

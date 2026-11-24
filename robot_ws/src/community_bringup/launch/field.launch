@@ -11,9 +11,8 @@
   <arg name="configure_camera" default="false"/>
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
   <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml"/>
-  <arg name="navigation_map" default="$(find community_bringup)/maps/navigation_map.yaml"/>
   <arg name="local_planner" default="dwa" doc="dwa or teb"/>
-  <arg name="route" default="$(find community_mission)/config/route.yaml"/>
+  <arg name="route" default="$(find community_mission)/config/route_clear.yaml"/>
 
   <!-- Mission-specific parameters -->
   <arg name="navigation_only" default="false" doc="true: skip every waypoint task (traffic light wait, photos, recognition, recording) and only navigate"/>
@@ -35,9 +34,7 @@
 
   <!-- Include navigation stack -->
   <include file="$(find community_bringup)/launch/navigation.launch">
-    <arg name="route" value="$(arg route)"/>
     <arg name="map" value="$(arg map)"/>
-    <arg name="navigation_map" value="$(arg navigation_map)"/>
     <arg name="local_planner" value="$(arg local_planner)"/>
   </include>
 

@@ -117,7 +117,7 @@ ARG_CHOICES: Dict[str, Tuple[str, ...]] = {
 }
 
 #: Args whose non-empty value must point at an existing file.
-FILE_ARGS: Tuple[str, ...] = ("map", "navigation_map", "route")
+FILE_ARGS: Tuple[str, ...] = ("map", "route")
 
 # Component names used by the mutual-exclusion check.
 #   hardware: chassis serial + IMU + lidar + chassis TF
@@ -168,7 +168,7 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             description="地图 + AMCL + move_base（需先启动 hardware）",
             package="community_bringup",
             launch_file="navigation.launch",
-            args={"map": "", "navigation_map": "", "local_planner": "dwa", "route": "", "localization_only": "false"},
+            args={"map": "", "local_planner": "dwa", "localization_only": "false"},
             components=_NAV,
             requires=frozenset({"hardware"}),
         ),
@@ -194,7 +194,7 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             description="hardware + navigation + services（run_mission=true 时含巡检）",
             package="community_bringup",
             launch_file="community.launch",
-            args={"base_protocol": "", "map": "", "navigation_map": "", "route": "",
+            args={"base_protocol": "", "map": "", "route": "",
                   "local_planner": "dwa", "run_mission": "false"},
             required=("base_protocol",),
             components=_FULL,
@@ -204,7 +204,7 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             description="决赛：hardware + navigation + services + 巡检",
             package="community_bringup",
             launch_file="finals.launch",
-            args={"base_protocol": "", "map": "", "navigation_map": "", "route": ""},
+            args={"base_protocol": "", "map": "", "route": ""},
             required=("base_protocol",),
             components=_FULL | {"mission"},
         ),
@@ -216,7 +216,6 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             args={
                 "base_protocol": "",
                 "map": "",
-                "navigation_map": "",
                 "route": "",
                 "local_planner": "dwa",
                 "navigation_only": "false",

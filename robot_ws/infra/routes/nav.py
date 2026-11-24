@@ -1,6 +1,6 @@
 """Navigation routes: map layers, overlay data, pose/goal and teleop.
 
-* ``GET  /api/nav/grid.png?layer=``  — localization / navigation map or
+* ``GET  /api/nav/grid.png?layer=``  — map or
   global / local costmap as PNG. Metadata in ``X-Map-*`` headers; row 0
   of the image is the grid origin row (the frontend draws it y-up).
 * ``GET  /api/nav/overlay``         — pose, laser scan, global/local plan
@@ -79,7 +79,7 @@ def _render_costmap(data: np.ndarray) -> np.ndarray:
 
 
 @router.get("/grid.png")
-def get_grid_png(layer: str = Query("navigation", description="localization / navigation / global_costmap / local_costmap")) -> Response:
+def get_grid_png(layer: str = Query("localization", description="localization (/map) / global_costmap / local_costmap")) -> Response:
     if layer not in GRID_TOPICS:
         raise HTTPException(status_code=400, detail=f"未知图层 {layer!r}")
     bridge = get_bridge()
@@ -95,7 +95,7 @@ def get_grid_png(layer: str = Query("navigation", description="localization / na
         if cached is not None and cached[0] == grid.version:
             png = cached[1]
         else:
-            img = _render_map(grid.data) if layer in ("localization", "navigation") else _render_costmap(grid.data)
+            img = _render_map(grid.data) if layer == "localization" else _render_costmap(grid.data)
             ok, encoded = cv2.imencode(".png", img)
             if not ok:
                 raise HTTPException(status_code=500, detail="PNG 编码失败")

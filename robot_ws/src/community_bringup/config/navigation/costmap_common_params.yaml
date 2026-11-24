@@ -7,18 +7,18 @@ footprint_padding: 0.0
 # 使用实际车体轮廓，不额外增加边距。
 footprint_padding: 0.0
 
-# 全局、局部代价地图共用导航地图；静态障碍不会被激光清除。
+# 全局、局部代价地图与 AMCL 共用 /map；静态障碍不会被激光清除。
 plugins:
   - {name: static_layer, type: "costmap_2d::StaticLayer"}
   - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
   - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
 
 static_layer:
-  map_topic: /navigation_map
-  first_map_only: false  # 接收选路后发布的完整封口图和下一轮复位图。
+  map_topic: /map
+  first_map_only: false
 
 obstacle_layer:
-  combination_method: 1 # 取最大代价，保留静态层中的禁行区域。
+  combination_method: 1 # 取最大代价，保留地图中的静态障碍。
   transform_tolerance: 0.5
   obstacle_range: 3.0
   raytrace_range: 3.5

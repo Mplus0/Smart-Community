@@ -55,7 +55,7 @@ function setBar(id, pct) { $(id).style.width = `${Math.max(0, Math.min(100, Numb
 
 // Topics expected on the real robot; others seen by the bridge are appended.
 const KEY_TOPICS = ['/odom_raw', '/odom', '/wit/imu', '/scan', '/amcl_pose', '/usb_cam/image_raw',
-  '/map', '/navigation_map', '/move_base/GlobalPlanner/plan', '/move_base/local_plan', '/mission/state'];
+  '/map', '/move_base/GlobalPlanner/plan', '/move_base/local_plan', '/mission/state'];
 
 function renderTopics(topics) {
   const names = KEY_TOPICS.concat(Object.keys(topics).filter((t) => !KEY_TOPICS.includes(t)));

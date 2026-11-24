@@ -7,11 +7,11 @@ local_costmap:
   transform_tolerance: 0.5 #等待坐标变换发布信息的超时时间
 
   inflation_layer:
-    # 保留原有膨胀半径和代价比例。
-    inflation_radius: 0.05
+    # 适度扩大障碍周围代价范围，保留较快的代价衰减。
+    inflation_radius: 0.18
     cost_scaling_factor: 10.0
 
-  # 静态层将 map 坐标下的导航地图投影到局部滚动窗口。
+  # 静态层将 map 坐标下的全局地图投影到局部滚动窗口。
   rolling_window: true #是否使用动态窗口，默认为false，在静态的全局地图中，地图不会变化
   width: 3.0 # 局部地图宽度 单位是 m
   height: 2.0 # 局部地图高度 单位是 m

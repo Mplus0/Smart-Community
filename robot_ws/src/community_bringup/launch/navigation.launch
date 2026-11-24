@@ -1,22 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <launch>
   <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml" />
-  <arg name="navigation_map" default="$(find community_bringup)/maps/navigation_map.yaml" />
   <arg name="local_planner" default="dwa" doc="dwa or teb" />
   <arg name="localization_only" default="false" doc="load the map and AMCL without move_base" />
-  <arg name="route" default="$(find community_mission)/config/route.yaml" />
-  <!-- 扫描图用于定位，叠加场地禁行区的导航图用于全局和局部规划。 -->
+  <!-- AMCL 与全局、局部代价地图共用 /map。 -->
   <node pkg="map_server" type="map_server" name="map_server" args="$(arg map)" />
-  <group ns="navigation" unless="$(arg localization_only)">
-    <node pkg="map_server" type="map_server" name="map_server" args="$(arg navigation_map)">
-      <param name="frame_id" value="map" />
-      <remap from="map" to="/navigation_map_base" />
-      <remap from="map_metadata" to="/navigation_map_metadata" />
-    </node>
-  </group>
-  <node unless="$(arg localization_only)" pkg="community_bringup" type="navigation_map_node.py" name="navigation_map" output="screen" required="true">
-    <param name="route" value="$(arg route)" />
-  </node>
   <include file="$(find community_bringup)/launch/amcl.launch" />
   <include unless="$(arg localization_only)" file="$(find community_bringup)/launch/move_base.launch">
     <arg name="local_planner" value="$(arg local_planner)" />

@@ -50,7 +50,7 @@ tools/start_infra.sh --port 9000 --bind 0.0.0.0 --token 口令 --readonly
 
 **遥控 · 地图**：
 
-- 地图：可显示 `/navigation_map` 或 `/map`，叠加全局和局部代价地图、激光点、全局路径（`/move_base/GlobalPlanner/plan`）、局部路径和机器人位姿。位姿优先取 TF `map→base_footprint`，取不到时用 `/amcl_pose`。
+- 地图：显示定位与规划共用的 `/map`，叠加全局和局部代价地图、激光点、全局路径（`/move_base/GlobalPlanner/plan`）、局部路径和机器人位姿。位姿优先取 TF `map→base_footprint`，取不到时用 `/amcl_pose`。
 - 设置位姿和目标：选择「2D Pose Estimate」或「2D Nav Goal」后，在地图上按下确定位置，拖动确定朝向。
 - 遥控：使用方向键或 W/A/S/D，限速为线速度 0.25 m/s、角速度 0.3 rad/s。松开按键、超过 0.5 s 没有指令或断开连接时，会自动发送零速度。导航运行时，遥控会与 move_base 争抢 `/cmd_vel`。
 
@@ -72,7 +72,7 @@ tools/start_infra.sh --port 9000 --bind 0.0.0.0 --token 口令 --readonly
 - 实时状态：显示 `/mission/state` 中的当前航点、任务类型、执行结果和错误信息。
 - 巡检记录：只列出包含 `mission_results.json` 的目录，可以查看各航点和任务的结果、照片、视频，或打包下载。
 
-「仅导航」对应 `navigation_only:=true`。勾选后会跳过**全部**航点任务，包括红绿灯等待、拍照识别和录像，小车只按顺序导航。wp_04 之后走哪条分支由 `obstacle_mode` 决定。
+「仅导航」对应 `navigation_only:=true`。勾选后会跳过**全部**航点任务，包括红绿灯等待、拍照识别和录像，小车只按顺序导航。当前默认使用独立的 `route_clear.yaml`，按 39 个点顺序执行，`obstacle_mode` 不改变路线。
 
 ## 测试
 

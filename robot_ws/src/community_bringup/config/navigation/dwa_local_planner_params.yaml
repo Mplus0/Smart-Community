@@ -1,21 +1,22 @@
-# 实车 DWA 低速导航参数。
+# 实车 DWA 导航参数。
 # 车体轮廓、地图分层和硬件接口由当前工作空间保留。
 DWAPlannerROS:
   meter_scoring: true
-  max_vel_x: 0.35
+  max_vel_x: 0.5
   min_vel_x: -0.12
-  max_vel_y: 0.10
-  min_vel_y: -0.10
-  max_vel_trans: 0.35
+  # 普通导航仅保留低速横移修正，主要依靠前进和转向。
+  max_vel_y: 0.08
+  min_vel_y: -0.08
+  max_vel_trans: 0.5
   min_vel_trans: 0.04
-  max_vel_theta: 0.45
-  min_vel_theta: 0.15
+  max_vel_theta: 0.872665  # 50 度/秒
+  min_vel_theta: 0.523599  # 30 度/秒
   acc_lim_theta: 2.0
   acc_lim_x: 0.6
   acc_lim_y: 0.6
   holonomic_robot: true
-  xy_goal_tolerance: 0.05
-  yaw_goal_tolerance: 0.05236
+  xy_goal_tolerance: 0.10  # 10 cm
+  yaw_goal_tolerance: 0.087266  # 5 度
   latch_xy_goal_tolerance: true
   sim_time: 1.5
   sim_granularity: 0.05
@@ -30,9 +31,9 @@ DWAPlannerROS:
   scaling_speed: 0.25
   max_scaling_factor: 0.2
   oscillation_reset_dist: 0.05
-  acc_lim_trans: 0.1
+  acc_lim_trans: 0.6
   vth_samples: 20
   prune_plan: false
   angular_sim_granularity: 0.1
-  trans_stopped_vel: 0.1
-  theta_stopped_vel: 0.1
+  trans_stopped_vel: 0.03
+  theta_stopped_vel: 0.05

@@ -12,7 +12,7 @@
   <arg name="meter_image_topic" default="/ugreen_4k/image_raw" />
   <arg name="meter_profile" default="" />
   <arg name="meter_timeout" default="60.0" />
-  <arg name="route" default="$(find community_mission)/config/route.yaml" />
+  <arg name="route" default="$(find community_mission)/config/route_clear.yaml" />
   <node pkg="community_mission" type="mission_node.py" name="community_mission" output="screen" required="true">
     <rosparam command="load" file="$(find community_mission)/config/recognition_rules.yaml" />
     <rosparam command="load" file="$(find community_mission)/config/runtime.yaml" />

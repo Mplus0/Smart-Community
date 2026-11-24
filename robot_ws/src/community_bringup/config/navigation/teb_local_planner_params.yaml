@@ -11,34 +11,34 @@ TebLocalPlannerROS:
   allow_init_with_backwards_motion: false
   feasibility_check_no_poses: -1
 
-  # Omnidirectional chassis; match the active DWA velocity/acceleration limits.
-  max_vel_x: 0.27
-  max_vel_x_backwards: 0.27
-  max_vel_y: 0.13
-  max_vel_trans: 0.18
-  max_vel_theta: 0.5
-  acc_lim_x: 0.5
-  acc_lim_y: 0.5
-  # DWA currently uses acc_lim_theta=3.2, not the legacy acc_lim_th=2 key.
-  acc_lim_theta: 3.2
+  # 全向提速试验参数；前进和横移采用相同上限，需实车验证。
+  max_vel_x: 0.7
+  max_vel_x_backwards: 0.25
+  max_vel_y: 0.7
+  # 当前 TEB 版本不支持 max_vel_trans，以 x/y 分量限速。
+  max_vel_theta: 1.2  # 约 68.8 度/秒；接近目标时自然减速
+  acc_lim_x: 1.0
+  acc_lim_y: 1.0
+  acc_lim_theta: 3.0
   min_turning_radius: 0.0
   cmd_angle_instead_rotvel: false
-  weight_kinematics_nh: 0.0
+  weight_kinematics_nh: 0.0  # 不惩罚横移
+  weight_kinematics_forward_drive: 0.0  # 不添加前进方向偏好
 
   # Same base_link polygon as costmap_common_params.yaml.
   footprint_model:
     type: polygon
     vertices: [[-0.15, -0.14], [-0.15, 0.14], [0.18, 0.14], [0.19, -0.14]]
-  xy_goal_tolerance: 0.08
-  yaw_goal_tolerance: 0.15
+  xy_goal_tolerance: 0.10  # 10 cm
+  yaw_goal_tolerance: 0.087266  # 5 度
   free_goal_vel: false
   complete_global_plan: true
 
-  # Consume the existing navigation-map and laser costmap obstacles.
+  # 使用 /map 静态障碍和激光代价地图障碍。
   include_costmap_obstacles: true
   include_dynamic_obstacles: false
-  min_obstacle_dist: 0.08
-  inflation_dist: 0.15
+  min_obstacle_dist: 0.10
+  inflation_dist: 0.18
   costmap_obstacles_behind_robot_dist: 1.0
   penalty_epsilon: 0.02
   no_inner_iterations: 5

@@ -1,10 +1,10 @@
-# 按节点分组；启动参数优先于 YAML，运动速度保持原值。
+# 按节点分组；启动参数优先于 YAML。
 mission:
   obstacle_clear_x_ratio: 0.35
   image_timeout: 5.0
   server_timeout: 30.0
   ocr_interval: 3.0
-  normal_lateral_speed: 0.5
+  normal_lateral_speed: 0.08  # 与普通 DWA 导航一致；录像段单独限速
   recording_lateral_speed: 0.15
   service_timeout: 5.0
   planner_service_timeout: 1.0

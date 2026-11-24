@@ -186,7 +186,7 @@ function renderInfo() {
     ['全局路径', overlay && overlay.global_plan.length ? `${overlay.global_plan.length} 点` : '无'],
     ['激光点', overlay ? overlay.scan.length : 0],
   ]);
-  if (g) $('mapStatus').textContent = `${baseLayer() === 'saved' ? '已加载地图' : baseLayer() === 'navigation' ? '/navigation_map' : '/map'} ${g.w}×${g.h} @ ${g.res} m · 滚轮缩放，浏览模式下拖动平移`;
+  if (g) $('mapStatus').textContent = `${baseLayer() === 'saved' ? '已加载地图' : '/map'} ${g.w}×${g.h} @ ${g.res} m · 滚轮缩放，浏览模式下拖动平移`;
 }
 
 async function pollOverlay() {
