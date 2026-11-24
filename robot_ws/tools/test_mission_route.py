@@ -35,7 +35,7 @@ class MissionRouteTests(unittest.TestCase):
         split = next(i for i, p in enumerate(points) if p['task'] == 'obstacle')
         expected = {p['id'] for p in points if p['task'] != 'navigation'}
         next_point = self.method('next_point')
-        for mode, count in [('clear', 42), ('blocked', 45)]:
+        for mode, count in [('clear', 45), ('blocked', 57)]:
             for navigation_only in (True, False):
                 with self.subTest(mode=mode, navigation_only=navigation_only):
                     obj = SimpleNamespace(route=copy.deepcopy(self.route), index=split,
@@ -69,7 +69,43 @@ class MissionRouteTests(unittest.TestCase):
                               obstacle_mode='blocked', transition=lambda *args: None)
         self.method('next_point')(obj)
         self.assertEqual(obj.route['points'][5]['id'], 'wp_05')
-        self.assertEqual(len(obj.route['points']), 45)
+        self.assertEqual(len(obj.route['points']), 57)
+
+    def test_translation_legs_face_travel_except_clear_recording_area(self):
+        points = self.route['points']
+        split = next(i for i, p in enumerate(points) if p['task'] == 'obstacle')
+        by_id = {p['id']: p for p in points}
+        for mode, order in self.route['navigation_branches'].items():
+            selected = points[:split + 1] + [by_id[name] for name in order]
+            for start, end in zip(selected, selected[1:]):
+                if mode == 'clear' and end['id'] in ('wp_36', 'wp_37'):
+                    continue
+                dx, dy = end['x'] - start['x'], end['y'] - start['y']
+                if math.hypot(dx, dy) <= .001:
+                    continue
+                direction = math.atan2(dy, dx)
+                with self.subTest(mode=mode, start=start['id'], end=end['id']):
+                    for point in (start, end):
+                        delta = point['yaw'] - direction
+                        self.assertLess(abs(math.atan2(math.sin(delta), math.cos(delta))), .001)
+
+    def test_clear_uses_direct_rotations_and_uninterrupted_recording(self):
+        order = self.route['navigation_branches']['clear']
+        self.assertEqual(order[order.index('wp_26') + 1], 'wp_28')
+        self.assertNotIn('wp_34', order)
+        self.assertNotIn('wp_35', order)
+        self.assertEqual(order[order.index('wp_33') + 1:order.index('wp_36')],
+                         ['via_turn_wp_33_to_wp_36'])
+        self.assertEqual(order[order.index('wp_36') + 1], 'wp_37')
+        by_id = {p['id']: p for p in self.route['points']}
+        for first, second in [('wp_26', 'wp_28')]:
+            self.assertEqual((by_id[first]['x'], by_id[first]['y']),
+                             (by_id[second]['x'], by_id[second]['y']))
+            delta = by_id[first]['yaw'] - by_id[second]['yaw']
+            self.assertAlmostEqual(abs(math.atan2(math.sin(delta), math.cos(delta))),
+                                   math.pi, places=4)
+        self.assertEqual(by_id['wp_36']['x'], by_id['wp_37']['x'])
+        self.assertEqual(by_id['wp_36']['yaw'], by_id['wp_37']['yaw'])
 
     def test_invalid_branch_configurations_are_rejected(self):
         mutations = []

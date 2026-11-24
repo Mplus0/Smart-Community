@@ -1,6 +1,7 @@
-# 2026-11-24 新采集航点；前 42 点保留 clear 顺序，末尾 4 点仅供 blocked 绕角。
-# wp_04_obstacle 完成障碍物识别后选路，两条分支均在 wp_41 结束。
-# 每个执行点均等待 move_base 到点成功；wp_07/wp_09 保留 navigation。
+# clear 已清理车牌2到垃圾桶及录像入口的多余转向；blocked 保持原配置，等待重新采点。
+# wp_26 直接转向 wp_28；wp_33 后朝南前往 wp_36，到点后转西开始录像。
+# clear 的 wp_36 直接到 wp_37，保持朝西横移；其他路段保留原地对齐点。
+# 所有执行点均等待 move_base 到点成功，两条分支均在 wp_41 结束。
 points:
 - id: wp_01
   x: 1.6078
@@ -50,6 +51,11 @@ points:
   y: 3.84
   yaw: 1.5708
   task: navigation
+- id: via_turn_wp_08_to_wp_09
+  x: 3.84
+  y: 3.84
+  yaw: 3.1416
+  task: navigation
 - id: wp_09
   x: 2.8607
   y: 3.84
@@ -59,6 +65,11 @@ points:
   x: 2.23
   y: 3.84
   yaw: 3.1416
+  task: navigation
+- id: via_turn_wp_10_to_wp_11
+  x: 2.23
+  y: 3.84
+  yaw: -1.5708
   task: navigation
 - id: wp_11
   x: 2.23
@@ -70,6 +81,11 @@ points:
   x: 2.23
   y: 1.62
   yaw: -1.5708
+  task: navigation
+- id: via_turn_wp_12_to_wp_13
+  x: 2.23
+  y: 1.62
+  yaw: 0.0
   task: navigation
 - id: wp_13
   x: 3.0
@@ -145,11 +161,6 @@ points:
   yaw: 3.1416
   task: plate
   parking_lot: 2
-- id: wp_27
-  x: 1.02
-  y: 3.2
-  yaw: -1.5708
-  task: navigation
 - id: wp_28
   x: 1.02
   y: 3.2
@@ -176,19 +187,19 @@ points:
   y: 2.65
   yaw: -1.5708
   task: navigation
+- id: via_arrive_wp_33_from_wp_32
+  x: 1.02
+  y: 2.3877
+  yaw: -1.5708
+  task: navigation
 - id: wp_33
   x: 1.02
   y: 2.3877
   yaw: -2.0043
   task: fire
-- id: wp_34
+- id: via_turn_wp_33_to_wp_36
   x: 1.02
-  y: 2.15
-  yaw: 3.1416
-  task: navigation
-- id: wp_35
-  x: 1.02
-  y: 2.15
+  y: 2.3877
   yaw: -1.5708
   task: navigation
 - id: wp_36
@@ -216,10 +227,50 @@ points:
   y: 0.41
   yaw: 3.1416
   task: navigation
+- id: via_arrive_wp_41_from_wp_40
+  x: 0.4325
+  y: 0.41
+  yaw: 3.1416
+  task: navigation
 - id: wp_41
   x: 0.4325
   y: 0.41
   yaw: 0.0
+  task: navigation
+- id: wp_27
+  x: 1.02
+  y: 3.2
+  yaw: -1.5708
+  task: navigation
+- id: via_turn_wp_33_to_wp_34
+  x: 1.02
+  y: 2.3877
+  yaw: -1.5708
+  task: navigation
+- id: via_arrive_wp_34_from_wp_33
+  x: 1.02
+  y: 2.15
+  yaw: -1.5708
+  task: navigation
+- id: wp_34
+  x: 1.02
+  y: 2.15
+  yaw: 3.1416
+  task: navigation
+- id: wp_35
+  x: 1.02
+  y: 2.15
+  yaw: -1.5708
+  task: navigation
+- id: via_turn_wp_36_to_wp_37
+  x: 1.02
+  y: 2.15
+  yaw: -1.5708
+  task: navigation
+- id: via_arrive_wp_37_from_wp_36
+  x: 1.02
+  y: 0.8392
+  yaw: -1.5708
   task: navigation
 - id: via_blocked_entry
   x: 3.84
@@ -241,6 +292,36 @@ points:
   y: 3.84
   yaw: 3.1416
   task: navigation
+- id: via_arrive_via_blocked_entry_from_wp_05
+  x: 3.84
+  y: 1.62
+  yaw: 1.5708
+  task: navigation
+- id: via_turn_wp_13_to_wp_15
+  x: 3.0
+  y: 1.62
+  yaw: 3.1416
+  task: navigation
+- id: via_arrive_wp_11_from_wp_19
+  x: 2.23
+  y: 2.3026
+  yaw: 1.5708
+  task: navigation
+- id: via_turn_wp_11_to_wp_20
+  x: 2.23
+  y: 2.3026
+  yaw: 1.5708
+  task: navigation
+- id: via_arrive_via_blocked_top_right_down_from_via_blocked_top_middle_east
+  x: 3.84
+  y: 3.84
+  yaw: 0.0
+  task: navigation
+- id: via_arrive_wp_06_from_via_blocked_top_right_down
+  x: 3.84
+  y: 2.2492
+  yaw: -1.5708
+  task: navigation
 finish_waypoint: wp_41
 navigation_branches:
   clear:
@@ -248,10 +329,13 @@ navigation_branches:
   - wp_06
   - wp_07
   - wp_08
+  - via_turn_wp_08_to_wp_09
   - wp_09
   - wp_10
+  - via_turn_wp_10_to_wp_11
   - wp_11
   - wp_12
+  - via_turn_wp_12_to_wp_13
   - wp_13
   - wp_14
   - wp_15
@@ -266,36 +350,42 @@ navigation_branches:
   - wp_24
   - wp_25
   - wp_26
-  - wp_27
   - wp_28
   - wp_29
   - wp_30
   - wp_31
   - wp_32
+  - via_arrive_wp_33_from_wp_32
   - wp_33
-  - wp_34
-  - wp_35
+  - via_turn_wp_33_to_wp_36
   - wp_36
   - wp_37
   - wp_38
   - wp_39
   - wp_40
+  - via_arrive_wp_41_from_wp_40
   - wp_41
   blocked:
   - wp_05
+  - via_arrive_via_blocked_entry_from_wp_05
   - via_blocked_entry
   - wp_14
   - wp_13
+  - via_turn_wp_13_to_wp_15
   - wp_15
   - wp_16
   - wp_17
   - wp_18
   - wp_19
+  - via_arrive_wp_11_from_wp_19
   - wp_11
+  - via_turn_wp_11_to_wp_20
   - wp_20
   - wp_21
   - via_blocked_top_middle_east
+  - via_arrive_via_blocked_top_right_down_from_via_blocked_top_middle_east
   - via_blocked_top_right_down
+  - via_arrive_wp_06_from_via_blocked_top_right_down
   - wp_06
   - wp_07
   - wp_08
@@ -313,14 +403,20 @@ navigation_branches:
   - wp_30
   - wp_31
   - wp_32
+  - via_arrive_wp_33_from_wp_32
   - wp_33
+  - via_turn_wp_33_to_wp_34
+  - via_arrive_wp_34_from_wp_33
   - wp_34
   - wp_35
   - wp_36
+  - via_turn_wp_36_to_wp_37
+  - via_arrive_wp_37_from_wp_36
   - wp_37
   - wp_38
   - wp_39
   - wp_40
+  - via_arrive_wp_41_from_wp_40
   - wp_41
 navigation_closures:
   blocked:

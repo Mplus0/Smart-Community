@@ -546,14 +546,14 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`navigation_map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route.yaml` 使用 2026-11-24 重新采集的航点，保留新文件的 ID、坐标、朝向和任务。前 42 项为 clear 顺序，另有 4 个 `via_blocked_*` 绕角点；clear / blocked 分别执行 42 / 45 个目标，两条路线均执行全部 18 项任务并在 `finish_waypoint: wp_41` 结束。所有执行点均等待导航成功，不按靠近半径提前切换。
+默认 `route.yaml` 使用 2026-11-24 重新采集的航点，保留新文件的 ID、坐标、朝向和任务。保留原 clear 顺序并补充转向、到达点，另有 blocked 绕角点；clear / blocked 分别执行 45 / 57 个目标，两条路线均执行全部 18 项任务并在 `finish_waypoint: wp_41` 结束。所有执行点均等待导航成功，不按靠近半径提前切换。
 
 公共前段为 `wp_01 → wp_02 → wp_03 → wp_04 → wp_04_obstacle`。障碍物点位于 `(3.84, 0.70)`、朝北，识别后按 `navigation_branches` 中的 ID 顺序选择后续航点；选路依据 `task: obstacle`，不依赖特定编号。仅导航模式用 `obstacle_mode:=clear` 或 `blocked` 手动选择。
 
-- `clear`：选路后继续 `wp_05～wp_41`，保持新采集顺序。
-- `blocked`：`wp_05 → via_blocked_entry → wp_14 → wp_13 → wp_15 → wp_16 → wp_17 → wp_18 → wp_19 → wp_11 → wp_20 → wp_21 → via_blocked_top_middle_east → via_blocked_top_right_down → wp_06 → wp_07 → wp_08 → via_blocked_top_right_west → wp_09 → wp_10 → wp_22 → wp_23～wp_41`。
+- `clear`：按新采集顺序执行，`wp_26 → wp_28` 在同坐标直接旋转 180°；跳过多余的 `wp_27`、`wp_34`、`wp_35`。`wp_33` 后先朝南行驶，到达 `wp_36` 后转西开始录像，随后直接横移到 `wp_37`，录像区间不插中间点。其他路段保留转向和到达点。
+- `blocked` 主要原航点顺序（各点间另有转向和到达点）：`wp_05 → via_blocked_entry → wp_14 → wp_13 → wp_15 → wp_16 → wp_17 → wp_18 → wp_19 → wp_11 → wp_20 → wp_21 → via_blocked_top_middle_east → via_blocked_top_right_down → wp_06 → wp_07 → wp_08 → via_blocked_top_right_west → wp_09 → wp_10 → wp_22 → wp_23～wp_41`。
 
-blocked 从右侧中部入口进入中路，完成中部任务后经顶部绕到右侧，再沿顶部向左进入公共收尾路线。任务点每条分支各执行一次，纯导航点按分支需要选择。`wp_15` fire 朝正西，`wp_18`、`wp_33` fire 保留采集偏转角；录像 `wp_36 → wp_37` 共用 x=1.02 m、yaw=3.1416 rad，期间不插点。地图通道中心线为 x=1.02 / 2.23 / 3.84 m，y=0.41 / 1.62 / 3.84 m。
+blocked 从右侧中部入口进入中路，完成中部任务后经顶部绕到右侧，再沿顶部向左进入公共收尾路线。任务点每条分支各执行一次，纯导航点按分支需要选择。blocked 暂保留现有 57 点，等待重新采集中间差异路段后调整。对齐点中，`via_turn_*` 在出发位置朝向行驶方向，`via_arrive_*` 到达下一位置后再原地转向任务角度。除 clear 录像区域外，各行驶段用同坐标转向点对齐行驶方向。`wp_15` fire 朝正西，`wp_18`、`wp_33` fire 保留采集偏转角；录像起止任务 `wp_36`、`wp_37` 保留 x=1.02 m、yaw=3.1416 rad；clear 两点间直接朝西横移；blocked 暂保留朝南行驶及起止转向点。录像拍摄视野需实车确认。地图通道中心线为 x=1.02 / 2.23 / 3.84 m，y=0.41 / 1.62 / 3.84 m。
 
 `navigation_closures` 中 blocked 封右侧竖道的 y=1.93–1.94 m，clear 封横向入口的 x=3.53–3.54 m。每轮恢复底图；仅导航模式在起步前按参数封口，完整巡检在障碍物识别后封口。更新后等待一个全局代价地图更新周期，再发送目标。静态地图通行空间已检查；障碍物新视角、任务取景及整圈运行尚未实车验证。
 
