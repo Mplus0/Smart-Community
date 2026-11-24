@@ -72,7 +72,7 @@ tools/start_infra.sh --port 9000 --bind 0.0.0.0 --token 口令 --readonly
 - 实时状态：显示 `/mission/state` 中的当前航点、任务类型、执行结果和错误信息。
 - 巡检记录：只列出包含 `mission_results.json` 的目录，可以查看各航点和任务的结果、照片、视频，或打包下载。
 
-「仅导航」对应 `navigation_only:=true`。勾选后会跳过**全部**航点任务，包括红绿灯等待、拍照识别和录像，小车只按顺序导航。当前默认使用独立的 `route_clear.yaml`，按 39 个点顺序执行，`obstacle_mode` 不改变路线。
+「仅导航」对应 `navigation_only:=true`。勾选后会跳过**全部**航点任务，包括红绿灯等待、拍照识别和录像，小车只按顺序导航。当前默认使用主路线 `route.yaml`，在 `wp_05` 后按 `obstacle_mode` 手动选择 clear/blocked 分支，分别执行 39/38 个目标；完整巡检在该点识别障碍物后自动选路。
 
 ## 测试
 

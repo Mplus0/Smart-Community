@@ -33,7 +33,7 @@ class Mission:
         if type(self.navigation_only) is not bool:
             raise ValueError('navigation_only must be a boolean')
         self.route = validate_route(rospy.get_param('~'))
-        self.obstacle_mode = rospy.get_param('~obstacle_mode', 'blocked')
+        self.obstacle_mode = rospy.get_param('~obstacle_mode', 'clear')
         if self.obstacle_mode not in ('blocked', 'clear'):
             raise ValueError('obstacle_mode must be blocked or clear')
         self.single_waypoint = rospy.get_param('~single_waypoint', '')
@@ -461,6 +461,7 @@ class Mission:
             return
         point = self.route['points'][self.index]
         if point['task'] == 'obstacle' and 'navigation_branches' in self.route:
+            # 保留已完成的公共前段，只接入选中分支；公共收尾点由分支 ID 引用。
             order = self.route['navigation_branches'][self.obstacle_mode]
             by_id = {p['id']: p for p in self.route['points']}
             self.route['points'][self.index + 1:] = [by_id[name] for name in order]

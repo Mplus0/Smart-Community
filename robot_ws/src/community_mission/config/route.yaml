@@ -1,341 +1,325 @@
-# clear 已清理车牌2到垃圾桶及录像入口的多余转向；blocked 保持原配置，等待重新采点。
-# wp_26 直接转向 wp_28；wp_33 后朝南前往 wp_36，到点后转西开始录像。
-# clear 的 wp_36 直接到 wp_37，保持朝西横移；其他路段保留原地对齐点。
-# 所有执行点均等待 move_base 到点成功，两条分支均在 wp_41 结束。
+# 主路线：clear 前五点为公共前段，wp_05 执行障碍识别后选路。
+# 分支采用单地图平滑航点；wp_27（plate1）起共用收尾段，wp_39 最终停车。
 points:
 - id: wp_01
-  x: 1.6078
-  y: 0.41
-  yaw: 0.0
+  x: 1.6061
+  y: 0.4354
+  yaw: 0.0173
   task: traffic_light
 - id: wp_02
-  x: 2.9899
-  y: 0.41
-  yaw: 0.0
+  x: 3.0156
+  y: 0.4281
+  yaw: 0.0686
   task: person
   area: A
 - id: wp_03
-  x: 3.84
-  y: 0.41
-  yaw: 0.0
+  x: 3.8154
+  y: 0.4263
+  yaw: -0.0023
   task: navigation
 - id: wp_04
-  x: 3.84
-  y: 0.41
-  yaw: 1.5708
+  x: 3.8154
+  y: 0.4263
+  yaw: 1.5334
   task: navigation
-- id: wp_04_obstacle
-  x: 3.84
-  y: 0.7
-  yaw: 1.5708
-  task: obstacle
 - id: wp_05
-  x: 3.84
-  y: 0.9854
-  yaw: 1.5708
+  x: 3.8256
+  y: 0.6992
+  yaw: 1.5334
+  task: obstacle
+- id: wp_06
+  x: 3.8365
+  y: 0.9906
+  yaw: 1.5861
   task: person
   area: A
-- id: wp_06
-  x: 3.84
-  y: 2.2492
-  yaw: 1.5708
+- id: wp_07
+  x: 3.8431
+  y: 2.2892
+  yaw: 1.6811
   task: person
   area: B
-- id: wp_07
-  x: 3.84
-  y: 2.9997
-  yaw: 1.5708
-  task: navigation
 - id: wp_08
-  x: 3.84
-  y: 3.84
-  yaw: 1.5708
-  task: navigation
-- id: via_turn_wp_08_to_wp_09
-  x: 3.84
-  y: 3.84
-  yaw: 3.1416
+  x: 3.8118
+  y: 3.0622
+  yaw: 1.6113
   task: navigation
 - id: wp_09
-  x: 2.8607
-  y: 3.84
-  yaw: 3.1416
+  x: 3.7817
+  y: 3.8057
+  yaw: 1.6113
   task: navigation
 - id: wp_10
-  x: 2.23
-  y: 3.84
-  yaw: 3.1416
-  task: navigation
-- id: via_turn_wp_10_to_wp_11
-  x: 2.23
-  y: 3.84
-  yaw: -1.5708
+  x: 3.7817
+  y: 3.8057
+  yaw: 3.1024
   task: navigation
 - id: wp_11
-  x: 2.23
-  y: 2.3026
-  yaw: -1.5708
-  task: person
-  area: B
-- id: wp_12
-  x: 2.23
-  y: 1.62
-  yaw: -1.5708
+  x: 2.7968
+  y: 3.826
+  yaw: 3.121
   task: navigation
-- id: via_turn_wp_12_to_wp_13
-  x: 2.23
-  y: 1.62
-  yaw: 0.0
+- id: wp_12
+  x: 2.2305
+  y: 3.8376
+  yaw: 3.121
   task: navigation
 - id: wp_13
-  x: 3.0
-  y: 1.62
-  yaw: 0.0
+  x: 2.2305
+  y: 3.8376
+  yaw: -1.5816
+  task: navigation
+- id: wp_14
+  x: 2.2137
+  y: 2.2882
+  yaw: -1.5623
   task: person
   area: B
-- id: wp_14
-  x: 3.0
-  y: 1.62
-  yaw: 3.1416
-  task: person
-  area: A
 - id: wp_15
-  x: 2.23
-  y: 1.62
-  yaw: 3.1416
-  task: fire
+  x: 2.1985
+  y: 1.6972
+  yaw: -1.5965
+  task: navigation
 - id: wp_16
-  x: 2.23
-  y: 1.62
-  yaw: 1.5708
+  x: 2.1985
+  y: 1.6972
+  yaw: 0.0124
   task: navigation
 - id: wp_17
-  x: 2.23
-  y: 2.0785
-  yaw: 1.5708
-  task: navigation
+  x: 3.0193
+  y: 1.7074
+  yaw: 0.0267
+  task: person
+  area: B
 - id: wp_18
-  x: 2.23
-  y: 2.0785
-  yaw: 1.2373
-  task: fire
+  x: 3.0216
+  y: 1.7006
+  yaw: -3.1337
+  task: person
+  area: A
 - id: wp_19
-  x: 2.23
-  y: 2.0785
-  yaw: 1.5708
-  task: navigation
+  x: 2.2954
+  y: 1.6405
+  yaw: -3.0827
+  task: fire
 - id: wp_20
-  x: 2.23
-  y: 2.3206
-  yaw: 1.5708
-  task: traffic_light
+  x: 2.2954
+  y: 1.6405
+  yaw: 1.6907
+  task: navigation
 - id: wp_21
-  x: 2.23
-  y: 3.84
-  yaw: 1.5708
+  x: 2.2422
+  y: 2.0822
+  yaw: 1.6907
   task: navigation
 - id: wp_22
-  x: 2.23
-  y: 3.84
-  yaw: 3.1416
-  task: navigation
+  x: 2.2422
+  y: 2.0822
+  yaw: 1.2166
+  task: fire
 - id: wp_23
-  x: 1.02
-  y: 3.84
-  yaw: 3.1416
-  task: plate
-  parking_lot: 1
-- id: wp_24
-  x: 1.02
-  y: 3.84
-  yaw: -1.5708
+  x: 2.2422
+  y: 2.0822
+  yaw: 1.5684
   task: navigation
+- id: wp_24
+  x: 2.2429
+  y: 2.3694
+  yaw: 1.6359
+  task: traffic_light
 - id: wp_25
-  x: 1.02
-  y: 3.2
-  yaw: -1.5708
+  x: 2.2269
+  y: 3.8282
+  yaw: 1.5818
   task: navigation
 - id: wp_26
-  x: 1.02
-  y: 3.2
-  yaw: 3.1416
+  x: 2.2269
+  y: 3.8282
+  yaw: 3.1363
+  task: navigation
+- id: blocked_wp_06
+  x: 3.8309
+  y: 0.9886
+  yaw: 1.6509
+  task: person
+  area: A
+- id: blocked_wp_07
+  x: 3.8011
+  y: 1.651
+  yaw: 1.6255
+  task: navigation
+- id: blocked_wp_08
+  x: 3.0245
+  y: 1.5757
+  yaw: 1.6255
+  task: person
+  area: B
+- id: blocked_wp_09
+  x: 3.0203
+  y: 1.6155
+  yaw: -3.0506
+  task: person
+  area: A
+- id: blocked_wp_10
+  x: 2.4101
+  y: 1.6208
+  yaw: -3.1361
+  task: fire
+- id: blocked_wp_11
+  x: 2.2392
+  y: 1.6223
+  yaw: 1.6665
+  task: navigation
+- id: blocked_wp_12
+  x: 2.1982
+  y: 2.0496
+  yaw: 1.6665
+  task: navigation
+- id: blocked_wp_13
+  x: 2.1982
+  y: 2.0496
+  yaw: 0.0001
+  task: navigation
+- id: blocked_wp_14
+  x: 2.2045
+  y: 2.3545
+  yaw: -0.0514
+  task: person
+  area: B
+- id: blocked_wp_15
+  x: 2.2335
+  y: 2.2987
+  yaw: 1.7333
+  task: navigation
+- id: blocked_wp_16
+  x: 2.1342
+  y: 3.8225
+  yaw: 1.6359
+  task: navigation
+- id: blocked_wp_17
+  x: 2.1342
+  y: 3.8225
+  yaw: -0.0372
+  task: navigation
+- id: blocked_wp_18
+  x: 3.7688
+  y: 3.7616
+  yaw: -0.0372
+  task: navigation
+- id: blocked_wp_19
+  x: 3.7688
+  y: 3.7616
+  yaw: -1.5597
+  task: navigation
+- id: blocked_wp_20
+  x: 3.7854
+  y: 2.2636
+  yaw: -1.5597
+  task: navigation
+- id: blocked_wp_21
+  x: 3.7854
+  y: 2.2636
+  yaw: 1.5323
+  task: person
+  area: B
+- id: blocked_wp_22
+  x: 3.8143
+  y: 3.0264
+  yaw: 1.533
+  task: navigation
+- id: blocked_wp_23
+  x: 3.8425
+  y: 3.7718
+  yaw: 1.533
+  task: navigation
+- id: blocked_wp_24
+  x: 3.8425
+  y: 3.7718
+  yaw: 3.1192
+  task: navigation
+- id: blocked_wp_25
+  x: 2.8405
+  y: 3.7943
+  yaw: 3.1192
+  task: navigation
+- id: wp_27
+  x: 1.0498
+  y: 3.8344
+  yaw: -3.1077
+  task: plate
+  parking_lot: 1
+- id: wp_28
+  x: 1.071
+  y: 3.2319
+  yaw: -3.1227
   task: plate
   parking_lot: 2
-- id: wp_28
-  x: 1.02
-  y: 3.2
-  yaw: 0.0
-  task: trash
 - id: wp_29
-  x: 1.02
-  y: 3.2
-  yaw: -1.5708
-  task: navigation
+  x: 1.028
+  y: 3.2297
+  yaw: 0.0494
+  task: trash
 - id: wp_30
-  x: 1.02
-  y: 2.65
-  yaw: -1.5708
+  x: 1.028
+  y: 3.2297
+  yaw: 3.1415
   task: navigation
 - id: wp_31
-  x: 1.02
-  y: 2.65
-  yaw: 3.1416
+  x: 1.0876
+  y: 2.6216
+  yaw: 3.1415
   task: plate
   parking_lot: 3
 - id: wp_32
-  x: 1.02
-  y: 2.65
-  yaw: -1.5708
-  task: navigation
-- id: via_arrive_wp_33_from_wp_32
-  x: 1.02
-  y: 2.3877
-  yaw: -1.5708
+  x: 1.0876
+  y: 2.6216
+  yaw: -1.6376
   task: navigation
 - id: wp_33
-  x: 1.02
-  y: 2.3877
-  yaw: -2.0043
-  task: fire
-- id: via_turn_wp_33_to_wp_36
-  x: 1.02
-  y: 2.3877
-  yaw: -1.5708
-  task: navigation
-- id: wp_36
-  x: 1.02
-  y: 2.15
-  yaw: 3.1416
-  task: record_start
-- id: wp_37
-  x: 1.02
-  y: 0.8392
-  yaw: 3.1416
-  task: record_stop
-- id: wp_38
-  x: 1.02
-  y: 0.8392
-  yaw: -1.5708
-  task: navigation
-- id: wp_39
-  x: 1.02
-  y: 0.41
-  yaw: -1.5708
-  task: navigation
-- id: wp_40
-  x: 1.02
-  y: 0.41
-  yaw: 3.1416
-  task: navigation
-- id: via_arrive_wp_41_from_wp_40
-  x: 0.4325
-  y: 0.41
-  yaw: 3.1416
-  task: navigation
-- id: wp_41
-  x: 0.4325
-  y: 0.41
-  yaw: 0.0
-  task: navigation
-- id: wp_27
-  x: 1.02
-  y: 3.2
-  yaw: -1.5708
-  task: navigation
-- id: via_turn_wp_33_to_wp_34
-  x: 1.02
-  y: 2.3877
-  yaw: -1.5708
-  task: navigation
-- id: via_arrive_wp_34_from_wp_33
-  x: 1.02
-  y: 2.15
-  yaw: -1.5708
+  x: 1.0734
+  y: 2.4095
+  yaw: -1.6376
   task: navigation
 - id: wp_34
-  x: 1.02
-  y: 2.15
-  yaw: 3.1416
-  task: navigation
+  x: 1.0734
+  y: 2.4095
+  yaw: -1.9948
+  task: fire
 - id: wp_35
-  x: 1.02
-  y: 2.15
-  yaw: -1.5708
-  task: navigation
-- id: via_turn_wp_36_to_wp_37
-  x: 1.02
-  y: 2.15
-  yaw: -1.5708
-  task: navigation
-- id: via_arrive_wp_37_from_wp_36
-  x: 1.02
-  y: 0.8392
-  yaw: -1.5708
-  task: navigation
-- id: via_blocked_entry
-  x: 3.84
-  y: 1.62
+  x: 1.1114
+  y: 2.3729
+  yaw: -3.1086
+  task: record_start
+- id: wp_36
+  x: 1.1001
+  y: 0.8364
+  yaw: 3.1415
+  task: record_stop
+- id: wp_37
+  x: 1.1001
+  y: 0.4527
   yaw: 3.1416
   task: navigation
-- id: via_blocked_top_middle_east
-  x: 2.23
-  y: 3.84
-  yaw: 0.0
-  task: navigation
-- id: via_blocked_top_right_down
-  x: 3.84
-  y: 3.84
-  yaw: -1.5708
-  task: navigation
-- id: via_blocked_top_right_west
-  x: 3.84
-  y: 3.84
+- id: wp_38
+  x: 0.4139
+  y: 0.4527
   yaw: 3.1416
   task: navigation
-- id: via_arrive_via_blocked_entry_from_wp_05
-  x: 3.84
-  y: 1.62
-  yaw: 1.5708
+- id: wp_39
+  x: 0.4139
+  y: 0.4527
+  yaw: 0.0012
   task: navigation
-- id: via_turn_wp_13_to_wp_15
-  x: 3.0
-  y: 1.62
-  yaw: 3.1416
-  task: navigation
-- id: via_arrive_wp_11_from_wp_19
-  x: 2.23
-  y: 2.3026
-  yaw: 1.5708
-  task: navigation
-- id: via_turn_wp_11_to_wp_20
-  x: 2.23
-  y: 2.3026
-  yaw: 1.5708
-  task: navigation
-- id: via_arrive_via_blocked_top_right_down_from_via_blocked_top_middle_east
-  x: 3.84
-  y: 3.84
-  yaw: 0.0
-  task: navigation
-- id: via_arrive_wp_06_from_via_blocked_top_right_down
-  x: 3.84
-  y: 2.2492
-  yaw: -1.5708
-  task: navigation
-finish_waypoint: wp_41
+finish_waypoint: wp_39
 navigation_branches:
   clear:
-  - wp_05
   - wp_06
   - wp_07
   - wp_08
-  - via_turn_wp_08_to_wp_09
   - wp_09
   - wp_10
-  - via_turn_wp_10_to_wp_11
   - wp_11
   - wp_12
-  - via_turn_wp_12_to_wp_13
   - wp_13
   - wp_14
   - wp_15
@@ -345,53 +329,6 @@ navigation_branches:
   - wp_19
   - wp_20
   - wp_21
-  - wp_22
-  - wp_23
-  - wp_24
-  - wp_25
-  - wp_26
-  - wp_28
-  - wp_29
-  - wp_30
-  - wp_31
-  - wp_32
-  - via_arrive_wp_33_from_wp_32
-  - wp_33
-  - via_turn_wp_33_to_wp_36
-  - wp_36
-  - wp_37
-  - wp_38
-  - wp_39
-  - wp_40
-  - via_arrive_wp_41_from_wp_40
-  - wp_41
-  blocked:
-  - wp_05
-  - via_arrive_via_blocked_entry_from_wp_05
-  - via_blocked_entry
-  - wp_14
-  - wp_13
-  - via_turn_wp_13_to_wp_15
-  - wp_15
-  - wp_16
-  - wp_17
-  - wp_18
-  - wp_19
-  - via_arrive_wp_11_from_wp_19
-  - wp_11
-  - via_turn_wp_11_to_wp_20
-  - wp_20
-  - wp_21
-  - via_blocked_top_middle_east
-  - via_arrive_via_blocked_top_right_down_from_via_blocked_top_middle_east
-  - via_blocked_top_right_down
-  - via_arrive_wp_06_from_via_blocked_top_right_down
-  - wp_06
-  - wp_07
-  - wp_08
-  - via_blocked_top_right_west
-  - wp_09
-  - wp_10
   - wp_22
   - wp_23
   - wp_24
@@ -403,18 +340,44 @@ navigation_branches:
   - wp_30
   - wp_31
   - wp_32
-  - via_arrive_wp_33_from_wp_32
   - wp_33
-  - via_turn_wp_33_to_wp_34
-  - via_arrive_wp_34_from_wp_33
   - wp_34
   - wp_35
   - wp_36
-  - via_turn_wp_36_to_wp_37
-  - via_arrive_wp_37_from_wp_36
   - wp_37
   - wp_38
   - wp_39
-  - wp_40
-  - via_arrive_wp_41_from_wp_40
-  - wp_41
+  blocked:
+  - blocked_wp_06
+  - blocked_wp_07
+  - blocked_wp_08
+  - blocked_wp_09
+  - blocked_wp_10
+  - blocked_wp_11
+  - blocked_wp_12
+  - blocked_wp_13
+  - blocked_wp_14
+  - blocked_wp_15
+  - blocked_wp_16
+  - blocked_wp_17
+  - blocked_wp_18
+  - blocked_wp_19
+  - blocked_wp_20
+  - blocked_wp_21
+  - blocked_wp_22
+  - blocked_wp_23
+  - blocked_wp_24
+  - blocked_wp_25
+  - wp_27
+  - wp_28
+  - wp_29
+  - wp_30
+  - wp_31
+  - wp_32
+  - wp_33
+  - wp_34
+  - wp_35
+  - wp_36
+  - wp_37
+  - wp_38
+  - wp_39

@@ -54,7 +54,7 @@ _MEDIA_DIRS = ("photo", "videos")
 class MissionStart(BaseModel):
     waypoint: str = ""             # empty → full route
     navigation_only: bool = False
-    obstacle_mode: str = "blocked"
+    obstacle_mode: str = "clear"
 
 
 def _route_points(route: Path = DEFAULT_ROUTE) -> List[Dict[str, Any]]:

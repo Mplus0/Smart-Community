@@ -230,7 +230,7 @@ LAUNCHES: Dict[str, LaunchSpec] = {
             package="community_mission",
             launch_file="mission.launch",
             args={"single_waypoint": "", "navigation_only": "false",
-                  "obstacle_mode": "blocked", "route": ""},
+                  "obstacle_mode": "clear", "route": ""},
             components=frozenset({"mission"}),
             requires=frozenset({"hardware", "navigation"}),
         ),

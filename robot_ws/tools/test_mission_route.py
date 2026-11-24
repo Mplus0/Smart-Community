@@ -14,7 +14,7 @@ import yaml
 WORKSPACE = Path(__file__).resolve().parents[1]
 SCRIPTS = WORKSPACE / 'src/community_mission/scripts'
 sys.path.insert(0, str(SCRIPTS))
-from rules import validate_route
+from rules import validate_route, obstacle_route, Detection
 
 
 class MissionRouteTests(unittest.TestCase):
@@ -62,6 +62,67 @@ class MissionRouteTests(unittest.TestCase):
             self.assertEqual(visited, [p['id'] for p in route['points']])
             self.assertEqual(transitions[-1], 'FINISH')
 
+    def test_blocked_route_shares_clear_tail_and_preserves_recorded_tasks(self):
+        route = yaml.safe_load((SCRIPTS.parent / 'config/route_blocked.yaml').read_text())
+        clear = yaml.safe_load((SCRIPTS.parent / 'config/route_clear.yaml').read_text())
+        validate_route(route)
+        self.assertEqual(len(route['points']), 38)
+        start = next(i for i, p in enumerate(route['points'])
+                     if p['task'] == 'plate' and p['parking_lot'] == 1)
+        common = next(i for i, p in enumerate(clear['points'])
+                      if p['task'] == 'plate' and p['parking_lot'] == 1)
+        self.assertEqual(route['points'][start:], clear['points'][common:])
+        by_id = {p['id']: p for p in route['points']}
+        self.assertEqual(by_id['blocked_wp_01']['task'], 'navigation')
+        self.assertEqual(by_id['blocked_wp_13']['task'], 'navigation')
+        self.assertEqual(by_id['blocked_wp_15']['task'], 'navigation')
+        self.assertEqual(by_id['blocked_wp_08']['area'], 'B')
+        self.assertEqual(by_id['blocked_wp_08']['yaw'], 1.6255)
+        self.assertEqual(by_id['blocked_wp_14']['area'], 'B')
+        self.assertEqual(by_id['blocked_wp_14']['yaw'], -0.0514)
+        self.assertEqual(by_id['blocked_wp_10']['task'], 'fire')
+        self.assertEqual(by_id['blocked_wp_10']['x'], 2.4101)
+        self.assertNotIn('traffic_light', [p['task'] for p in route['points']])
+        obj = SimpleNamespace(route=copy.deepcopy(route), index=0, single_waypoint='',
+                              transition=lambda state, reason: events.append(state))
+        events = []
+        for _ in route['points']:
+            self.method('next_point')(obj)
+        self.assertEqual(events[-1], 'FINISH')
+        self.assertEqual(obj.route['points'][-1]['id'], 'wp_39')
+
+    def test_obstacle_detection_selects_main_state_machine_branch(self):
+        for box, expected in [((5, 0, 15, 10), 'clear'), ((40, 0, 60, 10), 'blocked')]:
+            with self.subTest(expected=expected):
+                obj = SimpleNamespace(
+                    route=copy.deepcopy(self.route), index=4, single_waypoint='',
+                    obstacle_mode='clear' if expected == 'blocked' else 'blocked',
+                    services=SimpleNamespace(detect=lambda detector, image: [Detection('obstacle', box, .9)]),
+                    check_running=lambda: None, obstacle_clear_x_ratio=.35,
+                    transition=lambda *args: None)
+                select = self.method('select_obstacle_route', detections=lambda result: result,
+                                     obstacle_route=obstacle_route)
+                select(obj, SimpleNamespace(width=100))
+                self.assertEqual(obj.obstacle_mode, expected)
+                self.method('next_point')(obj)
+                self.assertEqual(obj.route['points'][5]['id'],
+                                 'wp_06' if expected == 'clear' else 'blocked_wp_06')
+
+    def test_navigation_only_skips_obstacle_service_and_uses_manual_branch(self):
+        for mode in ('clear', 'blocked'):
+            states = []
+            obj = SimpleNamespace(route=copy.deepcopy(self.route), index=4,
+                                  navigation_only=True, single_waypoint='', obstacle_mode=mode,
+                                  check_running=lambda: None,
+                                  results=SimpleNamespace(waypoint=lambda *args: None),
+                                  transition=lambda state, reason: states.append(state))
+            self.method('task')(obj)
+            self.assertEqual(states[-1], 'NEXT_POINT')
+            self.method('next_point')(obj)
+            self.assertEqual(obj.index, 5)
+            self.assertEqual(obj.route['points'][5]['id'],
+                             'wp_06' if mode == 'clear' else 'blocked_wp_06')
+
     def test_initialize_single_map_ignores_old_closures(self):
         transitions = []
         obj = SimpleNamespace(
@@ -90,24 +151,31 @@ class MissionRouteTests(unittest.TestCase):
         validate_route(self.route)
         points = self.route['points']
         split = next(i for i, p in enumerate(points) if p['task'] == 'obstacle')
-        expected = {p['id'] for p in points if p['task'] != 'navigation'}
-        next_point = self.method('next_point')
-        for mode, count in [('clear', 45), ('blocked', 57)]:
+        by_id = {p['id']: p for p in points}
+        for mode, count in [('clear', 39), ('blocked', 38)]:
             for navigation_only in (True, False):
                 with self.subTest(mode=mode, navigation_only=navigation_only):
                     obj = SimpleNamespace(route=copy.deepcopy(self.route), index=split,
                                           single_waypoint='', obstacle_mode=mode,
                                           navigation_only=navigation_only,
                                           transition=lambda *args: None)
-                    next_point(obj)
+                    self.method('next_point')(obj)
                     selected = obj.route['points']
+                    expected = points[:split + 1] + [by_id[name] for name in self.route['navigation_branches'][mode]]
+                    self.assertEqual(selected, expected)
                     self.assertEqual(len(selected), count)
-                    self.assertEqual([p['id'] for p in selected[split+1:]],
-                                     self.route['navigation_branches'][mode])
-                    tasks = [p['id'] for p in selected if p['task'] != 'navigation']
-                    self.assertEqual(set(tasks), expected)
-                    self.assertEqual(len(tasks), len(expected))
-                    self.assertEqual(selected[-1]['id'], 'wp_41')
+                    self.assertEqual(len({p['id'] for p in selected}), count)
+                    self.assertEqual(selected[-1]['id'], 'wp_39')
+                    # Subsequent state transitions visit the entire selected suffix once.
+                    visited = [p['id'] for p in selected[:obj.index]]
+                    events = []
+                    obj.transition = lambda state, reason: events.append(state)
+                    while True:
+                        visited.append(obj.route['points'][obj.index]['id'])
+                        self.method('next_point')(obj)
+                        if events[-1] == 'FINISH':
+                            break
+                    self.assertEqual(visited, [p['id'] for p in selected])
 
     def test_navigation_wp04_does_not_trigger_branch(self):
         obj = SimpleNamespace(route=copy.deepcopy(self.route), index=3, single_waypoint='',
@@ -125,66 +193,56 @@ class MissionRouteTests(unittest.TestCase):
         obj = SimpleNamespace(route=self.route, index=4, single_waypoint='',
                               obstacle_mode='blocked', transition=lambda *args: None)
         self.method('next_point')(obj)
-        self.assertEqual(obj.route['points'][5]['id'], 'wp_05')
-        self.assertEqual(len(obj.route['points']), 57)
+        self.assertEqual(obj.route['points'][5]['id'], 'blocked_wp_06')
+        self.assertEqual(len(obj.route['points']), 38)
 
-    def test_translation_legs_face_travel_except_clear_recording_area(self):
-        points = self.route['points']
-        split = next(i for i, p in enumerate(points) if p['task'] == 'obstacle')
-        by_id = {p['id']: p for p in points}
-        for mode, order in self.route['navigation_branches'].items():
-            selected = points[:split + 1] + [by_id[name] for name in order]
-            for start, end in zip(selected, selected[1:]):
-                if mode == 'clear' and end['id'] in ('wp_36', 'wp_37'):
-                    continue
-                dx, dy = end['x'] - start['x'], end['y'] - start['y']
-                if math.hypot(dx, dy) <= .001:
-                    continue
-                direction = math.atan2(dy, dx)
-                with self.subTest(mode=mode, start=start['id'], end=end['id']):
-                    for point in (start, end):
-                        delta = point['yaw'] - direction
-                        self.assertLess(abs(math.atan2(math.sin(delta), math.cos(delta))), .001)
-
-    def test_clear_uses_direct_rotations_and_uninterrupted_recording(self):
-        order = self.route['navigation_branches']['clear']
-        self.assertEqual(order[order.index('wp_26') + 1], 'wp_28')
-        self.assertNotIn('wp_34', order)
-        self.assertNotIn('wp_35', order)
-        self.assertEqual(order[order.index('wp_33') + 1:order.index('wp_36')],
-                         ['via_turn_wp_33_to_wp_36'])
-        self.assertEqual(order[order.index('wp_36') + 1], 'wp_37')
+    def test_main_branches_use_source_waypoints_and_common_tail(self):
         by_id = {p['id']: p for p in self.route['points']}
-        for first, second in [('wp_26', 'wp_28')]:
-            self.assertEqual((by_id[first]['x'], by_id[first]['y']),
-                             (by_id[second]['x'], by_id[second]['y']))
-            delta = by_id[first]['yaw'] - by_id[second]['yaw']
-            self.assertAlmostEqual(abs(math.atan2(math.sin(delta), math.cos(delta))),
-                                   math.pi, places=4)
-        self.assertEqual(by_id['wp_36']['x'], by_id['wp_37']['x'])
-        self.assertEqual(by_id['wp_36']['yaw'], by_id['wp_37']['yaw'])
+        for mode in ('clear', 'blocked'):
+            source = yaml.safe_load((SCRIPTS.parent / f'config/route_{mode}.yaml').read_text())['points']
+            selected = [by_id[name] for name in self.route['navigation_branches'][mode]]
+            self.assertEqual(selected, source[5:])
+        prefix = self.route['points'][:5]
+        self.assertEqual(prefix[-1]['task'], 'obstacle')
+        self.assertEqual(prefix[0]['task'], 'traffic_light')
+        self.assertEqual(prefix[1]['area'], 'A')
+        suffixes = []
+        for mode in ('clear', 'blocked'):
+            order = self.route['navigation_branches'][mode]
+            suffixes.append(order[order.index('wp_27'):])
+        self.assertEqual(suffixes[0], suffixes[1])
+        self.assertEqual(suffixes[0], [f'wp_{i:02d}' for i in range(27, 40)])
+
+    def test_recording_is_paired_and_uninterrupted_in_both_branches(self):
+        for mode, order in self.route['navigation_branches'].items():
+            with self.subTest(mode=mode):
+                self.assertEqual(order[order.index('wp_35') + 1], 'wp_36')
+                self.assertEqual(order[-1], 'wp_39')
 
     def test_invalid_branch_configurations_are_rejected(self):
         mutations = []
         route = copy.deepcopy(self.route)
-        route['navigation_branches']['blocked'].remove('wp_18')
+        route['navigation_branches']['blocked'].remove('blocked_wp_10')
         mutations.append(route)
         route = copy.deepcopy(self.route)
-        route['navigation_branches']['blocked'].append('wp_41')
+        route['navigation_branches']['blocked'].append('wp_39')
         mutations.append(route)
         route = copy.deepcopy(self.route)
-        route['navigation_branches']['clear'][-1] = 'wp_40'
+        route['navigation_branches']['clear'][-1] = 'wp_38'
         mutations.append(route)
         route = copy.deepcopy(self.route)
         route['navigation_branches']['blocked'][0] = 'missing'
         mutations.append(route)
         route = copy.deepcopy(self.route)
         branch = route['navigation_branches']['blocked']
-        first, last = branch.index('wp_36'), branch.index('wp_37')
+        first, last = branch.index('wp_35'), branch.index('wp_36')
         branch[first], branch[last] = branch[last], branch[first]
         mutations.append(route)
         route = copy.deepcopy(self.route)
         next(p for p in route['points'] if p['id'] == 'wp_07')['task'] = 'obstacle'
+        mutations.append(route)
+        route = copy.deepcopy(self.route)
+        route['navigation_branches']['blocked'][0] = 'wp_02'
         mutations.append(route)
         for index, route in enumerate(mutations):
             with self.subTest(index=index), self.assertRaises(ValueError):
@@ -192,7 +250,7 @@ class MissionRouteTests(unittest.TestCase):
 
     def test_single_waypoint_does_not_expand_branch(self):
         events = []
-        obj = SimpleNamespace(route=self.route, index=4, single_waypoint='wp_04_obstacle',
+        obj = SimpleNamespace(route=self.route, index=4, single_waypoint='wp_05',
                               transition=lambda state, reason: events.append(state))
         self.method('next_point')(obj)
         self.assertEqual(events, ['FINISH'])

@@ -257,10 +257,10 @@ roslaunch community_bringup services.launch
 roslaunch community_mission mission.launch
 ```
 
-当前阶段使用独立 clear 路线验收。启动硬件、定位和导航后运行，无需启动识别、语音和录像服务；所有航点只导航，跳过全部任务：
+当前阶段使用主路线的 clear/blocked 两个分支验收。启动硬件、定位和导航后运行，无需启动识别、语音和录像服务；所有航点只导航，跳过全部任务：
 
 ```bash
-roslaunch community_mission mission.launch navigation_only:=true
+roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
 所有执行点（包括纯导航点和转角过渡点）均等待 `move_base` 返回到点成功，再处理任务并切换到下一点；仅导航模式也遵循相同的到点判定。
@@ -427,7 +427,7 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 
 ### 模型检测浏览器预览
 
-人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。当前默认 clear 路线不调用障碍物服务。
+人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。默认主路线在 `wp_05` 调用障碍物服务自动选择后续 clear/blocked 分支，独立路线文件用于单独调试。
 
 `fire.onnx` 已更新为 2026-11-25 光照增强训练的最佳模型（训练集 4737 张、验证集 79 张，第 80 轮最佳，第 130 轮早停），使用静态 FP32 640×640 输入及外部 NMS，与 `yolo_train/model/fire.onnx` 一致。火焰检测启用 `letterbox: true`，通过等比例缩放补边保持与训练一致的预处理，避免直接拉伸造成漏检。替换后需重启正在运行的火焰检测服务或浏览器预览以重新加载模型。
 
@@ -499,21 +499,22 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认使用 `src/community_bringup/maps/localization_map.yaml` 作为定位与规划共用地图。默认路线为 `route_clear.yaml`，使用 2026-11-25 单地图重新采集的 39 个航点；尚未完成整条路线的实车验证。
+默认使用 `src/community_bringup/maps/localization_map.yaml` 作为定位与规划共用地图。默认主路线为 `route.yaml`，使用 2026-11-25 单地图采集并平滑的 clear/blocked 航点；尚未完成整条路线的实车验证。
 
 | 位置 | 用途 |
 |---|---|
 | `src/community_bringup/config/hardware.yaml` | 硬件节点参数 |
 | `src/community_bringup/config/camera.yaml` | 相机控制参数，启动时通过 `configure_camera:=true` 启用配置 |
 | `src/community_bringup/config/navigation/` | EKF、定位、规划和代价地图参数 |
-| `src/community_mission/config/route_clear.yaml` | 当前 clear 巡检航点及任务 |
+| `src/community_mission/config/route.yaml` | 公共前段、分支与公共收尾段 |
+| `src/community_mission/config/route_clear.yaml` / `route_blocked.yaml` | 独立路线调试文件 |
 | `src/community_mission/config/runtime.yaml` | 等待时间、重试、录像和语音参数 |
 | `src/community_mission/config/recognition_rules.yaml` | 人员 ROI、车辆去重等识别业务规则 |
 | `src/community_perception/config/detectors.yaml` | 检测模型路径、类别、阈值和保存设置 |
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`route` 和 `data_dir` 覆盖对应参数。
 
-默认 `route_clear.yaml` 按 `wp_01` 至 `wp_39` 顺序执行，任务点及最终停车位保留实测坐标和朝向；普通导航点经过直线投影和转角对齐，单点位置调整不超过 8.5 cm，不额外插入中间点。相邻转向点共用位置，车牌 3 后的回退点已对齐到任务位置。每点仍等待导航成功后再继续，最终停车点为 `wp_39`。任务对应如下：
+独立 `route_clear.yaml` 按 `wp_01` 至 `wp_39` 顺序执行，任务点及最终停车位保留实测坐标和朝向；普通导航点经过直线投影和转角对齐，单点位置调整不超过 8.5 cm，不额外插入中间点。相邻转向点共用位置，车牌 3 后的回退点已对齐到任务位置。每点仍等待导航成功后再继续，最终停车点为 `wp_39`。任务对应如下：
 
 | 航点 | 任务 |
 |---|---|
@@ -526,13 +527,36 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 | `wp_35`、`wp_36` | 录像开始、结束，朝西横移 |
 | 其余点 | 普通导航 |
 
-`wp_05` 保留原障碍识别位置，但当前为普通导航。该路线独立执行 clear，不调用障碍识别或分支选择，`obstacle_mode` 不改变路线。仅导航验收跳过上述全部任务：
+主状态机默认使用 `route.yaml`：公共前段采用 clear 的 `wp_01`～`wp_05`，包含首个红绿灯和 A 区人员任务，`wp_05` 的任务恢复为障碍识别。完整巡检在该点检测障碍物，中心横坐标比例小于 0.35 选择 clear，否则选择 blocked；识别异常会终止任务。进入分支后不重复公共前段，plate1 起引用同一组 `wp_27`～`wp_39` 公共收尾点。
+
+clear 执行 39 个目标，blocked 执行 38 个目标。blocked 的分支任务及取景朝向沿用独立 blocked 文件，允许两分支任务不同；公共前段统一执行首个红绿灯。仅导航模式跳过全部任务，在 `wp_05` 后按 `obstacle_mode` 手动选择，不调用障碍物模型：
 
 ```bash
-roslaunch community_mission mission.launch navigation_only:=true
+roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
+roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=blocked
+# 完整巡检：先启动硬件、导航和 services，确认定位后运行
+roslaunch community_mission mission.launch
 ```
 
+不指定 `obstacle_mode` 时，仅导航默认 clear。完整巡检忽略手动选路参数，由检测结果决定。独立文件仍可通过 `route:=.../route_clear.yaml` 或 `route:=.../route_blocked.yaml` 显式加载，此时不自动选路。
+
 当前默认路线未启用仪表和楼宇测温任务。红绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
+
+### blocked 路线
+
+`src/community_mission/config/route_blocked.yaml` 使用 2026-11-25 03:41 采集的绕行前段，共 38 点。前 25 点使用 `blocked_wp_01`～`blocked_wp_25` 编号，任务以采集文件为准，任务点坐标和朝向不变，普通导航点做转角对齐和直线投影，最大位置调整不超过 10 cm。plate1 起使用 clear 中的 `wp_27`～`wp_39` 公共收尾段，点位、任务、朝向和顺序完全一致。
+
+前段人员任务为 `blocked_wp_02/06/08/09/14/21`，分别对应 A/A/B/A/B/B；`blocked_wp_10` 为火灾。采集文件中的普通导航点保持原任务，包括 `blocked_wp_01/13/15`，该独立 blocked 路线不包含红绿灯等待，也不调用障碍选路。任务点朝向保留新采集值，不按旧相机朝向修正；当前仍使用现有图像来源，未增加按航点切换相机的配置。
+
+默认主路线已接入 blocked 分支。若需跳过公共选路逻辑单独验收完整 blocked 文件，停止其他巡检和键盘控制、确认定位后运行：
+
+```bash
+roslaunch community_mission mission.launch \
+  route:="$(rospack find community_mission)/config/route_blocked.yaml" \
+  navigation_only:=true
+```
+
+路线结构检查通过，实际取景、通行和整圈运行仍需实车验证。
 
 巡检结果默认位于 `~/.ros/community/<run_id>/`，包含结果 JSON、日志、照片和视频；检测服务调试图位于 `~/.ros/community/detections/`，OCR 调试图位于 `~/.ros/community/ocr/`。图片采集目录由 `--datasets-dir` 和数据集名称决定。
 

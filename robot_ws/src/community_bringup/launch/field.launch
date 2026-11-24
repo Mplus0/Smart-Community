@@ -12,11 +12,11 @@
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
   <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml"/>
   <arg name="local_planner" default="dwa" doc="dwa or teb"/>
-  <arg name="route" default="$(find community_mission)/config/route_clear.yaml"/>
+  <arg name="route" default="$(find community_mission)/config/route.yaml"/>
 
   <!-- Mission-specific parameters -->
   <arg name="navigation_only" default="false" doc="true: skip every waypoint task (traffic light wait, photos, recognition, recording) and only navigate"/>
-  <arg name="obstacle_mode" default="clear" doc="clear or blocked: wp_04 branch used when navigation_only is true"/>
+  <arg name="obstacle_mode" default="clear" doc="clear or blocked: wp_05 branch used when navigation_only is true"/>
   <arg name="green_confirm_frames" default=""/>
   <arg name="traffic_light_timeout" default=""/>
   <arg name="navigation_retries" default=""/>

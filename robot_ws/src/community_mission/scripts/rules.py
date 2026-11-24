@@ -84,13 +84,15 @@ def validate_navigation_branches(route):
     finish = route.get('finish_waypoint', clear[-1])
     if not isinstance(finish, str) or finish not in remaining:
         raise ValueError('finish_waypoint must follow the obstacle task')
+    referenced = set()
     for mode, order in branches.items():
         if (not isinstance(order, list) or not order
                 or any(not isinstance(name, str) for name in order)):
             raise ValueError(f'{mode}: branch must be a nonempty waypoint ID list')
         selected = set(order)
-        if len(order) != len(selected) or not required <= selected <= set(remaining):
-            raise ValueError(f'{mode}: branch must visit every task once and use known waypoints')
+        if len(order) != len(selected) or not selected <= set(remaining):
+            raise ValueError(f'{mode}: branch must use unique known waypoints')
+        referenced.update(selected)
         if order[-1] != finish:
             raise ValueError(f'{mode}: branch must end at finish_waypoint')
         recording = False
@@ -105,6 +107,8 @@ def validate_navigation_branches(route):
                 recording = False
         if recording:
             raise ValueError(f'{mode}: recording requires a stop task')
+    if not required <= referenced:
+        raise ValueError('Every branch task must be referenced by at least one branch')
 
 
 def obstacle_route(objects, width, clear_x_ratio):

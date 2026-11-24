@@ -14,7 +14,7 @@
   <arg name="data_dir" default="$(env HOME)/.ros/community"/>
   <arg name="map" default="$(find community_bringup)/maps/localization_map.yaml"/>
   <arg name="local_planner" default="dwa" doc="dwa or teb"/>
-  <arg name="route" default="$(find community_mission)/config/route_clear.yaml"/>
+  <arg name="route" default="$(find community_mission)/config/route.yaml"/>
   <include file="$(find community_bringup)/launch/hardware.launch">
     <arg name="base_protocol" value="$(arg base_protocol)"/><arg name="base_port" value="$(arg base_port)"/>
     <arg name="imu_port" value="$(arg imu_port)"/><arg name="camera_device" value="$(arg camera_device)"/>
