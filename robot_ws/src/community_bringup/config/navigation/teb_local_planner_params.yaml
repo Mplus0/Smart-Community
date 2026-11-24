@@ -8,11 +8,14 @@ TebLocalPlannerROS:
   dt_hysteresis: 0.02
   max_global_plan_lookahead_dist: 1.0
   global_plan_overwrite_orientation: true
+  # 沿全局路径提取跟随点，减轻直线路段不必要的弧线偏移。
+  global_plan_viapoint_sep: 0.2
+  via_points_ordered: true
   allow_init_with_backwards_motion: false
   feasibility_check_no_poses: -1
 
-  # 全向提速试验参数；前进和横移采用相同上限，需实车验证。
-  max_vel_x: 0.7
+  # 全向提速试验参数，需实车验证。
+  max_vel_x: 0.6
   max_vel_x_backwards: 0.25
   max_vel_y: 0.7
   # 当前 TEB 版本不支持 max_vel_trans，以 x/y 分量限速。
@@ -45,4 +48,6 @@ TebLocalPlannerROS:
   no_outer_iterations: 4
   optimization_activate: true
   optimization_verbose: false
+  weight_viapoint: 5.0
+  weight_shortest_path: 1.0
   enable_homotopy_class_planning: false
