@@ -297,6 +297,7 @@
               <select id="misWaypoint" class="input" disabled></select>
             </label>
             <label class="field chk-field"><span><input type="checkbox" id="misNavOnly"> 仅导航</span></label>
+            <label class="field chk-field"><span><input type="checkbox" id="misTaskOnly"> 仅任务（不导航）</span></label>
             <div id="misObstacleField" hidden>
               <label class="field">预设分支
                 <select id="misObstacle" class="input" disabled>
@@ -306,8 +307,9 @@
               </label>
             </div>
           </div>
-          <p class="hint" id="misAutoRouteHint">完整巡检到达 wp_04 后，根据障碍物识别结果自动选择直行或绕行。</p>
-          <p class="hint" id="misNavigationHint" hidden>仅导航会跳过所有航点任务。到达 wp_04 后使用所选分支。</p>
+          <p class="hint" id="misAutoRouteHint">完整巡检到达 wp_05 后，根据障碍物识别结果自动选择直行或绕行。</p>
+          <p class="hint" id="misNavigationHint" hidden>仅导航会跳过所有航点任务。到达 wp_05 后使用所选分支。</p>
+          <p class="hint" id="misTaskHint" hidden>仅任务使用当前相机画面执行真实任务，无需底盘和导航。建议选择单航点逐项实测；完整巡检会连续执行，红绿灯仍需等待绿灯，录像仍需配对路线。</p>
           <div class="row-actions">
             <button class="btn btn-primary" id="misStart" disabled>启动任务</button>
             <button class="btn" id="misStop">停止任务</button>

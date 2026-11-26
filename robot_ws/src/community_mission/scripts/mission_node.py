@@ -15,7 +15,8 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
-from rules import validate_route, detections, obstacle_route
+from rules import validate_route, detections, detection_records, obstacle_route
+from evidence import save_annotation
 from services import Services, SpeechQueue
 from inspection import Inspection
 from result_manager import ResultManager
@@ -30,8 +31,11 @@ class Mission:
         self.reason = "等待初始化"
         self.stopping = False
         self.navigation_only = rospy.get_param('~navigation_only', False)
-        if type(self.navigation_only) is not bool:
-            raise ValueError('navigation_only must be a boolean')
+        self.task_only = rospy.get_param('~task_only', False)
+        if type(self.navigation_only) is not bool or type(self.task_only) is not bool:
+            raise ValueError('navigation_only and task_only must be booleans')
+        if self.navigation_only and self.task_only:
+            raise ValueError('navigation_only and task_only cannot both be true')
         self.route = validate_route(rospy.get_param('~'))
         self.obstacle_mode = rospy.get_param('~obstacle_mode', 'clear')
         if self.obstacle_mode not in ('blocked', 'clear'):
@@ -71,10 +75,11 @@ class Mission:
             raise ValueError('Runtime intervals must be finite and positive')
         self.results = ResultManager(rospy.get_param('~data_dir', '~/.ros/community'),
                                      self.route['points'], rospy.loginfo)
+        self.results.data.update(navigation_only=self.navigation_only, task_only=self.task_only)
         self.data_dir = self.results.path
         self.video_path = self.data_dir/'videos/video.mp4'
         self.planner = rospy.get_param('~planner_namespace', '/move_base/DWAPlannerROS')
-        self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.client = None if self.task_only else actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.services = None
         self.bridge = None
         self.condition = threading.Condition()
@@ -122,7 +127,8 @@ class Mission:
         # Reuse the existing lock so shutdown cannot race with sending a goal.
         with self.condition:
             self.stopping = True
-            self.client.cancel_goal()
+            if self.client is not None:
+                self.client.cancel_goal()
 
     def cancel_for_retry(self):
         self.client.cancel_goal()
@@ -139,6 +145,8 @@ class Mission:
         raise RuntimeError('CANCEL_TIMEOUT: no new navigation goal will be sent')
 
     def move_to(self, coordinates):
+        if self.task_only:
+            raise RuntimeError('Navigation is disabled in task_only mode')
         goal = MoveBaseGoal()
         goal.target_pose.header.frame_id = 'map'
         x, y, yaw = coordinates
@@ -224,7 +232,8 @@ class Mission:
         self.state_pub.publish(json.dumps(dict(
             state=self.state, reason=self.reason, index=self.index,
             total=len(self.route['points']), current_waypoint=point['id'], task=point['task'],
-            navigation_only=self.navigation_only, obstacle_mode=self.obstacle_mode,
+            navigation_only=self.navigation_only, task_only=self.task_only,
+            obstacle_mode=self.obstacle_mode,
             single_waypoint=self.single_waypoint, run_id=self.results.run_id,
             last_operation=None if last is None else dict(
                 waypoint_id=last.get('waypoint_id'), task_type=last.get('task_type'),
@@ -232,6 +241,10 @@ class Mission:
             stamp=time.time()), ensure_ascii=False))
 
     def initialize(self):
+        if self.task_only:
+            rospy.loginfo('[任务实测] 仅执行任务，跳过导航；完整路线将连续执行，可用 single_waypoint 逐项测试')
+            self.transition('NAVIGATE', '仅任务模式已就绪，不连接导航服务')
+            return
         if not self.client.wait_for_server(rospy.Duration(self.runtime['server_timeout'])):
             raise RuntimeError('move_base is unavailable')
         if not self.navigation_only:
@@ -242,8 +255,12 @@ class Mission:
 
     def navigate(self):
         point = self.route['points'][self.index]
-        rospy.loginfo('[导航] 前往航点=%s', point['id'])
         self.results.waypoint(point, 'RUNNING')
+        if self.task_only:
+            rospy.loginfo('[导航跳过] 航点=%s 原因=仅任务模式', point['id'])
+            self.transition('TASK', '仅任务模式：跳过导航，直接执行本航点任务')
+            return
+        rospy.loginfo('[导航] 前往航点=%s', point['id'])
         self.results.execute('navigation', point, self.move_to,
                              (point['x'], point['y'], point['yaw']))
         self.transition('TASK', '已到达航点')
@@ -256,10 +273,10 @@ class Mission:
         index = self.index
         point = self.route['points'][index]
         task_type = point['task']
-        rospy.loginfo('[任务] 航点=%s，任务=%s', point['id'], task_type)
         self.check_running()
         if self.navigation_only or task_type == 'navigation':
-            pass
+            rospy.loginfo('[任务跳过] 航点=%s 类型=%s 原因=%s', point['id'], task_type,
+                          '仅导航模式' if self.navigation_only else '纯导航航点')
         elif task_type == 'traffic_light':
             self.wait_traffic()
         elif task_type == 'meter':
@@ -275,7 +292,7 @@ class Mission:
                 if not self.speech.drain():
                     rospy.logwarn('[温度] 等待播报结束超时或巡检已停止')
         elif task_type == 'announcement':
-            pass  # 暂停播报任务，保留 announce() 供后续接入。
+            rospy.loginfo('[任务跳过] 航点=%s 类型=announcement 原因=播报任务已暂停', point['id'])
         elif task_type == 'record_start':
             self.results.execute('record_start', point, self.start_recording,
                                  paths=[self.video_path])
@@ -283,16 +300,19 @@ class Mission:
             self.finish_recording(point)
         else:
             image_path = self.data_dir/'photo'/f'{index:03d}.jpg'
+            rospy.loginfo('[任务准备] 航点=%s 类型=%s 等待新的相机图像', point['id'], task_type)
             image = self.fresh_image()
             frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
             if not cv2.imwrite(str(image_path), frame):
                 raise RuntimeError('Failed to save inspection image')
             if task_type == 'obstacle':
                 self.results.execute('obstacle', point, self.select_obstacle_route,
-                                     image, paths=[image_path])
+                                     image, point, image_path,
+                                     paths=[image_path, image_path.with_name(image_path.stem + '_obstacle_annotated.jpg')])
             else:
                 self.run_inspection(point, task_type, image, image_path)
         self.results.waypoint(point, 'SUCCESS')
+        rospy.loginfo('[航点完成] 航点=%s 类型=%s', point['id'], task_type)
         self.transition('NEXT_POINT', '本航点任务完成')
 
     def read_meter(self, raw_path, overlay_path):
@@ -384,10 +404,25 @@ class Mission:
         return dict(abnormal_floors=floors, max_temperatures_c=list(reading.max_temperatures_c),
                     announcement=announcement)
 
-    def select_obstacle_route(self, image):
-        objects = detections(self.services.detect('obstacle_detector', image))
-        self.check_running()
-        result = obstacle_route(objects, image.width, self.obstacle_clear_x_ratio)
+    def select_obstacle_route(self, image, point=None, media_path=None):
+        evidence = []
+        try:
+            objects = detections(self.services.detect('obstacle_detector', image))
+            self.check_running()
+            evidence = detection_records(objects, 'obstacle')
+            result = obstacle_route(objects, image.width, self.obstacle_clear_x_ratio)
+        except Exception as error:
+            if point is not None:
+                self.save_detection_evidence(image, dict(waypoint_id=point['id'], task_type='obstacle',
+                    status='FAILED', reason=str(error), result={'detections': evidence}), media_path)
+            raise
+        result['detections'] = evidence
+        if point is not None:
+            record = dict(waypoint_id=point['id'], task_type='obstacle', status='SUCCESS',
+                          reason='', result=result)
+            self.save_detection_evidence(image, record, media_path)
+            if record.get('evidence_errors'):
+                result['evidence_errors'] = record['evidence_errors']
         self.obstacle_mode = result['mode']
         rospy.loginfo('[障碍物] 中心横坐标比例=%.3f，路线=%s',
                       result['center_x_ratio'], self.obstacle_mode)
@@ -399,14 +434,30 @@ class Mission:
         self.run_inspection(point, 'vehicle_video', self.video_path, self.video_path)
 
     def run_inspection(self, point, task_type, source, media_path):
+        self.results.task_started(point, task_type)
         result = self.inspection.execute(point, task_type, source)
         paths = [media_path]
+        if task_type in ('person', 'plate', 'fire', 'vehicle_photo'):
+            paths.extend(self.save_detection_evidence(source, result, media_path))
         if task_type == 'trash' and result['status'] != 'FAILED':
             paths.extend(self.save_trash_evidence(source, result['result'], media_path))
         self.results.record_task(result, paths=paths)
         if result['status'] == 'FAILED':
             raise RuntimeError(f"{point['id']} {task_type}: {result['reason']}")
         return result
+
+    def save_detection_evidence(self, image, record, media_path):
+        path = Path(media_path)
+        annotated = path.with_name(f"{path.stem}_{record['task_type']}_annotated.jpg")
+        try:
+            frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
+            save_annotation(frame, record, annotated, rospy.get_param('~evidence_font', ''))
+        except Exception as error:
+            # Preserve the actual recognition/branch outcome if rendering or disk writing fails.
+            record.setdefault('evidence_errors', []).append(str(error))
+            self.results.log(f"[标注保存失败] 航点={record['waypoint_id']} 文件={annotated} 原因={error}")
+            return []
+        return [annotated]
 
     def save_trash_evidence(self, image, result, media_path):
         if result['roi'] is None:
@@ -446,14 +497,16 @@ class Mission:
         return {'queued_text': text}
 
     def start_recording(self):
-        self.services.set_lateral_speed(self.planner, self.runtime['recording_lateral_speed'])
+        if not self.task_only:
+            self.services.set_lateral_speed(self.planner, self.runtime['recording_lateral_speed'])
         self.services.start_recording(self.video_path)
         self.recording = True
 
     def stop_recording(self):
         self.services.stop_recording()
         self.recording = False
-        self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
+        if not self.task_only:
+            self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
 
     def next_point(self):
         if self.single_waypoint:
@@ -465,8 +518,8 @@ class Mission:
             order = self.route['navigation_branches'][self.obstacle_mode]
             by_id = {p['id']: p for p in self.route['points']}
             self.route['points'][self.index + 1:] = [by_id[name] for name in order]
-            rospy.loginfo('[路线] %s 分支=%s，后续航点=%s',
-                          point['id'], self.obstacle_mode, ' -> '.join(order))
+            rospy.loginfo('[分支选择] 航点=%s 分支=%s 后续航点数=%s',
+                          point['id'], self.obstacle_mode, len(order))
         if self.index + 1 == len(self.route['points']):
             self.transition('FINISH', '全部航点完成')
         else:
@@ -478,6 +531,10 @@ class Mission:
                     'TASK': self.task,
                     'NEXT_POINT': self.next_point}
         try:
+            mode = '仅任务' if self.task_only else '仅导航' if self.navigation_only else '导航与任务'
+            scope = '单航点=' + self.single_waypoint if self.single_waypoint else '完整路线'
+            self.results.log(f'[巡检开始] 模式={mode} 范围={scope} run_id={self.results.run_id}')
+            self.results.log(f'[输出目录] {self.data_dir}')
             self.transition('INIT', '开始巡检')
             while self.state not in ('FINISH', 'ERROR'):
                 self.check_running()
@@ -495,12 +552,13 @@ class Mission:
         self.closed = True
         with self.condition:
             self.stopping = True
-            self.client.cancel_all_goals()
+            if self.client is not None:
+                self.client.cancel_all_goals()
         if self.recording:
             try:
                 self.services.stop_recording()
             except Exception as error:
-                rospy.logerr('[任务] Failed to stop recorder: %s', error)
+                rospy.logerr('[录像清理失败] %s', error)
             self.recording = False
         if self.subscriber is not None:
             self.subscriber.unregister()
@@ -516,7 +574,8 @@ def main():
         mission.run()
         return 0
     except Exception as error:
-        rospy.logfatal('[状态] Mission stopped: %s', error)
+        if mission is None:
+            rospy.logfatal('[巡检启动失败] %s', error)
         return 1
     finally:
         if mission is not None:

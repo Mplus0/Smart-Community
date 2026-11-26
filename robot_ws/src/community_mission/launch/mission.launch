@@ -1,5 +1,7 @@
 <launch>
   <arg name="navigation_only" default="false" />
+  <arg name="task_only" default="false" doc="Execute real waypoint tasks without move_base or planner speed updates" />
+  <arg name="evidence_font" default="" doc="Optional Chinese TTF/TTC path for task evidence images; empty selects a system font" />
   <arg name="single_waypoint" default="" />
   <arg name="obstacle_mode" default="clear" />
   <arg name="green_confirm_frames" default="" />
@@ -23,6 +25,8 @@
     <param if="$(eval arg('goal_timeout') != '')" name="goal_timeout" type="double" value="$(arg goal_timeout)" />
     <rosparam command="load" file="$(arg route)" />
     <param name="navigation_only" type="bool" value="$(arg navigation_only)" />
+    <param name="task_only" type="bool" value="$(arg task_only)" />
+    <param name="evidence_font" type="str" value="$(arg evidence_font)" />
     <param name="single_waypoint" type="str" value="$(arg single_waypoint)" />
     <param name="obstacle_mode" type="str" value="$(arg obstacle_mode)" />
     <param name="data_dir" value="$(arg data_dir)" />

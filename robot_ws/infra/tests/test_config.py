@@ -29,3 +29,10 @@ def test_mission_requirements():
     assert "services" not in config.launch_requires("mission", {"navigation_only": "true"})
     assert "mission" in config.launch_components("community", {"run_mission": "true"})
     assert "mission" not in config.launch_components("community", {"run_mission": "false"})
+
+
+def test_task_only_requires_camera_and_services_without_navigation():
+    assert config.launch_requires("mission", {"task_only": "true"}) == {"camera", "services"}
+    spec = config.get_launch("mission")
+    assert config.validate_launch_args(spec, dict(spec.args, task_only="true")) is None
+    assert config.validate_launch_args(spec, dict(spec.args, task_only="true", navigation_only="true"))

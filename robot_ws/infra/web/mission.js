@@ -39,10 +39,13 @@ function renderReadiness() {
   const navigationLaunch = launches.find(record => (record.name === 'navigation' || composite(record))
     && record.args?.localization_only !== 'true');
   const servicesLaunch = launches.some(record => record.name === 'services' || composite(record));
+  const debugPerception = launches.some(record => record.name === 'debug_perception');
   const hardware = nodes.includes('/community_serial');
   const navigation = nodes.includes('/move_base');
   const services = nodes.includes('/speech_server');
   const noServices = $('misNavOnly').checked;
+  const taskOnly = $('misTaskOnly').checked;
+  const camera = nodes.includes('/usb_cam') || hardwareLaunch || debugPerception;
   const localizing = !navigation && !navigationLaunch && (nodes.includes('/ekf_localization')
     || launches.some(record => record.name === 'mapping' || record.args?.localization_only === 'true'));
   const planner = navigationLaunch ? (navigationLaunch.args?.local_planner || 'dwa').toUpperCase() : '';
@@ -53,20 +56,23 @@ function renderReadiness() {
 
   const startingHardware = starting('hardware', hardwareLaunch, hardware);
   const startingNavigation = starting('navigation', Boolean(navigationLaunch), navigation);
-  const startingServices = starting('services', servicesLaunch, services);
-  $('misHardwareStatus').textContent = hardware ? '已就绪' : startingHardware ? '启动中…' : '未启动';
-  $('misPlannerStatus').textContent = navigation ? '已就绪' + (planner ? ' · ' + planner : '')
+  const startingServices = preparing.has('debug_perception')
+    || starting('services', servicesLaunch || debugPerception, services);
+  $('misHardwareStatus').textContent = taskOnly ? '仅任务无需启动底盘' : hardware ? '已就绪' : startingHardware ? '启动中…' : '未启动';
+  $('misPlannerStatus').textContent = taskOnly ? '仅任务无需启动导航' : navigation ? '已就绪' + (planner ? ' · ' + planner : '')
     : startingNavigation ? '启动中…' : localizing ? '请先停止建图或取点定位'
     : hardware ? '未启动' : '等待底盘就绪';
   $('misServicesStatus').textContent = noServices ? '仅导航无需启动' : services ? '已就绪' : startingServices ? '启动中…' : '未启动';
-  $('misHardwareStart').hidden = hardware || startingHardware;
+  $('misHardwareStart').hidden = taskOnly || hardware || startingHardware;
   $('misHardwareStart').disabled = !online || mission || startingHardware;
-  $('misNavStart').hidden = navigation || startingNavigation;
+  $('misNavStart').hidden = taskOnly || navigation || startingNavigation;
   $('misNavStart').disabled = !online || !hardware || localizing || mission || startingNavigation;
-  $('misPlanner').disabled = navigation || startingNavigation;
+  $('misPlanner').disabled = taskOnly || navigation || startingNavigation;
   $('misServicesStart').hidden = noServices || services || startingServices;
   $('misServicesStart').disabled = !online || mission || startingServices;
-  $('misStart').disabled = !online || !hardware || !navigation || (!noServices && !services) || mission || missionStarting;
+  $('misStart').disabled = !online || (taskOnly ? !camera : !hardware || !navigation)
+    || (!noServices && !services) || mission || missionStarting;
+  $('misServicesStart').textContent = taskOnly && !camera ? '启用相机与识别服务' : '启用识别服务';
   $('misStop').disabled = !online || !mission;
 }
 
@@ -94,16 +100,27 @@ $('misNavStart').addEventListener('click', () => {
   const planner = $('misPlanner').value;
   prepareLaunch('navigation', { local_planner: planner }, '已请求启动导航 · ' + planner.toUpperCase());
 });
-$('misServicesStart').addEventListener('click', () => prepareLaunch('services', {}, '已请求启用识别服务'));
+$('misServicesStart').addEventListener('click', () => {
+  const taskOnly = $('misTaskOnly').checked;
+  const camera = (lastSnapshot?.ros?.nodes || []).includes('/usb_cam')
+    || (lastSnapshot?.launches || []).some(record => record.status === 'running'
+      && ['hardware', 'community', 'field', 'finals', 'debug_perception'].includes(record.name));
+  prepareLaunch(taskOnly && !camera ? 'debug_perception' : 'services', {}, '已请求启用相机与识别服务');
+});
 function syncNavigationMode() {
   const navigationOnly = $('misNavOnly').checked;
+  const taskOnly = $('misTaskOnly').checked;
+  $('misNavOnly').disabled = taskOnly;
+  $('misTaskOnly').disabled = navigationOnly;
   $('misObstacleField').hidden = !navigationOnly;
   $('misObstacle').disabled = !navigationOnly;
-  $('misAutoRouteHint').hidden = navigationOnly;
+  $('misAutoRouteHint').hidden = navigationOnly || taskOnly;
   $('misNavigationHint').hidden = !navigationOnly;
+  $('misTaskHint').hidden = !taskOnly;
   renderReadiness();
 }
 $('misNavOnly').addEventListener('change', syncNavigationMode);
+$('misTaskOnly').addEventListener('change', syncNavigationMode);
 syncNavigationMode();
 
 $('misScope').addEventListener('change', () => { $('misWaypoint').disabled = $('misScope').value !== 'single'; });
@@ -114,6 +131,7 @@ $('misStart').addEventListener('click', async () => {
   const body = {
     waypoint: single ? $('misWaypoint').value : '',
     navigation_only: $('misNavOnly').checked,
+    task_only: $('misTaskOnly').checked,
   };
   if (body.navigation_only) body.obstacle_mode = $('misObstacle').value;
   missionStarting = true;
@@ -124,7 +142,7 @@ $('misStart').addEventListener('click', async () => {
       const launches = (lastSnapshot.launches || []).filter(item => item.name !== 'mission');
       lastSnapshot = { ...lastSnapshot, launches: [...launches, record] };
     }
-    toast(`已启动${single ? `单航点 ${body.waypoint}` : '完整巡检'}${body.navigation_only ? '（仅导航）' : ''}`, 'ok');
+    toast(`已启动${single ? `单航点 ${body.waypoint}` : '完整巡检'}${body.task_only ? '（仅任务）' : body.navigation_only ? '（仅导航）' : ''}`, 'ok');
   } catch (err) {
     toast(`启动失败：${err.message}`, 'err');
   } finally {
@@ -159,7 +177,7 @@ function renderMission(state) {
     ['航点', `${escapeHtml(state.current_waypoint)}（${state.index + 1}/${state.total}）`],
     ['任务类型', escapeHtml(state.task)],
     ['说明', escapeHtml(state.reason)],
-    ['模式', `${state.single_waypoint ? `单航点 ${escapeHtml(state.single_waypoint)}` : '完整巡检'}${state.navigation_only ? ' · 仅导航 · ' + (state.obstacle_mode === 'clear' ? '预设直行' : '预设绕行') : ' · 识别后自动选路'}`],
+    ['模式', `${state.single_waypoint ? `单航点 ${escapeHtml(state.single_waypoint)}` : '完整巡检'}${state.task_only ? ' · 仅任务 · 不导航' : state.navigation_only ? ' · 仅导航 · ' + (state.obstacle_mode === 'clear' ? '预设直行' : '预设绕行') : ' · 识别后自动选路'}`],
     ['最近操作', op ? `${escapeHtml(op.waypoint_id)} ${escapeHtml(op.task_type)} <span class="badge ${op.status === 'FAILED' ? 'err' : op.status === 'SUCCESS' ? 'ok' : ''}">${escapeHtml(op.status)}</span> ${escapeHtml(op.reason || '')}` : '—'],
     ['run_id', `<code>${escapeHtml(state.run_id)}</code>`],
     ['更新', `${state.received_age_s}s 前`],
@@ -294,6 +312,7 @@ async function showRun(runId) {
     $('runBody').innerHTML = `
       <div class="kv run-kv">${kvRows([
         ['状态', escapeHtml(d.status)], ['开始', fmtTime(d.started_at)], ['结束', fmtTime(d.ended_at)],
+        ['执行模式', d.task_only ? '仅任务（不导航）' : d.navigation_only ? '仅导航' : '导航与任务'],
         ['当前/最后航点', escapeHtml(d.current_waypoint || '—')], ['错误', escapeHtml(d.error || '无')],
       ])}</div>
       <div class="run-cols">

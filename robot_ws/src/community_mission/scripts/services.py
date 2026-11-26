@@ -64,7 +64,7 @@ class Services:
             self.call(namespace+'/set_parameters', Reconfigure, config, timeout=self.config['planner_service_timeout'])
             return True
         except (rospy.ROSException, rospy.ServiceException, RuntimeError) as error:
-            rospy.logwarn('Planner speed update failed: %s', error)
+            rospy.logwarn('[导航参数] 侧移速度更新失败：%s', error)
             return False
 
 
@@ -89,7 +89,7 @@ class SpeechQueue:
                     return
                 self.services.say(text)
             except (rospy.ROSException, rospy.ServiceException, RuntimeError) as error:
-                rospy.logerr('Speech failed: %s', error)
+                rospy.logerr('[语音失败] %s', error)
             finally:
                 self.queue.task_done()
 

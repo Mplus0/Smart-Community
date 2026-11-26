@@ -145,6 +145,8 @@ move_base 关闭仅按平移进展判断的振荡超时（`oscillation_timeout: 
 
 AMCL、全局和局部代价地图统一使用 `/map`，由一个 `map_server` 发布。默认加载 `src/community_bringup/maps/localization_map.yaml`，分辨率 0.01 m，原点为 `(-0.03, -0.03, 0)`。全局和局部代价地图保留静态层、激光障碍层与膨胀层，实时激光避障继续生效。
 
+默认地图为规则正方形围栏，内侧边界为 `x/y = 0.00～4.20 m`，内部净尺寸 `4.20 × 4.20 m`；围栏向外厚 0.02 m，外围留白 0.01 m。地图为 `426 × 426` 格，画布范围为 `x/y = -0.03～4.23 m`。现有航点坐标保持不变，需在现场核对定位与路线。
+
 AMCL 默认初始位姿为 `(0.411719, 0.409062, 0)`，其他摆放位置通过 RViz 的 `2D Pose Estimate` 设置实际位姿，确认激光与地图对齐后再运行。
 
 停止已有建图或导航，保留硬件，在已加载 ROS 环境的终端启动：
@@ -263,11 +265,72 @@ roslaunch community_mission mission.launch
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
 ```
 
-所有执行点（包括纯导航点和转角过渡点）均等待 `move_base` 返回到点成功，再处理任务并切换到下一点；仅导航模式也遵循相同的到点判定。
+常规巡检与仅导航模式中的所有执行点（包括纯导航点和转角过渡点）均等待 `move_base` 返回到点成功，再处理任务并切换到下一点。
+
+### 仅任务实测（不导航）
+
+`task_only:=true` 跳过导航，直接使用当前相机画面执行真实任务；不创建 `move_base` 客户端、不等待导航服务、不发送或取消导航目标，也不修改规划器速度。与 `navigation_only:=true` 互斥。相机和该任务依赖的识别、语音、录像等服务仍须正常运行。
+
+各命令分别在已加载 ROS 和本工作空间环境的终端执行：
+
+```bash
+# 终端 1：仅启动相机和任务服务，无需底盘、定位或导航
+# 已有相机和服务运行时不要重复启动。
+roslaunch community_bringup debug_perception.launch
+# 终端 2：先将测试目标放入相机视野，再运行一个航点任务
+roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_01
+# 单点人员识别 / 火情 / 车牌 / 垃圾分类（每次结束后再执行下一条）
+roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_06
+roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_19
+roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_27
+roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_29
+# 查看状态（另开终端）；完成后状态应为 FINISH，失败为 ERROR
+rostopic echo /mission/state
+```
+
+不指定 `single_waypoint` 时，按完整路线连续执行任务，`wp_05` 的真实障碍识别仍决定 clear/blocked 分支，纯导航点直接跳过。每个任务之间不等待人工确认，建议先逐点实测。红绿灯仍要求连续有效绿灯帧，超时将终止；录像开始/停止仍须配对，单独选择录像航点会被拒绝。完整路线的录像段不再有行驶耗时，可能很短；录像实测需准备包含合适任务时长的配对路线。
+
+工作台「巡检任务」可勾选「仅任务（不导航）」并选择「单航点」，无需启动底盘和导航。`/mission/state` 和每次运行的 `mission_results.json` 均记录 `task_only`；跳过的导航不会写为导航成功，任务结果及照片、视频仍写入 `~/.ros/community/<run_id>/`。纯导航点的航点成功仅表示已跳过该点，不能作为到点证据。此模式不会停止其他节点已发出的运动命令。
+
+### 实测终端与输出
+
+| 终端 | 启动命令 | 输出用途 |
+| --- | --- | --- |
+| 1：相机与服务 | `roslaunch community_bringup debug_perception.launch` | 模型加载、识别服务、语音、录像及硬件诊断；不作为本轮巡检的最终结论 |
+| 2：主状态机 | `roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_06` | 本轮开始、任务准备/开始、结果、证据路径、航点完成与最终汇总；主要看此终端 |
+| 3：状态观察 | `rostopic echo /mission/state` | JSON 格式状态消息，包含 `state`、`current_waypoint`、`task_only`、`last_operation`、`run_id`；不显示完整识别结果 |
+
+先在终端 1 等待服务就绪，再提前运行终端 3 的观察命令，最后在终端 2 启动任务。状态机退出后，发布节点的 latch 不会继续保留，事后查询以结果文件为准。使用工作台启动时，同样的主状态机输出在 `mission` 的启动日志中查看。
+
+终端 2 的人员单点测试示例（下面的数量、耗时和 run_id 仅为示例，实际以识别结果为准；省略 ROS 时间与级别前缀）：
+
+```text
+[巡检开始] 模式=仅任务 范围=单航点=wp_06 run_id=<run_id>
+[输出目录] /home/<user>/.ros/community/<run_id>
+[导航跳过] 航点=wp_06 原因=仅任务模式
+[任务准备] 航点=wp_06 类型=person 等待新的相机图像
+[任务开始] 航点=wp_06 类型=person
+[任务结果] 航点=wp_06 类型=person 状态=SUCCESS 耗时=0.20s 结果=区域=A 人数=3 外来人员=1 违停=2 说明=识别完成
+[任务证据] 航点=wp_06 文件=/home/<user>/.ros/community/<run_id>/photo/005.jpg
+[航点完成] 航点=wp_06 类型=person
+[巡检结束] 状态=FINISH 模式=仅任务 完成航点=1 任务成功=1（其中空结果=0） 任务失败=0 耗时=0.3s
+[结果文件] /home/<user>/.ros/community/<run_id>/mission_results.json
+[事件日志] /home/<user>/.ros/community/<run_id>/mission.log
+```
+
+服务识别成功但没有目标时，任务状态为 `EMPTY_VALID`，说明为“未检测到有效目标”，归入任务成功并单列空结果数量。服务异常时为 `FAILED`，主状态机进入 `ERROR`，打印 `[结束原因]`。若在取图等准备阶段就失败，可能没有任务结果记录，应同时查看 `[状态] ... ERROR` 和结束原因。`[任务证据]` 只列出当时实际存在的文件，缺失路径列为 `[证据未生成]`；完整检测数据仍保存在结果 JSON 中。
+
+人员、车牌、火情、障碍物和车辆拍照任务在本轮 `photo/` 下同时保存原图与 `<序号>_<任务类型>_annotated.jpg` 标注图，例如 `005.jpg` 和 `005_person_annotated.jpg`。图中包含航点、状态、结果摘要；检测任务叠加原始检测框、类别和置信度，人员黄框是人员参考 ROI，不能将所有车辆框视为违停。车牌图显示中文车牌文字及 OCR 置信度；当前 OCR 服务不返回框坐标，因此不绘制车牌定位框。标注直接复用本次推理结果，不重复识别；完整框数据写入任务结果的 `detections`。
+
+有效空结果也会保存标注图。取得原图后发生识别异常时，尽可能保存失败说明图；若相机取图失败则无法生成图片。原图及已生成标注图的路径统一写入该任务的 `operations[].paths`，工作台结果页可直接浏览。字体或磁盘写入失败会打印 `[标注保存失败]` 并记录 `evidence_errors`，不改变识别结果或障碍分支；此时只有原图，不能认为标注证据已齐全。
+
+标注使用 Pillow 和系统中文字体，优先自动查找 Noto CJK、文泉驿等字体；找不到时可通过 `roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_27 evidence_font:=/实际路径/中文字体.ttc` 指定，工作台启动配置也支持 `evidence_font`。新增辅助模块后需在机器人上重新运行 `catkin_make` 并加载 `devel/setup.bash`。
+
+终端 3 的正常最终状态为 `FINISH`，失败为 `ERROR`；没有目标并不意味着状态机失败。单点或完整路线执行结束后，终端 2 的 `mission.launch` 正常退出属于预期，终端 1 的独立服务继续运行。结果保存异常会输出 `[结果写入失败]`，此时结果文件可能不完整，不能只看 `FINISH`。
 
 ### 单航点运行
 
-先启动硬件、定位和导航，确认当前定位；通过 `single_waypoint` 指定 `route_clear.yaml` 中的航点 ID，直接导航到该点，坐标、朝向和任务沿用路线配置：
+常规单点模式先启动硬件、定位和导航，确认当前定位；通过 `single_waypoint` 指定默认 `route.yaml` 中的航点 ID，直接导航到该点，坐标、朝向和任务沿用路线配置：
 
 ```bash
 # 只导航到 wp_05，到达后结束；无需识别服务
@@ -499,7 +562,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 ## 常用配置与结果
 
-默认使用 `src/community_bringup/maps/localization_map.yaml` 作为定位与规划共用地图。默认主路线为 `route.yaml`，使用 2026-11-25 单地图采集并平滑的 clear/blocked 航点；尚未完成整条路线的实车验证。
+默认使用 `src/community_bringup/maps/localization_map.yaml` 作为定位与规划共用地图。默认主路线为 `route.yaml`，clear/blocked 航点基于 2026-11-25 采集结果，按 4.2 m 场地图及 0.60 m 主道路宽度调整至道路中央；`route_clear.yaml`、`route_blocked.yaml` 的对应坐标同步更新，任务、朝向与执行顺序不变。道路中心参考线为竖路 `x=1.00/2.20/3.80 m`、横路 `y=0.40/1.60/3.80 m`，各线仅对应实际道路所在区段。截图比例配准尚需现场校准，整条路线尚未完成实车验证。
 
 | 位置 | 用途 |
 |---|---|
@@ -566,7 +629,7 @@ roslaunch community_mission mission.launch \
 
 垃圾框还原到原图坐标后，按横向最近的桶匹配；距离不超过该桶宽度的 `0.6`，并要求垃圾中心位于桶高度 45% 以下至桶底下方半个桶高的范围。每个垃圾最多归属一个桶；一个桶只对应一个垃圾时比较类别。红/绿/灰/蓝桶分别对应有害/厨余/其他/可回收。漏检或多个目标对应同一桶时记录 `UNKNOWN`；类别不一致记录 `INCORRECT`；只有四种桶均对应正确且无未匹配目标时才输出全部 `CORRECT`。桶盖开关单独记录。
 
-ROI 与匹配参数位于 `community_mission/config/recognition_rules.yaml`；置信度位于 `community_perception/config/detectors.yaml`，任务模式下桶为 `0.75`、垃圾为 `0.5`。任务正常返回后，原图、`*_roi.jpg`、带框和匹配连线的 `*_trash.jpg` 保存到本次运行的 `photo/`，JSON 记录 ROI、桶/垃圾框、置信度和匹配结果。橙色表示无法确认，绿色表示对应正确，红色表示投放错误；不触发语音。
+ROI 与匹配参数位于 `community_mission/config/recognition_rules.yaml`；置信度位于 `community_perception/config/detectors.yaml`。单独启动与主任务启动的默认阈值统一为：人员 `0.5`、垃圾桶 `0.7`、红绿灯 `0.75`；垃圾类别仍为 `0.5`。显式启动参数可覆盖默认值，修改配置后须重启识别服务。任务正常返回后，原图、`*_roi.jpg`、带框和匹配连线的 `*_trash.jpg` 保存到本次运行的 `photo/`，JSON 记录 ROI、桶/垃圾框、置信度和匹配结果。橙色表示无法确认，绿色表示对应正确，红色表示投放错误；不触发语音。
 
 更新后重新编译工作空间并重启识别服务。保持硬件、定位、导航和服务运行后，可使用 `roslaunch community_mission mission.launch single_waypoint:=wp_29 navigation_only:=false` 验证单点完整流程。`tools/detector_preview.py --detector waste_detector` 只预览垃圾模型，不执行桶检测与 ROI 匹配。
 

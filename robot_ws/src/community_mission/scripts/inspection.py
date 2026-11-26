@@ -3,7 +3,7 @@ from collections import Counter
 from datetime import datetime, timezone
 import time
 
-from rules import (Detection, detections, people_counts, illegal_parking_count,
+from rules import (Detection, detections, detection_records, people_counts, illegal_parking_count,
                    trash_roi, trash_result, building_name)
 
 
@@ -32,7 +32,9 @@ class Inspection:
         self.illegal[street] += illegal
         self.people_points.add(point['id'])
 
-        return dict(area=street, people=total, outside=outside, illegal_parking=illegal)
+        return dict(area=street, people=total, outside=outside, illegal_parking=illegal,
+                    people_roi=None if bounds is None else list(bounds),
+                    detections=detection_records(objects, 'people') + detection_records(vehicles, 'bicycle'))
 
     def inspect_plate(self, point, image):
         # Preserve the original OCR request spacing.
@@ -43,13 +45,15 @@ class Inspection:
         plate = response.plate_texts[0].strip() if response.plate_texts else ''
         self.plates[lot] = plate or '未检测到车牌'
 
-        return dict(parking_lot=lot, plate=plate)
+        return dict(parking_lot=lot, plate=plate,
+                    plate_confidence=float(response.confidences[0]) if response.confidences else None,
+                    ocr_status=response.status_message)
 
     def inspect_fire(self, point, image):
         objects = detections(self.services.detect('fire_detector', image))
         count = sum(d.label == 'fire' for d in objects)
         if not count:
-            return dict(fire_count=0)
+            return dict(fire_count=0, detections=detection_records(objects, 'fire'))
         # A failed building-name OCR must not suppress the fire report.
         building = '大厦'
         ocr_error = ''
@@ -59,7 +63,8 @@ class Inspection:
         except Exception as error:
             ocr_error = str(error)
 
-        return dict(fire_count=count, building=building, ocr_error=ocr_error)
+        return dict(fire_count=count, building=building, ocr_error=ocr_error,
+                    detections=detection_records(objects, 'fire'))
 
     def inspect_trash(self, point, image):
         bins = detections(self.services.detect('trash_bin_detector', image))
@@ -80,7 +85,8 @@ class Inspection:
         objects = detections(self.services.detect('bicycle_detector', image))
         self.vehicle_frames.append((objects, image.width, image.height))
 
-        return dict(detected_classes=[d.label for d in objects])
+        return dict(detected_classes=[d.label for d in objects],
+                    detections=detection_records(objects, 'bicycle'))
 
     def inspect_video(self, point, path):
         result = self.services.count_video(path)

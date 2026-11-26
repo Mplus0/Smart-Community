@@ -3,7 +3,7 @@
 * ``GET  /api/mission/waypoints``         — waypoint ids/tasks from route.yaml.
 * ``GET  /api/mission/state``             — latest ``/mission/state`` JSON.
 * ``POST /api/mission/start``             — start ``mission.launch`` (full
-  route or one waypoint); hardware + navigation must already run.
+  route or one waypoint); task_only needs camera/services instead of navigation.
 * ``POST /api/mission/stop``              — stop the mission node.
 * ``GET  /api/mission/runs``              — mission runs (dirs holding
   ``mission_results.json``), newest first.
@@ -13,6 +13,7 @@
 
 ``navigation_only=true`` skips **every** waypoint task (traffic-light
 wait, photos, recognition, recording) and only drives the route.
+``task_only=true`` runs real tasks without a navigation client; modes are exclusive.
 """
 
 from __future__ import annotations
@@ -54,6 +55,7 @@ _MEDIA_DIRS = ("photo", "videos")
 class MissionStart(BaseModel):
     waypoint: str = ""             # empty → full route
     navigation_only: bool = False
+    task_only: bool = False
     obstacle_mode: str = "clear"
 
 
@@ -95,6 +97,8 @@ def get_state() -> Dict[str, Any]:
 
 @router.post("/start", dependencies=[Depends(check_writable)])
 def start_mission(req: MissionStart) -> Dict[str, Any]:
+    if req.navigation_only and req.task_only:
+        raise HTTPException(status_code=400, detail="仅任务与仅导航不能同时启用")
     if req.obstacle_mode not in ("clear", "blocked"):
         raise HTTPException(status_code=400, detail="obstacle_mode 只能是 clear 或 blocked")
     if req.waypoint:
@@ -107,6 +111,7 @@ def start_mission(req: MissionStart) -> Dict[str, Any]:
     record = start_registered_launch("mission", {
         "single_waypoint": req.waypoint,
         "navigation_only": "true" if req.navigation_only else "false",
+        "task_only": "true" if req.task_only else "false",
         "obstacle_mode": req.obstacle_mode,
     })
     return {"ok": True, "record": record.to_dict()}

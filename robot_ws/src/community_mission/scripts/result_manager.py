@@ -10,6 +10,50 @@ def timestamp():
     return datetime.now(timezone.utc).isoformat()
 
 
+def task_summary(kind, result):
+    """Keep terminal summaries short; full detector data stays in the JSON file."""
+    if kind in ('record_start', 'record_stop'):
+        return '录像已开始' if kind == 'record_start' else '录像已停止'
+    if not isinstance(result, dict):
+        return json.dumps(result, ensure_ascii=False)
+    required = {
+        'person': ('area', 'people', 'outside', 'illegal_parking'),
+        'plate': ('parking_lot', 'plate'), 'fire': ('fire_count',),
+        'trash': ('bins', 'waste', 'placement_status'),
+        'vehicle_video': ('stand_count', 'fall_count'), 'vehicle_photo': ('detected_classes',),
+        'traffic_light': ('released', 'green_streak'), 'obstacle': ('mode', 'center_x_ratio'),
+        'meter': ('temperature_c', 'humidity_percent', 'electricity_kwh'),
+        'temperature': ('abnormal_floors', 'max_temperatures_c'),
+    }
+    if kind not in required or any(key not in result for key in required[kind]):
+        text = json.dumps(result, ensure_ascii=False, separators=(',', ':'))
+        return text if len(text) <= 360 else text[:360] + '…（完整数据见结果文件）'
+    if kind == 'person':
+        return (f"区域={result['area']} 人数={result['people']} "
+                f"外来人员={result['outside']} 违停={result['illegal_parking']}")
+    if kind == 'plate':
+        return f"停车位={result['parking_lot']} 车牌={result['plate'] or '未检出'}"
+    if kind == 'fire':
+        return f"火情数={result['fire_count']}" + (
+            f" 楼宇={result.get('building', '未确认')}" if result['fire_count'] else '')
+    if kind == 'trash':
+        return (f"垃圾桶={len(result['bins'])} 垃圾={len(result['waste'])} "
+                f"投放判定={result['placement_status']}")
+    if kind == 'vehicle_video':
+        return f"正常车辆={result['stand_count']} 倒伏车辆={result['fall_count']}"
+    if kind == 'vehicle_photo':
+        return f"检测类别={','.join(result['detected_classes']) or '未检出'}"
+    if kind == 'traffic_light':
+        return f"放行={result['released']} 连续绿灯帧={result['green_streak']}"
+    if kind == 'obstacle':
+        return f"分支={result['mode']} 中心横坐标比例={result['center_x_ratio']:.3f}"
+    if kind == 'meter':
+        return (f"温度={result['temperature_c']}℃ 湿度={result['humidity_percent']}% "
+                f"电量={result['electricity_kwh']}kWh")
+    if kind == 'temperature':
+        return f"异常楼层={result['abnormal_floors']} 最高温度℃={result['max_temperatures_c']}"
+
+
 class ResultManager:
     def __init__(self, root, points, report=print):
         self.report = report
@@ -30,7 +74,34 @@ class ResultManager:
     def recording_error(self, error):
         # A recording failure must not alter navigation or recognition decisions.
         self.data['recording_errors'].append(str(error))
-        self.report('[结果] 写入失败：' + str(error))
+        self.report('[结果写入失败] ' + str(error))
+
+    def log(self, message):
+        self.event(message)
+        self.report(message)
+
+    def task_started(self, point, kind):
+        tag = '导航开始' if kind == 'navigation' else '任务开始'
+        self.log(f"[{tag}] 航点={point['id']} 类型={kind}")
+
+    def task_completed(self, record):
+        kind, status = record['task_type'], record['status']
+        detail = record['reason'] if status == 'FAILED' else task_summary(kind, record['result'])
+        if status != 'FAILED' and record.get('reason'):
+            detail += ' 说明=' + record['reason']
+        tag = '导航结果' if kind == 'navigation' else '任务结果'
+        # A service exception can contain newlines; each outcome remains one terminal line.
+        message = (f"[{tag}] 航点={record['waypoint_id']} 类型={kind} 状态={status} "
+                   f"耗时={record['duration_sec']:.2f}s 结果={' '.join(detail.splitlines())}")
+        self.log(message)
+        paths = record.get('paths', [])
+        if paths:
+            existing = [path for path in paths if Path(path).is_file()]
+            if existing:
+                self.log(f"[任务证据] 航点={record['waypoint_id']} 文件=" + ' | '.join(existing))
+            missing = [path for path in paths if path not in existing]
+            if missing:
+                self.log(f"[证据未生成] 航点={record['waypoint_id']} 文件=" + ' | '.join(missing))
 
     def event(self, message):
         try:
@@ -76,7 +147,7 @@ class ResultManager:
         if planned is not None:
             planned['status'] = 'RUNNING'
         self.data['operations'].append(record)
-        self.event(f"[任务] {point['id']} {kind} 开始")
+        self.task_started(point, kind)
         self.save()
         try:
             result = callback(*args)
@@ -91,10 +162,7 @@ class ResultManager:
             if planned is not None:
                 planned['status'] = record['status']
             self.save()
-            detail = record['reason'] or json.dumps(record['result'], ensure_ascii=False)
-            message = f"[任务] {point['id']} {kind}: {record['status']} {detail}"
-            self.event(message)
-            self.report(message)
+            self.task_completed(record)
 
     def record_task(self, result, paths=()):
         """Persist the recognition decision unchanged; never invoke recognition."""
@@ -104,10 +172,7 @@ class ResultManager:
             if (planned['waypoint_id'], planned['task_type']) == (result['waypoint_id'], result['task_type']):
                 planned['status'] = result['status']
         self.save()
-        detail = result['reason'] if result['status'] == 'FAILED' else json.dumps(result['result'], ensure_ascii=False)
-        message = f"[任务] {result['waypoint_id']} {result['task_type']}: {result['status']} {detail}"
-        self.event(message)
-        self.report(message)
+        self.task_completed(record)
 
     def finish(self, status, error=None):
         if self.data['status'] != 'RUNNING':
@@ -118,11 +183,16 @@ class ResultManager:
         tasks = [r for r in self.data['operations'] if r['task_type'] != 'navigation']
         summary = dict(completed_waypoints=sum(p['status'] == 'SUCCESS' for p in self.data['waypoints']),
                        successful_tasks=sum(t['status'] in ('SUCCESS', 'EMPTY_VALID') for t in tasks),
+                       empty_tasks=sum(t['status'] == 'EMPTY_VALID' for t in tasks),
                        failed_tasks=sum(t['status'] == 'FAILED' for t in tasks))
         self.data.update(status=status, error=error, ended_at=timestamp(), summary=summary)
         self.save()
-        message = (f"[汇总] {status} 完成航点={summary['completed_waypoints']} "
-                   f"任务成功={summary['successful_tasks']} 失败={summary['failed_tasks']} "
-                   f"耗时={self.data['duration_sec']:.1f}s 结果={self.path}")
-        self.event(message)
-        self.report(message)
+        mode = ('仅任务' if self.data.get('task_only') else
+                '仅导航' if self.data.get('navigation_only') else '导航与任务')
+        self.log(f"[巡检结束] 状态={status} 模式={mode} 完成航点={summary['completed_waypoints']} "
+                 f"任务成功={summary['successful_tasks']}（其中空结果={summary['empty_tasks']}） "
+                 f"任务失败={summary['failed_tasks']} 耗时={self.data['duration_sec']:.1f}s")
+        if error:
+            self.log('[结束原因] ' + ' '.join(str(error).splitlines()))
+        self.log(f"[结果文件] {self.path / 'mission_results.json'}")
+        self.log(f"[事件日志] {self.path / 'mission.log'}")

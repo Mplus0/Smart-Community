@@ -111,13 +111,14 @@ ARG_CHOICES: Dict[str, Tuple[str, ...]] = {
     "algorithm": ("cartographer", "gmapping"),
     "localization_only": ("true", "false"),
     "navigation_only": ("true", "false"),
+    "task_only": ("true", "false"),
     "run_mission": ("true", "false"),
     "configure_camera": ("true", "false"),
     "rviz": ("true", "false"),
 }
 
 #: Args whose non-empty value must point at an existing file.
-FILE_ARGS: Tuple[str, ...] = ("map", "route")
+FILE_ARGS: Tuple[str, ...] = ("map", "route", "evidence_font")
 
 # Component names used by the mutual-exclusion check.
 #   hardware: chassis serial + IMU + lidar + chassis TF
@@ -226,11 +227,11 @@ LAUNCHES: Dict[str, LaunchSpec] = {
         ),
         LaunchSpec(
             name="mission",
-            description="单独启动巡检任务（需 hardware + navigation 已运行）",
+            description="单独启动巡检任务（仅任务模式无需底盘和导航）",
             package="community_mission",
             launch_file="mission.launch",
-            args={"single_waypoint": "", "navigation_only": "false",
-                  "obstacle_mode": "clear", "route": ""},
+            args={"single_waypoint": "", "navigation_only": "false", "task_only": "false",
+                  "obstacle_mode": "clear", "route": "", "evidence_font": ""},
             components=frozenset({"mission"}),
             requires=frozenset({"hardware", "navigation"}),
         ),
@@ -266,6 +267,8 @@ def launch_components(name: str, args: Dict[str, str]) -> FrozenSet[str]:
 def launch_requires(name: str, args: Dict[str, str]) -> FrozenSet[str]:
     """Components that must already run before starting ``name``."""
     spec = LAUNCHES[name]
+    if name == "mission" and args.get("task_only") == "true":
+        return frozenset({"camera", "services"})
     # A full mission (not navigation_only) also needs recognition services.
     if name == "mission" and args.get("navigation_only") != "true":
         return spec.requires | {"services"}
@@ -274,6 +277,8 @@ def launch_requires(name: str, args: Dict[str, str]) -> FrozenSet[str]:
 
 def validate_launch_args(spec: LaunchSpec, args: Dict[str, str]) -> Optional[str]:
     """Return an error message if ``args`` cannot start ``spec``, else ``None``."""
+    if args.get("task_only") == "true" and args.get("navigation_only") == "true":
+        return "仅任务与仅导航不能同时启用"
     for key in spec.required:
         if not args.get(key):
             hint = ARG_CHOICES.get(key)

@@ -5,7 +5,9 @@ import copy
 import math
 from pathlib import Path
 import sys
-from types import SimpleNamespace
+import tempfile
+import threading
+from types import SimpleNamespace, MethodType
 import unittest
 from contextlib import nullcontext
 
@@ -14,7 +16,8 @@ import yaml
 WORKSPACE = Path(__file__).resolve().parents[1]
 SCRIPTS = WORKSPACE / 'src/community_mission/scripts'
 sys.path.insert(0, str(SCRIPTS))
-from rules import validate_route, obstacle_route, Detection
+from rules import validate_route, obstacle_route, Detection, detection_records
+from result_manager import ResultManager
 
 
 class MissionRouteTests(unittest.TestCase):
@@ -25,7 +28,9 @@ class MissionRouteTests(unittest.TestCase):
         tree = ast.parse((SCRIPTS / 'mission_node.py').read_text(encoding='utf-8'))
         mission = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Mission')
         method = next(node for node in mission.body if isinstance(node, ast.FunctionDef) and node.name == name)
-        namespace = dict(rospy=SimpleNamespace(loginfo=lambda *args: None), **scope)
+        namespace = dict(rospy=SimpleNamespace(loginfo=lambda *args: None),
+                         detection_records=detection_records)
+        namespace.update(scope)
         exec(compile(ast.Module(body=[method], type_ignores=[]), 'mission_node.py', 'exec'), namespace)
         return namespace[name]
 
@@ -127,7 +132,7 @@ class MissionRouteTests(unittest.TestCase):
         transitions = []
         obj = SimpleNamespace(
             route={'navigation_closures': {'clear': {}}},
-            runtime={'server_timeout': 30.0}, navigation_only=True,
+            runtime={'server_timeout': 30.0}, navigation_only=True, task_only=False,
             client=SimpleNamespace(wait_for_server=lambda timeout: True),
             transition=lambda *args: transitions.append(args))
         initialize = self.method('initialize')
@@ -256,6 +261,113 @@ class MissionRouteTests(unittest.TestCase):
         self.assertEqual(events, ['FINISH'])
         self.assertEqual(obj.index, 4)
 
+    def test_task_only_rejects_navigation_even_if_called_directly(self):
+        with self.assertRaisesRegex(RuntimeError, 'disabled'):
+            self.method('move_to')(SimpleNamespace(task_only=True), (1, 2, 0))
+
+    def test_execution_modes_must_be_boolean_and_exclusive(self):
+        for navigation_only, task_only in [(True, True), (False, 'true'), (1, False)]:
+            params = {'~navigation_only': navigation_only, '~task_only': task_only}
+            rospy = SimpleNamespace(Publisher=lambda *a, **k: None,
+                                    get_param=lambda key, default=None: params.get(key, default))
+            with self.subTest(params=params), self.assertRaises(ValueError):
+                self.method('__init__', rospy=rospy, String=object)(SimpleNamespace())
+
+    def test_task_only_creates_no_action_client(self):
+        params = {'~task_only': True, '~': copy.deepcopy(self.route),
+                  '~mission': yaml.safe_load((SCRIPTS.parent / 'config/runtime.yaml').read_text())['mission'],
+                  '~recognition_rules': {}}
+        def forbidden(*args, **kwargs):
+            self.fail('task_only touched navigation')
+        with tempfile.TemporaryDirectory() as folder:
+            params['~data_dir'] = folder
+            rospy = SimpleNamespace(Publisher=lambda *a, **k: None, loginfo=lambda *a: None,
+                                    get_param=lambda key, default=None: params.get(key, default),
+                                    Subscriber=lambda *a, **k: None, on_shutdown=lambda cb: None)
+            obj = SimpleNamespace(image_callback=lambda image: None, close=lambda: None)
+            self.method('__init__', rospy=rospy, String=object, Image=object,
+                        validate_route=validate_route, math=math, threading=threading,
+                        ResultManager=ResultManager, actionlib=SimpleNamespace(SimpleActionClient=forbidden),
+                        Services=lambda runtime: object(), CvBridge=lambda: object(),
+                        SpeechQueue=lambda *a: object(), Inspection=lambda *a: object())(obj)
+            self.assertIsNone(obj.client)
+            self.assertTrue(obj.results.data['task_only'])
+
+    def task_only_mission(self, folder, mode='clear', single='', fail=False):
+        """Run real state handlers/result persistence with fake camera/services, no ROS."""
+        def forbidden(*args, **kwargs):
+            self.fail('task_only touched navigation/planner')
+        route = copy.deepcopy(self.route)
+        results = ResultManager(folder, route['points'], lambda *a: None)
+        obj = SimpleNamespace(route=route, index=0, state='INIT', reason='',
+                              single_waypoint=single, obstacle_mode=mode, navigation_only=False,
+                              task_only=True, runtime={}, results=results, data_dir=results.path,
+                              client=None, planner='/move_base/DWAPlannerROS', stopping=False,
+                              condition=threading.Condition(), recording=False, closed=False,
+                              subscriber=None, speech=None, video_path=results.path/'videos/video.mp4',
+                              fresh_image=lambda: object(),
+                              bridge=SimpleNamespace(imgmsg_to_cv2=lambda *a, **k: object()),
+                              services=SimpleNamespace(set_lateral_speed=forbidden,
+                                                       start_recording=lambda path: None,
+                                                       stop_recording=lambda: None),
+                              check_running=lambda: None, move_to=forbidden,
+                              run_inspection=lambda point, kind, *a: results.execute(
+                                  kind, point, lambda: {'recognized': True}))
+        if single:
+            obj.index = next(i for i, p in enumerate(route['points']) if p['id'] == single)
+        def transition(state, reason):
+            obj.state, obj.reason = state, reason
+            results.state(state, route['points'][obj.index], reason)
+        obj.transition = transition
+        def green():
+            if fail:
+                raise RuntimeError('TRAFFIC_TIMEOUT')
+            return {'released': True}
+        obj.wait_for_green = green
+        obj.select_obstacle_route = lambda image, *args: {'mode': mode}
+        for name in ['initialize', 'navigate', 'task', 'wait_traffic', 'next_point',
+                     'start_recording', 'stop_recording', 'finish_recording',
+                     'stop_navigation', 'close', 'run']:
+            method = self.method(name, cv2=SimpleNamespace(imwrite=lambda *a: True))
+            obj.__dict__[name] = MethodType(method, obj)
+        return obj
+
+    def test_task_only_runs_real_task_handlers_in_both_branches(self):
+        for mode, count in [('clear', 39), ('blocked', 38)]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as folder:
+                obj = self.task_only_mission(folder, mode)
+                obj.run()
+                obj.close()
+                self.assertEqual(obj.state, 'FINISH')
+                operations = obj.results.data['operations']
+                expected = [(p['id'], p['task']) for p in obj.route['points']
+                            if p['task'] != 'navigation']
+                # Stopping recording also performs vehicle-video inspection.
+                actual = [(p['waypoint_id'], p['task_type']) for p in operations
+                          if p['task_type'] != 'vehicle_video']
+                self.assertEqual(actual, expected)
+                self.assertNotIn('navigation', [p['task_type'] for p in operations])
+                self.assertEqual(obj.results.data['summary']['completed_waypoints'], count)
+                self.assertFalse(obj.recording)
+                self.assertTrue((obj.data_dir / 'mission_results.json').is_file())
+
+    def test_task_only_single_point_and_error_cleanup(self):
+        for fail in (False, True):
+            with self.subTest(fail=fail), tempfile.TemporaryDirectory() as folder:
+                obj = self.task_only_mission(folder, single='wp_01', fail=fail)
+                if fail:
+                    with self.assertRaisesRegex(RuntimeError, 'TRAFFIC_TIMEOUT'):
+                        obj.run()
+                else:
+                    obj.run()
+                obj.close()
+                self.assertEqual(obj.state, 'ERROR' if fail else 'FINISH')
+                ops = obj.results.data['operations']
+                self.assertEqual([p['task_type'] for p in ops], ['traffic_light'])
+                self.assertEqual(ops[0]['status'], 'FAILED' if fail else 'SUCCESS')
+                self.assertTrue(all(p['status'] == 'NOT_EXECUTED'
+                                    for p in obj.results.data['waypoints'][1:]))
+
     def test_navigation_waits_for_success_and_stops_on_failure(self):
         statuses = SimpleNamespace(PENDING=0, ACTIVE=1, PREEMPTED=2, SUCCEEDED=3,
                                    ABORTED=4, REJECTED=5, PREEMPTING=6,
@@ -280,7 +392,7 @@ class MissionRouteTests(unittest.TestCase):
                                       time=SimpleNamespace(monotonic=lambda: clock.now, sleep=sleep))
                 # The only ROS operation in this isolated method is the goal timestamp.
                 move_to.__globals__['rospy'].Time = SimpleNamespace(now=lambda: 0)
-                obj = SimpleNamespace(navigation_retries=0, goal_timeout=timeout,
+                obj = SimpleNamespace(navigation_retries=0, goal_timeout=timeout, task_only=False,
                                       condition=nullcontext(), check_running=lambda: None,
                                       stop_navigation=lambda: stopped.append(True),
                                       client=SimpleNamespace(send_goal=lambda goal: sent.append(goal),

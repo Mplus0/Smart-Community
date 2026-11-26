@@ -23,6 +23,12 @@ def detections(response):
             for i, label in enumerate(labels)]
 
 
+def detection_records(objects, source):
+    """JSON-safe detector evidence from the response used by the task itself."""
+    return [dict(label=obj.label, bbox=list(obj.box), confidence=obj.confidence,
+                 source=source) for obj in objects]
+
+
 def validate_route(route):
     points = route.get('points') if isinstance(route, dict) else None
     if not isinstance(points, list) or not points:
