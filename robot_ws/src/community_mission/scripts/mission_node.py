@@ -20,6 +20,7 @@ from evidence import save_annotation
 from services import Services, SpeechQueue
 from inspection import Inspection
 from result_manager import ResultManager
+from judge_client import JudgeClient
 
 
 class Mission:
@@ -90,6 +91,7 @@ class Mission:
         self.speech = None
         self.inspection = None
         self.subscriber = None
+        self.judge = None
         if not self.navigation_only:
             self.services = Services(self.runtime)
             self.bridge = CvBridge()
@@ -99,6 +101,11 @@ class Mission:
             self.subscriber = rospy.Subscriber(rospy.get_param('~image_topic', '/usb_cam/image_raw'),
                                                Image, self.image_callback, queue_size=1, buff_size=2**24)
         rospy.on_shutdown(self.close)
+        if not self.navigation_only and rospy.get_param('~judge_enabled', False):
+            self.judge = JudgeClient(rospy.get_param('~judge_url', 'http://192.168.31.83:8080'),
+                                     rospy.get_param('~judge_team', '麦当劳薯条三重奏'),
+                                     self.data_dir, rospy.loginfo)
+            self.results.on_result = self.judge.submit
 
     def image_callback(self, image):
         with self.condition:
@@ -564,6 +571,8 @@ class Mission:
             self.subscriber.unregister()
         if self.speech is not None:
             self.speech.close()
+        if getattr(self, 'judge', None) is not None:
+            self.judge.close()
 
 
 def main():

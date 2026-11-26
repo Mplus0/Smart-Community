@@ -1,5 +1,7 @@
 # 智慧社区实车 ROS 工作空间
 
+现场命令见 [单点导航、单任务与裁判系统调试](docs/单点导航与裁判系统调试.md)，按 Windows 本机与 SSH 小车终端区分。
+
 `robot_ws` 是基于 ROS Noetic / Python 3 的实车工作空间，包含硬件接入、建图导航、视觉识别和巡检任务调度。仿真程序位于仓库同级的 `simulation_ws/`，两套工作空间分别编译和加载环境。
 
 ## 功能与结构
@@ -662,3 +664,18 @@ python3 tools/detector_preview.py --trash --image ../yolo_train/datasets/trash_s
 
 
 楼宇火灾预览与火焰航点共用 ROS 服务 `/building_name_ocr_preview` 及任务模块中的楼名提取规则。识别到火焰后才请求同一原始图像的楼名；楼名缺失或 OCR 失败时仍记录火情，使用默认楼名“大厦”。航点仅依赖 ROS 识别服务，可在工作台关闭时独立运行。
+
+## 裁判系统通信
+
+主状态机可将已保存的任务结果通过后台队列发送给选手笔记本上的裁判系统。启用示例（小车终端）：
+
+```bash
+roslaunch community_mission mission.launch judge_enabled:=true \
+  judge_url:=http://192.168.31.83:8080 judge_team:=麦当劳薯条三重奏
+```
+
+`community_bringup` 的 `community.launch`、`field.launch`、`finals.launch` 同样接受这三个参数，可追加到原有启动命令。默认 `judge_enabled:=false`；只导航模式不连接裁判系统。地址需填写笔记本的局域网 IP，当前为 `192.168.31.83:8080`，换网络后应重新确认；笔记本需放行 TCP 8080。
+
+启用后自动调用 `/api/hello`；车牌、人群、火情、垃圾桶、仪表、温度和电动车任务完成后调用 `/api/report`。优先发送已保存的标注图片；人群按 A/B 街区累积，电动车在视频统计完成后汇总街区违停与正常/倒伏数量，并附之前保存的电动车图片。垃圾桶按当前画面从左到右编号。指示牌仅在主状态机实际产生 announcement 结果时上报，不会新增识别或恢复已暂停的播报任务。红绿灯、导航和避障分支结果不上传，失败/跳过任务不作为成功结果上传。
+
+网络请求使用单独线程，超时为 3 秒。上报失败不会改变任务结果或中断巡检；上报结果及失败原因保存在本轮输出目录的 `judge_reports.jsonl`，原始任务结果仍在 `mission_results.json`。不自动重试，避免请求已被接收时重复提交；结束时最多等待通信线程 3 秒，未完成项目应结合任务结果文件检查。

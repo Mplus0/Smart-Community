@@ -1,4 +1,7 @@
 <launch>
+  <arg name="judge_enabled" default="false" />
+  <arg name="judge_url" default="http://192.168.31.83:8080" />
+  <arg name="judge_team" default="麦当劳薯条三重奏" />
   <arg name="green_confirm_frames" default=""/>
   <arg name="traffic_light_timeout" default=""/>
   <arg name="navigation_retries" default=""/>
@@ -26,6 +29,9 @@
   </include>
   <include file="$(find community_bringup)/launch/services.launch"><arg name="data_dir" value="$(arg data_dir)"/></include>
   <include if="$(arg run_mission)" file="$(find community_mission)/launch/mission.launch">
+    <arg name="judge_enabled" value="$(arg judge_enabled)" />
+    <arg name="judge_url" value="$(arg judge_url)" />
+    <arg name="judge_team" value="$(arg judge_team)" />
     <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>
     <arg name="traffic_light_timeout" value="$(arg traffic_light_timeout)"/>
     <arg name="navigation_retries" value="$(arg navigation_retries)"/>

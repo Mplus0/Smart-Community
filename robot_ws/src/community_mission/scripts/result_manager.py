@@ -57,6 +57,7 @@ def task_summary(kind, result):
 class ResultManager:
     def __init__(self, root, points, report=print):
         self.report = report
+        self.on_result = None
         self.started = time.monotonic()
         self.run_id = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S_') + uuid.uuid4().hex
         self.path = Path(root).expanduser().resolve() / self.run_id
@@ -102,6 +103,11 @@ class ResultManager:
             missing = [path for path in paths if path not in existing]
             if missing:
                 self.log(f"[证据未生成] 航点={record['waypoint_id']} 文件=" + ' | '.join(missing))
+        if self.on_result is not None:
+            try:
+                self.on_result(record)
+            except Exception as error:
+                self.log('[裁判结果入队失败] ' + str(error))
 
     def event(self, message):
         try:

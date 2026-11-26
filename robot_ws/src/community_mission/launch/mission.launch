@@ -1,4 +1,7 @@
 <launch>
+  <arg name="judge_enabled" default="false" />
+  <arg name="judge_url" default="http://192.168.31.83:8080" />
+  <arg name="judge_team" default="麦当劳薯条三重奏" />
   <arg name="navigation_only" default="false" />
   <arg name="task_only" default="false" doc="Execute real waypoint tasks without move_base or planner speed updates" />
   <arg name="evidence_font" default="" doc="Optional Chinese TTF/TTC path for task evidence images; empty selects a system font" />
@@ -16,6 +19,9 @@
   <arg name="meter_timeout" default="60.0" />
   <arg name="route" default="$(find community_mission)/config/route.yaml" />
   <node pkg="community_mission" type="mission_node.py" name="community_mission" output="screen" required="true">
+    <param name="judge_enabled" type="bool" value="$(arg judge_enabled)" />
+    <param name="judge_url" type="str" value="$(arg judge_url)" />
+    <param name="judge_team" type="str" value="$(arg judge_team)" />
     <rosparam command="load" file="$(find community_mission)/config/recognition_rules.yaml" />
     <rosparam command="load" file="$(find community_mission)/config/runtime.yaml" />
     <param if="$(eval arg('green_confirm_frames') != '')" name="green_confirm_frames" type="int" value="$(arg green_confirm_frames)" />
