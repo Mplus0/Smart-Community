@@ -20,7 +20,8 @@ def task_summary(kind, result):
         'person': ('area', 'people', 'outside', 'illegal_parking'),
         'plate': ('parking_lot', 'plate'), 'fire': ('fire_count',),
         'trash': ('bins', 'waste', 'placement_status'),
-        'vehicle_video': ('stand_count', 'fall_count'), 'vehicle_photo': ('detected_classes',),
+        'vehicle_video': ('stand_count', 'fall_count'),
+        'vehicle_photo': ('total_count', 'stand_count', 'fall_count'),
         'traffic_light': ('released', 'green_streak'), 'obstacle': ('mode', 'center_x_ratio'),
         'meter': ('temperature_c', 'humidity_percent', 'electricity_kwh'),
         'temperature': ('abnormal_floors', 'max_temperatures_c'),
@@ -42,11 +43,13 @@ def task_summary(kind, result):
     if kind == 'vehicle_video':
         return f"正常车辆={result['stand_count']} 倒伏车辆={result['fall_count']}"
     if kind == 'vehicle_photo':
-        return f"检测类别={','.join(result['detected_classes']) or '未检出'}"
+        return (f"车辆总数={result['total_count']} 正常车辆={result['stand_count']} "
+                f"倒伏车辆={result['fall_count']}")
     if kind == 'traffic_light':
         return f"放行={result['released']} 连续绿灯帧={result['green_streak']}"
     if kind == 'obstacle':
-        return f"分支={result['mode']} 中心横坐标比例={result['center_x_ratio']:.3f}"
+        return (f"{result.get('announcement', '')} 分支={result['mode']} "
+                f"中心横坐标比例={result['center_x_ratio']:.3f}").strip()
     if kind == 'meter':
         return (f"温度={result['temperature_c']}℃ 湿度={result['humidity_percent']}% "
                 f"电量={result['electricity_kwh']}kWh")
@@ -161,7 +164,9 @@ class ResultManager:
             record.update(status='FAILED', reason=str(error))
             raise
         else:
-            record.update(status='SUCCESS', result=result)
+            skipped = kind == 'meter' and isinstance(result, dict) and result.get('skipped') is True
+            record.update(status='SKIPPED' if skipped else 'SUCCESS', result=result,
+                          reason=result.get('reason', '') if skipped else '')
             return result
         finally:
             record.update(ended_at=timestamp(), duration_sec=time.monotonic()-started)
@@ -190,7 +195,8 @@ class ResultManager:
         summary = dict(completed_waypoints=sum(p['status'] == 'SUCCESS' for p in self.data['waypoints']),
                        successful_tasks=sum(t['status'] in ('SUCCESS', 'EMPTY_VALID') for t in tasks),
                        empty_tasks=sum(t['status'] == 'EMPTY_VALID' for t in tasks),
-                       failed_tasks=sum(t['status'] == 'FAILED' for t in tasks))
+                       failed_tasks=sum(t['status'] == 'FAILED' for t in tasks),
+                       skipped_tasks=sum(t['status'] == 'SKIPPED' for t in tasks))
         self.data.update(status=status, error=error, ended_at=timestamp(), summary=summary)
         self.save()
         mode = ('仅任务' if self.data.get('task_only') else

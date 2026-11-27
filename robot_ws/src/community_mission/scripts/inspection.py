@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import time
 
 from rules import (Detection, detections, detection_records, people_counts, illegal_parking_count,
-                   trash_roi, trash_result, building_name)
+                   trash_roi, trash_result, building_name, ocr_detection_records)
 
 
 class Inspection:
@@ -17,7 +17,6 @@ class Inspection:
         self.illegal = Counter(A=0, B=0)
         self.plates = {}
         self.people_points = set()
-        self.vehicle_frames = []
         self.last_ocr = 0.0
 
     def inspect_people(self, point, image):
@@ -46,6 +45,7 @@ class Inspection:
         self.plates[lot] = plate or '未检测到车牌'
 
         return dict(parking_lot=lot, plate=plate,
+                    detections=ocr_detection_records(response, 'plate'),
                     plate_confidence=float(response.confidences[0]) if response.confidences else None,
                     ocr_status=response.status_message)
 
@@ -83,9 +83,10 @@ class Inspection:
 
     def inspect_vehicle_photo(self, point, image):
         objects = detections(self.services.detect('bicycle_detector', image))
-        self.vehicle_frames.append((objects, image.width, image.height))
-
-        return dict(detected_classes=[d.label for d in objects],
+        counts = Counter(d.label for d in objects)
+        stand, fall = counts['stand'], counts['fall']
+        return dict(stand_count=stand, fall_count=fall, total_count=stand + fall,
+                    detected_classes=[d.label for d in objects],
                     detections=detection_records(objects, 'bicycle'))
 
     def inspect_video(self, point, path):
@@ -110,7 +111,7 @@ class Inspection:
                  'plate': lambda r: not r['plate'],
                  'fire': lambda r: r['fire_count'] == 0,
                  'trash': lambda r: not r['bins'] or not r['waste'],
-                 'vehicle_photo': lambda r: not any(c in ('stand', 'fall') for c in r['detected_classes']),
+                 'vehicle_photo': lambda r: r['total_count'] == 0,
                  'vehicle_video': lambda r: r['stand_count'] + r['fall_count'] == 0}
         try:
             if task_type not in handlers:

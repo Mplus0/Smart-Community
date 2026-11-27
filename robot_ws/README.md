@@ -1,6 +1,6 @@
 # 智慧社区实车 ROS 工作空间
 
-现场命令见 [单点导航、单任务与裁判系统调试](docs/单点导航与裁判系统调试.md)，按 Windows 本机与 SSH 小车终端区分。
+现场命令见 [30 分钟现场正式运行操作单](docs/单点导航与裁判系统调试.md)，按 Windows 本机与 SSH 小车终端区分。
 
 `robot_ws` 是基于 ROS Noetic / Python 3 的实车工作空间，包含硬件接入、建图导航、视觉识别和巡检任务调度。仿真程序位于仓库同级的 `simulation_ws/`，两套工作空间分别编译和加载环境。
 
@@ -106,7 +106,7 @@ roslaunch community_bringup navigation.launch map:=$HOME/maps/community_test.yam
 
 ### 局部规划器（默认 DWA）
 
-DWA 使用实车全向导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.50/0.12/0.08 m/s，普通导航保留低速横移修正，完整巡检的 `normal_lateral_speed` 同为 0.08 m/s，录像段 `recording_lateral_speed` 保持 0.15 m/s；合成平移速度上限为 0.50 m/s，角速度下限和上限为 0.523599/0.872665 rad/s（30/50°/s），平移加速度为 0.6 m/s²、角加速度为 2.0 rad/s²。到点容差为 0.10 m / 0.087266 rad（5°）。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
+DWA 使用实车全向导航配置。move_base 与 DWA 控制频率均为 10 Hz；前进/后退/横移速度上限为 0.50/0.12/0.08 m/s，普通导航保留低速横移修正，录像段 `recording_lateral_speed` 为 0.15 m/s 上限（原限速更低时保持原值）；合成平移速度上限为 0.50 m/s，角速度下限和上限为 0.523599/0.872665 rad/s（30/50°/s），平移加速度为 0.6 m/s²、角加速度为 2.0 rad/s²。到点容差为 0.10 m / 0.087266 rad（5°）。参数位于 `src/community_bringup/config/navigation/dwa_local_planner_params.yaml`。保留当前全局规划、代价地图、车体轮廓、激光避障和巡检路线执行方案。该组合尚未在本车验证。
 
 导航默认使用 DWA，`navigation.launch`、`community.launch` 及调用后者的 `finals.launch` 均生效。默认启动无需指定规划器；可通过 `local_planner:=teb` 在前两个入口切换为 TEB。使用 TEB 前，先将代码同步到实车，在 Ubuntu 20.04 / ROS Noetic 上安装并编译：
 
@@ -137,7 +137,7 @@ rosparam get /move_base/base_local_planner
 rostopic info /move_base/local_plan
 ```
 
-TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`。当前为全向提速试验配置：前进/倒车/横移上限为 0.70/0.25/0.70 m/s，最大转速为 1.2 rad/s（约 68.8°/s），允许接近目标时自然减速；前后/横向加速度为 1.0 m/s²，角加速度为 3.0 rad/s²，到点容差为 10 cm / 5°。`weight_kinematics_nh` 和 `weight_kinematics_forward_drive` 均为 0，不添加横移惩罚或前进方向偏好。当前安装的 TEB 不支持 `max_vel_trans`，前进和横移同时达到上限时合成速度约 0.99 m/s。保留车体轮廓和到点停车配置；全局/局部代价地图膨胀半径均为 0.18 m、衰减系数为 10.0，TEB 障碍间距为 0.10 m、障碍膨胀距离为 0.18 m；这组值不是已测得的底盘极限，尚需实车验证。
+TEB 参数位于 `src/community_bringup/config/navigation/teb_local_planner_params.yaml`。当前为全向低速验收配置：前进/倒车/横移上限为 0.35/0.15/0.25 m/s，最大转速为 0.6 rad/s（约 34.4°/s），允许接近目标时自然减速；前后/横向加速度为 0.6 m/s²，角加速度为 2.0 rad/s²，到点容差为 10 cm / 5°。`weight_kinematics_nh` 和 `weight_kinematics_forward_drive` 均为 0，不添加横移惩罚或前进方向偏好。当前安装的 TEB 不支持 `max_vel_trans`，前进和横移同时达到上限时合成速度约 0.43 m/s。保留车体轮廓和到点停车配置；全局/局部代价地图膨胀半径均为 0.18 m、衰减系数为 10.0，TEB 障碍间距为 0.10 m、障碍膨胀距离为 0.18 m；这组值不是已测得的底盘极限，尚需实车验证。
 
 move_base 关闭仅按平移进展判断的振荡超时（`oscillation_timeout: 0`），避免同位置转向任务被误判；`oscillation_distance: 0.05` 在此超时关闭时不触发振荡恢复。关闭默认恢复行为中的自动旋转（`clearing_rotation_allowed: false`），保留清图恢复和正常导航转向。无有效控制等待上限仍为 3 秒，全局规划等待上限为 5 秒，巡检单目标超时仍为 120 秒。修改恢复行为后需重启导航生效。
 
@@ -290,7 +290,7 @@ roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_2
 rostopic echo /mission/state
 ```
 
-不指定 `single_waypoint` 时，按完整路线连续执行任务，`wp_05` 的真实障碍识别仍决定 clear/blocked 分支，纯导航点直接跳过。每个任务之间不等待人工确认，建议先逐点实测。红绿灯仍要求连续有效绿灯帧，超时将终止；录像开始/停止仍须配对，单独选择录像航点会被拒绝。完整路线的录像段不再有行驶耗时，可能很短；录像实测需准备包含合适任务时长的配对路线。
+不指定 `single_waypoint` 时，按完整路线连续执行任务，`wp_05` 的真实障碍识别仍决定 clear/blocked 分支，纯导航点直接跳过。每个任务之间不等待人工确认，建议先逐点实测。红绿灯仍要求连续有效绿灯帧，超时将终止；停车区使用 `wp_35` 的当前照片统计车辆数量和倒伏状态。
 
 工作台「巡检任务」可勾选「仅任务（不导航）」并选择「单航点」，无需启动底盘和导航。`/mission/state` 和每次运行的 `mission_results.json` 均记录 `task_only`；跳过的导航不会写为导航成功，任务结果及照片、视频仍写入 `~/.ros/community/<run_id>/`。纯导航点的航点成功仅表示已跳过该点，不能作为到点证据。此模式不会停止其他节点已发出的运动命令。
 
@@ -322,7 +322,7 @@ rostopic echo /mission/state
 
 服务识别成功但没有目标时，任务状态为 `EMPTY_VALID`，说明为“未检测到有效目标”，归入任务成功并单列空结果数量。服务异常时为 `FAILED`，主状态机进入 `ERROR`，打印 `[结束原因]`。若在取图等准备阶段就失败，可能没有任务结果记录，应同时查看 `[状态] ... ERROR` 和结束原因。`[任务证据]` 只列出当时实际存在的文件，缺失路径列为 `[证据未生成]`；完整检测数据仍保存在结果 JSON 中。
 
-人员、车牌、火情、障碍物和车辆拍照任务在本轮 `photo/` 下同时保存原图与 `<序号>_<任务类型>_annotated.jpg` 标注图，例如 `005.jpg` 和 `005_person_annotated.jpg`。图中包含航点、状态、结果摘要；检测任务叠加原始检测框、类别和置信度，人员黄框是人员参考 ROI，不能将所有车辆框视为违停。车牌图显示中文车牌文字及 OCR 置信度；当前 OCR 服务不返回框坐标，因此不绘制车牌定位框。标注直接复用本次推理结果，不重复识别；完整框数据写入任务结果的 `detections`。
+人员、车牌、火情、障碍物和车辆拍照任务在本轮 `photo/` 下同时保存原图与 `<序号>_<任务类型>_annotated.jpg` 标注图，例如 `005.jpg` 和 `005_person_annotated.jpg`。图中包含航点、状态、结果摘要；检测任务叠加原始检测框、类别和置信度，人员黄框是人员参考 ROI，不能将所有车辆框视为违停。车牌图显示中文车牌文字、OCR 置信度及映射回原图的文字定位框。仪表任务同时保存带指针的表盘图和原始相机视角的电表数字、kWh 单位定位图；热像任务保存本次测量同帧的楼层与超温区域框选图。标注复用本次识别结果，不重复推理；完整 OCR 框数据写入任务结果的 `detections`。
 
 有效空结果也会保存标注图。取得原图后发生识别异常时，尽可能保存失败说明图；若相机取图失败则无法生成图片。原图及已生成标注图的路径统一写入该任务的 `operations[].paths`，工作台结果页可直接浏览。字体或磁盘写入失败会打印 `[标注保存失败]` 并记录 `evidence_errors`，不改变识别结果或障碍分支；此时只有原图，不能认为标注证据已齐全。
 
@@ -360,7 +360,7 @@ roslaunch community_bringup finals.launch base_protocol:=aa_bb
 
 `hardware.launch` 同时启动两台可见光相机。Orbbec 彩色相机以 1920×1080 MJPEG 采集，发布 `/usb_cam/image_raw`，用于常规识别和录像。UGREEN 按设备 ID 以 1920×1080 MJPEG 采集，发布 `/ugreen_4k/image_raw`，工作台相机页选择该 ROS 来源即可预览。同一设备应由一个采集节点持有，部署后启动正式节点前需退出此前手动启动的 UGREEN 预览进程。
 
-配置 `task: meter` 的航点到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。读取超时会按航点任务失败收尾。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
+配置 `task: meter` 的航点到点后从 UGREEN 获取新帧，使用随工作空间编译安装的 4K 标定读取仪表温度与湿度。结果写入 `mission_results.json`，原图和指针叠加图保存在本轮 `photo/` 下。默认 20 秒内无完整有效结果则标记 `SKIPPED`，继续下一航点。单独启动 `mission.launch` 时，可通过 `meter_image_topic` 和 `meter_profile` 指定图像话题和标定文件。
 
 在 Web 工作台的相机页选择 **仪表盘调试（实时过程图）**，自动切到 UGREEN 1080p 视频源。四格画面依次显示原图与指针、原图灰度、模板与当前帧的匹配点、透视校正后的读针灰度图，右侧显示读数和匹配内点数。
 
@@ -415,7 +415,7 @@ python3 tools/camera_web_preview.py --camera ros --topic /thermal_camera/image_r
 
 ### 楼宇 D 楼层温度检测（初版）
 
-配置 `task: temperature` 的航点通过 `/building_d_temperature/measure` 等待到点后的温度帧，默认 3 秒内取得各楼层已确认的结果。巡检结果记录各层最高温度与异常楼层，仅在存在异常时播报。测温无结果超时会记录任务失败并结束本轮。当前默认新路线未配置测温任务；需先为目标航点设置该任务，再进行单点验收。更新代码后需重新编译工作空间以生成测温服务类型。
+配置 `task: temperature` 的航点通过 `/building_d_temperature/measure` 等待到点后的温度帧，默认 3 秒内取得各楼层已确认的结果。巡检结果记录各层最高温度与异常楼层，仅在存在异常时播报。测温无结果超时会记录任务失败并结束本轮。当前 clear 的 `wp_08`、blocked 的 `blocked_wp_22` 已配置该任务，需进行单点验收。更新代码后需重新编译工作空间以生成测温服务类型。
 
 保持红外采集运行，另开终端加载工作空间后启动：
 
@@ -579,7 +579,7 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 
 默认设备为底盘 `/dev/carserial`、雷达 `/dev/lslidar`、IMU `/dev/imu`。Orbbec 主相机和 UGREEN 仪表相机按 `/dev/v4l/by-id/` 绑定。单独启动 `meter_camera.launch` 时可通过 `video_device` 指定其他设备。组合启动支持通过 `base_port`、`imu_port`、`camera_device`、`map`、`route` 和 `data_dir` 覆盖对应参数。
 
-独立 `route_clear.yaml` 按 `wp_01` 至 `wp_39` 顺序执行，任务点及最终停车位保留实测坐标和朝向；普通导航点经过直线投影和转角对齐，单点位置调整不超过 8.5 cm，不额外插入中间点。相邻转向点共用位置，车牌 3 后的回退点已对齐到任务位置。每点仍等待导航成功后再继续，最终停车点为 `wp_39`。任务对应如下：
+独立 `route_clear.yaml` 按 `wp_01` 至 `wp_39` 顺序执行（不含 `wp_36`），任务点及最终停车位保留实测坐标和朝向；普通导航点经过直线投影和转角对齐，单点位置调整不超过 8.5 cm，不额外插入中间点。相邻转向点共用位置，车牌 3 后的回退点已对齐到任务位置。每点仍等待导航成功后再继续，最终停车点为 `wp_39`。任务对应如下：
 
 | 航点 | 任务 |
 |---|---|
@@ -587,14 +587,16 @@ python3 tools/collect_dataset.py trashbin --camera ros --no-preview
 | `wp_02`、`wp_06`、`wp_18` | A 区人员及违停 |
 | `wp_07`、`wp_14`、`wp_17` | B 区人员及违停 |
 | `wp_19`、`wp_22`、`wp_34` | 火灾 |
+| `wp_08` | 红外测温 |
+| `wp_11` | 仪表盘识别（温湿度、电量） |
 | `wp_27`、`wp_28`、`wp_31` | 车位 1、2、3 车牌 |
 | `wp_29` | 垃圾分类 |
-| `wp_35`、`wp_36` | 录像开始、结束，朝西横移 |
+| `wp_35` | 定点停车拍照，统计停车区电动车总数、正常及倒伏数量 |
 | 其余点 | 普通导航 |
 
 主状态机默认使用 `route.yaml`：公共前段采用 clear 的 `wp_01`～`wp_05`，包含首个红绿灯和 A 区人员任务，`wp_05` 的任务恢复为障碍识别。完整巡检在该点检测障碍物，中心横坐标比例小于 0.35 选择 clear，否则选择 blocked；识别异常会终止任务。进入分支后不重复公共前段，plate1 起引用同一组 `wp_27`～`wp_39` 公共收尾点。
 
-clear 执行 39 个目标，blocked 执行 38 个目标。blocked 的分支任务及取景朝向沿用独立 blocked 文件，允许两分支任务不同；公共前段统一执行首个红绿灯。仅导航模式跳过全部任务，在 `wp_05` 后按 `obstacle_mode` 手动选择，不调用障碍物模型：
+clear 执行 38 个目标，blocked 执行 37 个目标。两分支均包含 2 个红绿灯、3 个火灾点、6 个人员点、1 个红外测温点、1 个仪表读数点及相同的车牌、垃圾和停车区拍照任务；blocked 保留独立文件的实测取景朝向，公共前段统一执行首个红绿灯。仅导航模式跳过全部任务，在 `wp_05` 后按 `obstacle_mode` 手动选择，不调用障碍物模型：
 
 ```bash
 roslaunch community_mission mission.launch navigation_only:=true obstacle_mode:=clear
@@ -605,13 +607,40 @@ roslaunch community_mission mission.launch
 
 不指定 `obstacle_mode` 时，仅导航默认 clear。完整巡检忽略手动选路参数，由检测结果决定。独立文件仍可通过 `route:=.../route_clear.yaml` 或 `route:=.../route_blocked.yaml` 显式加载，此时不自动选路。
 
-当前默认路线未启用仪表和楼宇测温任务。红绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
+clear 分支的 `wp_08` 已配置红外测温（`temperature`），`wp_11` 已配置仪表盘识别（`meter`，使用现有温湿度与电量读取流程）。blocked 分支的对应点为 `blocked_wp_22`（红外测温）和 `blocked_wp_25`（仪表盘识别），保留各自实测坐标和朝向。红绿灯等待默认上限 30 秒，需连续 3 帧有效 `go`。
+
+### 航点相机
+
+普通图像任务通过点位中的 `camera: main` 或 `camera: meter` 选择图像来源，分别对应 `mission.launch` 的 `image_topic`（默认 `/usb_cam/image_raw`）和 `meter_image_topic`（默认 `/ugreen_4k/image_raw`）。切换来源时清空旧缓存，丢弃原来源的迟到帧。完整任务到达非导航任务点后，先完成相机选择并等待 1 秒画面稳定，再读取新帧执行识别；仪表读数、红外测温及录像起止任务也在到点等待 1 秒后执行。普通导航点及仅导航模式不增加该等待。
+
+- clear：`wp_01/05/19/24/27/28/29/31/35` 使用主相机，其余普通图像识别任务使用仪表相机。
+- blocked：公共 `wp_01/05`、`blocked_wp_08/10/14/15` 及公共 `wp_27/28/29/31/35` 使用主相机，其余普通图像识别任务使用仪表相机。
+- 公共 `wp_02` 使用仪表相机。两路线的 `wp_34` 也使用仪表相机，公共收尾点保持一致。
+- `wp_08`（clear）与 `blocked_wp_22`（blocked）的红外测温仍调用热像温度服务；仪表读数任务使用仪表相机；普通导航点不采集图像。
+- `wp_35` 使用主相机停车拍照统计；完成后直接前往 `wp_37`。
+
+修改辅助模块后需重新编译实车任务包并重启巡检。上述相机分配已完成代码配置，实际取景与识别效果需逐点实车验收。
+
+### 自定义录像路线横移限速
+
+当前默认路线使用停车拍照。自定义路线使用配对录像任务时，程序自动读取 `/move_base/base_local_planner`，选择 DWA 或 TEB 的动态调参服务，不修改正常导航的速度配置。到录像开始点后读取并保存实际横移限速，确认将横移上限限制到 `min(原值, recording_lateral_speed)` 后才开始录像；默认录像上限为 0.15 m/s。DWA 同时处理正负横移上下限，TEB 只设置其支持的 `max_vel_y`。
+
+录像结束或任务退出时恢复录像前的实际值，包括 DWA 的非对称上下限。限速服务失败或反馈未生效时任务报错并停车，不继续下发录像路段目标。录像启动失败时也会在清理阶段恢复限速；恢复失败会明确记录错误并保留停车状态。仅导航模式不启动录像、不修改横移限速。修改后需重新编译任务包并重启巡检；已完成无 ROS 逻辑测试，尚需实车验证。
+
+停车区任务在 `wp_35` 导航成功后，持续发布零速度等待 `mission.vehicle_settle_time`（默认 0.8 秒），再获取新图像，调用 `bicycle_detector` 按 `stand` / `fall` 统计正常、倒伏和总数量。原图、状态检测框与数量标注图、JSON 结果均保存；`wp_35` 完成后直接前往 `wp_37`，停车区不再依赖录像或视频统计。计数仅代表该照片视野，需现场确认 `wp_35` 的位置和朝向能覆盖停车区。仅任务模式由操作者提前停车，程序直接拍照，不发送底盘速度命令。
+
+单点验证停车区（先启动相机和检测服务；仅任务模式须提前将小车停稳并对准停车区）：
+
+```bash
+roslaunch community_mission mission.launch single_waypoint:=wp_35
+roslaunch community_mission mission.launch task_only:=true single_waypoint:=wp_35
+```
 
 ### blocked 路线
 
-`src/community_mission/config/route_blocked.yaml` 使用 2026-11-25 03:41 采集的绕行前段，共 38 点。前 25 点使用 `blocked_wp_01`～`blocked_wp_25` 编号，任务以采集文件为准，任务点坐标和朝向不变，普通导航点做转角对齐和直线投影，最大位置调整不超过 10 cm。plate1 起使用 clear 中的 `wp_27`～`wp_39` 公共收尾段，点位、任务、朝向和顺序完全一致。
+`src/community_mission/config/route_blocked.yaml` 使用 2026-11-25 03:41 采集的绕行前段，共 37 点。前 25 点使用 `blocked_wp_01`～`blocked_wp_25` 编号，任务以采集文件为准，任务点坐标和朝向不变，普通导航点做转角对齐和直线投影，最大位置调整不超过 10 cm。plate1 起使用 clear 中的 `wp_27`～`wp_39` 公共收尾段（不含 `wp_36`），点位、任务、朝向和顺序完全一致。
 
-前段人员任务为 `blocked_wp_02/06/08/09/14/21`，分别对应 A/A/B/A/B/B；`blocked_wp_10` 为火灾。采集文件中的普通导航点保持原任务，包括 `blocked_wp_01/13/15`，该独立 blocked 路线不包含红绿灯等待，也不调用障碍选路。任务点朝向保留新采集值，不按旧相机朝向修正；当前仍使用现有图像来源，未增加按航点切换相机的配置。
+前段人员任务为 `blocked_wp_02/06/08/09/14/21`，分别对应 A/A/B/A/B/B；`blocked_wp_10/13` 为火灾。`blocked_wp_01/15` 为两个红绿灯等待点；`blocked_wp_13` 对应 clear 的 `wp_22`，`blocked_wp_15` 对应 clear 的 `wp_24`，仅恢复任务类型，保留 blocked 的实测坐标和朝向。独立 blocked 文件不调用障碍选路。任务点朝向保留新采集值，不按旧相机朝向修正；图像任务按航点的 `camera` 字段选择主相机或仪表相机。
 
 默认主路线已接入 blocked 分支。若需跳过公共选路逻辑单独验收完整 blocked 文件，停止其他巡检和键盘控制、确认定位后运行：
 
@@ -652,13 +681,22 @@ python3 tools/detector_preview.py --trash --image ../yolo_train/datasets/trash_s
 
 实车巡检流程当前不触发任何语音播报，也不在结束时等待播报队列；语音服务、队列和播报函数保留，供后续接入。
 
+红绿灯和电动车模型已于 2026-11-25 更新为 U 盘 `trained_models/traffic_light/best.pt`、`trained_models/bike/best.pt` 导出的 ONNX，分别保持 `0=stop/1=go`、`0=stand/1=fall`。训练权重保存为 `yolo_train/model/traffic_light.pt`、`byc.pt`，同目录保存 ONNX；实车检测使用 `community_perception/models/traffic_light.onnx`、`byc.onnx`，倒伏统计共用 `byc.onnx`。两模型均为静态 FP32 640×640 输入、`[1,6,8400]` 原始输出、opset 17，沿用现有外部 NMS、预处理与阈值。源 PT 校验值与 U 盘清单一致，训练目录和部署目录的 ONNX 哈希一致；未执行实车推理或准确率评测。替换后需重启已运行的识别、倒伏统计或相机预览进程，重新加载文件。
+
+红绿灯未开启、仅验收其他正式任务时，可显式传入 `skip_traffic_light:=true`。该参数仅跳过红绿灯检测等待，其余识别、测温、仪表及录像任务照常执行；日志会明确提示，结果记录 `skipped: true`，不作为实际检测到绿灯。默认 `false`，正常运行仍需连续绿灯确认。该参数同样可从 `field.launch`、`community.launch`、`finals.launch` 传入。
+
+```bash
+# 先启动硬件、导航、services 并确认定位，再启动本次完整任务验收
+roslaunch community_mission mission.launch navigation_only:=false skip_traffic_light:=true
+```
+
 红绿灯航点使用 `community_perception/models/traffic_light.onnx` 两分类模型（0=`stop`、1=`go`）。默认连续 3 帧有效且仅含 `go` 的检测结果才放行，继续下一航点导航；`stop`、空结果、混合结果或无效检测打断连续计数，重复时间戳同样重置计数。连续确认帧数仍由 `green_confirm_frames` 配置，默认 30 秒超时后终止任务。
 
 ### 电表读数验收
 
 配置 `task: meter` 的仪表任务从 `/ugreen_4k/image_raw` 获取到点后的新帧，同时读取温度、湿度和电量。电表通过 `/electricity_meter_ocr` 复用 PaddleOCR，在整帧中定位 `kWh`，读取其上方相邻数字行，连续两帧读数一致后确认。UGREEN 画面需同时包含温湿度表、电表数字和单位。
 
-任务默认等待 60 秒，可通过 `mission.launch meter_timeout:=90` 调整。三项全部有效才完成任务，超时记录失败及现场图片。结果中的 `electricity_kwh` 为保留小数点及前导零的字符串，`electricity_unit` 为 `kWh`，并记录 `electricity_confidence`。原图和叠加图与温湿度读数一起保存。
+任务默认等待 20 秒（包含电量 OCR 响应等待），可通过 `mission.launch meter_timeout:=20` 调整。温度、湿度及连续两帧确认的电量全部有效才记录成功；超时标记 `SKIPPED`，记录原因并保存已收到的现场图片，继续下一航点。到点画面稳定的 1 秒等待在此期限之前。结果中的 `electricity_kwh` 为保留小数点及前导零的字符串，`electricity_unit` 为 `kWh`，并记录 `electricity_confidence`。原图和叠加图与温湿度读数一起保存。
 
 现场参考图片已通过 OCR 读取 `123.4 kWh`，实际停车视角和不同读数仍需现场验收。
 
@@ -676,6 +714,8 @@ roslaunch community_mission mission.launch judge_enabled:=true \
 
 `community_bringup` 的 `community.launch`、`field.launch`、`finals.launch` 同样接受这三个参数，可追加到原有启动命令。默认 `judge_enabled:=false`；只导航模式不连接裁判系统。地址需填写笔记本的局域网 IP，当前为 `192.168.31.83:8080`，换网络后应重新确认；笔记本需放行 TCP 8080。
 
-启用后自动调用 `/api/hello`；车牌、人群、火情、垃圾桶、仪表、温度和电动车任务完成后调用 `/api/report`。优先发送已保存的标注图片；人群按 A/B 街区累积，电动车在视频统计完成后汇总街区违停与正常/倒伏数量，并附之前保存的电动车图片。垃圾桶按当前画面从左到右编号。指示牌仅在主状态机实际产生 announcement 结果时上报，不会新增识别或恢复已暂停的播报任务。红绿灯、导航和避障分支结果不上传，失败/跳过任务不作为成功结果上传。
+启用后自动调用 `/api/hello`；车牌、人群、火情、垃圾桶、仪表、温度、电动车和指示牌任务完成后调用 `/api/report`。优先发送已保存的标注图片；人群按 A/B 街区累积，电动车在定点拍照统计完成后汇总街区违停与正常/倒伏数量，并附当前电动车标注图片。重复识别以最新照片结果替换停车区数量，不累加同一批车辆。垃圾桶按当前画面从左到右编号。`wp_05` 检测到有效禁止直行指示牌后，保留现有选路规则，输出并播报“前方是禁止直行指示牌”，上传对应带框图片；无有效检测不播报、不作为成功结果上传。火情上报包含楼名及隐患数量（含 0 个）。红绿灯和导航结果不上传，失败/跳过任务不作为成功结果上传。
+
+OCR 服务增加 `bboxes` 字段，测温服务增加同帧 `evidence_image` 字段；更新后须重新编译 `community_perception` 和 `community_mission`，并重启识别服务与巡检进程，避免旧服务接口混用。
 
 网络请求使用单独线程，超时为 3 秒。上报失败不会改变任务结果或中断巡检；上报结果及失败原因保存在本轮输出目录的 `judge_reports.jsonl`，原始任务结果仍在 `mission_results.json`。不自动重试，避免请求已被接收时重复提交；结束时最多等待通信线程 3 秒，未完成项目应结合任务结果文件检查。

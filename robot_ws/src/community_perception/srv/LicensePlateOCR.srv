@@ -5,4 +5,5 @@ sensor_msgs/Image image
 # 响应：返回识别结果
 string[] plate_texts
 float32[] confidences
+float32[] bboxes  # 每个文本对应原始请求图像中的 x1,y1,x2,y2
 string status_message

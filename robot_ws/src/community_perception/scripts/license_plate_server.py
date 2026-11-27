@@ -223,6 +223,22 @@ class LicensePlateOCRServer:
             rospy.logwarn(f"保存结果图像时出错: {e}")
             return None
 
+    def text_bbox(self, result, text, offset=(0, 0)):
+        """Locate only the OCR words contributing to the returned plate text."""
+        words = [''.join(c for c in word.upper() if c.isalnum()) for word in result['texts']]
+        start = ''.join(words).find(text)
+        if start < 0:
+            raise ValueError('识别文字无法关联到 OCR 坐标')
+        end, cursor, selected = start + len(text), 0, []
+        for word, box in zip(words, result['boxes']):
+            if cursor < end and cursor + len(word) > start:
+                selected.extend(box)
+            cursor += len(word)
+        points = np.asarray(selected, dtype=float)
+        left, top = points.min(axis=0) + offset
+        right, bottom = points.max(axis=0) + offset
+        return [float(left), float(top), float(right), float(bottom)]
+
     def handle_ocr_request(self, req):
         rospy.loginfo("收到OCR识别请求")
 
@@ -269,10 +285,11 @@ class LicensePlateOCRServer:
                     processed_text = self.postprocess_plate(combined_text)
 
                     if processed_text and len(processed_text) >= 2:
+                        plate_bbox = self.text_bbox(ocr_result, processed_text, bbox[:2])
                         rospy.loginfo(f"识别成功: {processed_text}, 置信度: {avg_confidence:.4f}")
 
                         saved_path = self.save_result_image(
-                            original_image, processed_text, avg_confidence, bbox
+                            original_image, processed_text, avg_confidence, list(map(int, plate_bbox))
                         )
                         if saved_path:
                             rospy.loginfo(f"结果图像已保存: {saved_path}")
@@ -280,6 +297,7 @@ class LicensePlateOCRServer:
                         return LicensePlateOCRResponse(
                             plate_texts=[processed_text],
                             confidences=[avg_confidence],
+                            bboxes=plate_bbox,
                             status_message="识别成功"
                         )
 
@@ -321,15 +339,17 @@ class LicensePlateOCRServer:
                             continue
                         unit_points = np.asarray(unit_box, dtype=float)
                         unit_left, unit_top = unit_points.min(axis=0)
-                        unit_right, _ = unit_points.max(axis=0)
+                        unit_right, unit_bottom = unit_points.max(axis=0)
                         if (height > 0 and -0.25 * height <= unit_top - bottom <= 1.5 * height
                                 and min(right, unit_right) > max(left, unit_left)):
-                            candidates.append((normalized, float(min(score, unit_score))))
+                            candidates.append((normalized, float(min(score, unit_score)),
+                                               [float(min(left, unit_left)), float(min(top, unit_top)),
+                                                float(max(right, unit_right)), float(max(bottom, unit_bottom))]))
                 if len(candidates) != 1:
                     return LicensePlateOCRResponse(status_message='无法唯一确定 kWh 对应的电表读数')
-                text, score = candidates[0]
+                text, score, bbox = candidates[0]
                 return LicensePlateOCRResponse(
-                    plate_texts=[text], confidences=[score], status_message='kWh')
+                    plate_texts=[text], confidences=[score], bboxes=bbox, status_message='kWh')
             except Exception as error:
                 rospy.logerr('电表 OCR 处理失败: %s', error)
                 return LicensePlateOCRResponse(status_message=f'电表 OCR 处理失败: {error}')
@@ -345,7 +365,7 @@ class LicensePlateOCRServer:
             try:
                 frame = self.bridge.imgmsg_to_cv2(req.image, 'bgr8')
                 if plate:
-                    crop, _ = self.get_center_crop(frame)
+                    crop, crop_bbox = self.get_center_crop(frame)
                     if not crop.size:
                         return LicensePlateOCRResponse(status_message='裁剪区域无效')
                     frame = self.enhance_image(crop)
@@ -356,11 +376,16 @@ class LicensePlateOCRServer:
                     return LicensePlateOCRResponse(status_message='未识别到文字')
                 texts, scores = result['texts'], result['scores']
                 if not plate:
-                    return LicensePlateOCRResponse(plate_texts=texts, confidences=scores)
+                    boxes = []
+                    for box in result['boxes']:
+                        points = np.asarray(box, dtype=float)
+                        boxes.extend([*points.min(axis=0), *points.max(axis=0)])
+                    return LicensePlateOCRResponse(plate_texts=texts, confidences=scores, bboxes=boxes)
                 text = self.postprocess_plate(''.join(texts))
                 if not re.fullmatch(r'[\u4e00-\u9fff]?[A-Z0-9]{5,8}', text) or not any(c.isdigit() for c in text):
                     return LicensePlateOCRResponse(status_message='未识别到车牌')
-                return LicensePlateOCRResponse(plate_texts=[text], confidences=[sum(scores) / len(scores)])
+                return LicensePlateOCRResponse(plate_texts=[text], confidences=[sum(scores) / len(scores)],
+                                               bboxes=self.text_bbox(result, text, crop_bbox[:2]))
             except Exception as error:
                 rospy.logerr('预览 OCR 处理失败: %s', error)
                 return LicensePlateOCRResponse(status_message=f'处理失败: {error}')

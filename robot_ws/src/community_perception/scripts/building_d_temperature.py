@@ -26,7 +26,7 @@ def floor_temperatures(image):
     return maxima
 
 
-def draw_preview(temperatures, maxima, streaks, confirm_frames):
+def draw_preview(temperatures, maxima, streaks, confirm_frames, threshold=40.0):
     """Render the same temperature matrix used for detection; never crop the view."""
     valid = np.isfinite(temperatures)
     gray = np.zeros(temperatures.shape, dtype=np.uint8)
@@ -52,6 +52,13 @@ def draw_preview(temperatures, maxima, streaks, confirm_frames):
         else:
             state, color = "NORMAL", (0, 220, 0)
         cv2.rectangle(canvas, (left, header), (right - 1, canvas.shape[0] - 1), color, 2)
+        if streaks[index] >= confirm_frames:
+            region = temperatures[:, left // scale:right // scale]
+            ys, xs = np.where(np.isfinite(region) & (region > threshold))
+            if xs.size:
+                cv2.rectangle(canvas, (left + int(xs.min()) * scale, header + int(ys.min()) * scale),
+                              (left + (int(xs.max()) + 1) * scale - 1,
+                               header + (int(ys.max()) + 1) * scale - 1), (0, 0, 255), 2)
         for row, text in enumerate(("Floor %d" % (4 - index),
                                     "-- C" if temperature is None else "%.1f C" % temperature, state)):
             cv2.putText(canvas, text, (left + 10, 25 + row * 30),
@@ -131,13 +138,14 @@ class BuildingDTemperature:
                 self.valid_stamps.clear()
             elif not stamp.is_zero():
                 self.valid_stamps.append(stamp)
+            preview = self.bridge.cv2_to_imgmsg(
+                draw_preview(temperatures, maxima, self.streaks, self.confirm_frames, self.threshold), "bgr8")
+            preview.header = message.header
             self.latest_measurement = None if pending or invalid else MeasureBuildingTemperatureResponse(
-                success=True, abnormal_floors=abnormal_floors[::-1], max_temperatures_c=maxima[::-1])
+                success=True, abnormal_floors=abnormal_floors[::-1], max_temperatures_c=maxima[::-1],
+                evidence_image=preview)
             self.frames.notify_all()
             self.publish("\n".join(abnormal + pending + invalid) or "楼宇D温度正常")
-            preview = self.bridge.cv2_to_imgmsg(
-                draw_preview(temperatures, maxima, self.streaks, self.confirm_frames), "bgr8")
-            preview.header = message.header
             self.preview_pub.publish(preview)
             rospy.loginfo_throttle(2.0, "各层最高温度 ℃（4/3/2/1）：" +
                                    ", ".join("无效" if t is None else "%.1f" % t for t in maxima))

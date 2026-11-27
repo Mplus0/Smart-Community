@@ -111,7 +111,7 @@ class JudgeClient:
             return crowd
         if kind == 'fire':
             building = result.get('building') or waypoint
-            text = (f"{building}发生火灾，图片已保存" if result['fire_count'] else '未发现火情，图片已保存')
+            text = f"{building}发现火灾隐患{result['fire_count']}个，图片已保存"
             return [report('fire', text, building)]
         if kind == 'trash':
             reports = []
@@ -126,9 +126,9 @@ class JudgeClient:
             floors = '、'.join(str(v) for v in result['abnormal_floors'])
             return [report('temperature', f'D座大厦在{floors}楼处发现高温情况' if floors else 'D座大厦未发现高温情况', 'D座大厦')]
         if kind == 'vehicle_photo':
-            self.vehicle_images.extend(p for p in images if p not in self.vehicle_images)
-            return []
-        if kind == 'vehicle_video':
+            # A new fixed-point photo replaces the previous parking-area observation.
+            self.vehicle_images = images
+        if kind in ('vehicle_photo', 'vehicle_video'):
             self.vehicles = result
             a = sum(p['illegal_parking'] for p in self.people.values() if p['area'] == 'A')
             b = sum(p['illegal_parking'] for p in self.people.values() if p['area'] == 'B')
@@ -140,6 +140,8 @@ class JudgeClient:
             return [item]
         if kind == 'announcement' and result.get('queued_text'):
             return [report('sign', result['queued_text'])]
+        if kind in ('obstacle', 'announcement') and result.get('announcement'):
+            return [report('sign', result['announcement'])]
         return []
 
     def _work(self):

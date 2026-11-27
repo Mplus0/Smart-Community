@@ -194,6 +194,7 @@ const TASK_LABELS = {
 const RESULT_BADGES = {
   SUCCESS: ['ok', '成功'], FAILED: ['err', '失败'],
   RUNNING: ['warn', '进行中'], EMPTY_VALID: ['ok', '未检出目标'],
+  SKIPPED: ['warn', '已跳过'],
 };
 
 function liveMedia(runId, op, files) {

@@ -1,207 +1,219 @@
-# clear 单地图路线，39 点；基于 2026-11-25 航点按 4.2 m 场地图道路中心调整。
-# 保留任务、朝向与执行顺序，主要调整横跨道路方向的位置；尚需实车验证。
+# clear 单地图路线，38 点；基于 2026-11-25 实测航点进行几何平滑。
+# 普通导航点做直线投影和转角对齐；任务点及最终停车位保持原始坐标、朝向。
 points:
 - id: wp_01
   x: 1.6061
-  y: 0.4000
+  y: 0.4354
   yaw: 0.0173
   task: traffic_light
+  camera: main
 - id: wp_02
   x: 3.0156
-  y: 0.4000
+  y: 0.4281
   yaw: 0.0686
   task: person
   area: A
+  camera: meter
 - id: wp_03
-  x: 3.8000
-  y: 0.4000
+  x: 3.8154
+  y: 0.4263
   yaw: -0.0023
   task: navigation
 - id: wp_04
-  x: 3.8000
-  y: 0.4000
+  x: 3.8154
+  y: 0.4263
   yaw: 1.5334
   task: navigation
 - id: wp_05
-  x: 3.8000
+  x: 3.8256
   y: 0.6992
   yaw: 1.5334
   task: navigation
 - id: wp_06
-  x: 3.8000
+  x: 3.8365
   y: 0.9906
   yaw: 1.5861
   task: person
   area: A
+  camera: meter
 - id: wp_07
-  x: 3.8000
+  x: 3.8431
   y: 2.2892
   yaw: 1.6811
   task: person
   area: B
+  camera: meter
 - id: wp_08
-  x: 3.8000
+  x: 3.8118
   y: 3.0622
   yaw: 1.6113
-  task: navigation
+  task: temperature
 - id: wp_09
-  x: 3.8000
-  y: 3.8000
+  x: 3.7817
+  y: 3.8057
   yaw: 1.6113
   task: navigation
 - id: wp_10
-  x: 3.8000
-  y: 3.8000
+  x: 3.7817
+  y: 3.8057
   yaw: 3.1024
   task: navigation
 - id: wp_11
   x: 2.7968
-  y: 3.8000
+  y: 3.826
   yaw: 3.121
-  task: navigation
+  task: meter
+  camera: meter
 - id: wp_12
-  x: 2.2000
-  y: 3.8000
+  x: 2.2305
+  y: 3.8376
   yaw: 3.121
   task: navigation
 - id: wp_13
-  x: 2.2000
-  y: 3.8000
+  x: 2.2305
+  y: 3.8376
   yaw: -1.5816
   task: navigation
 - id: wp_14
-  x: 2.2000
+  x: 2.2137
   y: 2.2882
   yaw: -1.5623
   task: person
   area: B
+  camera: meter
 - id: wp_15
-  x: 2.2000
-  y: 1.6000
+  x: 2.1985
+  y: 1.6972
   yaw: -1.5965
   task: navigation
 - id: wp_16
-  x: 2.2000
-  y: 1.6000
+  x: 2.1985
+  y: 1.6972
   yaw: 0.0124
   task: navigation
 - id: wp_17
   x: 3.0193
-  y: 1.6000
+  y: 1.7074
   yaw: 0.0267
   task: person
   area: B
+  camera: meter
 - id: wp_18
   x: 3.0216
-  y: 1.6000
+  y: 1.7006
   yaw: -3.1337
   task: person
   area: A
+  camera: meter
 - id: wp_19
-  x: 2.2000
-  y: 1.6000
+  x: 2.2954
+  y: 1.6405
   yaw: -3.0827
   task: fire
+  camera: main
 - id: wp_20
-  x: 2.2000
-  y: 1.6000
+  x: 2.2954
+  y: 1.6405
   yaw: 1.6907
   task: navigation
 - id: wp_21
-  x: 2.2000
+  x: 2.2422
   y: 2.0822
   yaw: 1.6907
   task: navigation
 - id: wp_22
-  x: 2.2000
+  x: 2.2422
   y: 2.0822
   yaw: 1.2166
   task: fire
+  camera: meter
 - id: wp_23
-  x: 2.2000
+  x: 2.2422
   y: 2.0822
   yaw: 1.5684
   task: navigation
 - id: wp_24
-  x: 2.2000
+  x: 2.2429
   y: 2.3694
   yaw: 1.6359
   task: traffic_light
+  camera: main
 - id: wp_25
-  x: 2.2000
-  y: 3.8000
+  x: 2.2269
+  y: 3.8282
   yaw: 1.5818
   task: navigation
 - id: wp_26
-  x: 2.2000
-  y: 3.8000
+  x: 2.2269
+  y: 3.8282
   yaw: 3.1363
   task: navigation
 - id: wp_27
-  x: 1.0000
-  y: 3.8000
+  x: 1.0498
+  y: 3.8344
   yaw: -3.1077
   task: plate
   parking_lot: 1
+  camera: main
 - id: wp_28
-  x: 1.0000
+  x: 1.071
   y: 3.2319
   yaw: -3.1227
   task: plate
   parking_lot: 2
+  camera: main
 - id: wp_29
-  x: 1.0000
+  x: 1.028
   y: 3.2297
   yaw: 0.0494
   task: trash
+  camera: main
 - id: wp_30
-  x: 1.0000
+  x: 1.028
   y: 3.2297
   yaw: 3.1415
   task: navigation
 - id: wp_31
-  x: 1.0000
+  x: 1.0876
   y: 2.6216
   yaw: 3.1415
   task: plate
   parking_lot: 3
+  camera: main
 - id: wp_32
-  x: 1.0000
+  x: 1.0876
   y: 2.6216
   yaw: -1.6376
   task: navigation
 - id: wp_33
-  x: 1.0000
+  x: 1.0734
   y: 2.4095
   yaw: -1.6376
   task: navigation
 - id: wp_34
-  x: 1.0000
+  x: 1.0734
   y: 2.4095
   yaw: -1.9948
   task: fire
+  camera: meter
 - id: wp_35
-  x: 1.0000
+  x: 1.1114
   y: 2.3729
   yaw: -3.1086
-  task: record_start
-- id: wp_36
-  x: 1.0000
-  y: 0.8364
-  yaw: 3.1415
-  task: record_stop
+  task: vehicle_photo
+  camera: main
 - id: wp_37
-  x: 1.0000
-  y: 0.4000
+  x: 1.1001
+  y: 0.4527
   yaw: 3.1416
   task: navigation
 - id: wp_38
   x: 0.4139
-  y: 0.4000
+  y: 0.4527
   yaw: 3.1416
   task: navigation
 - id: wp_39
   x: 0.4139
-  y: 0.4000
+  y: 0.4527
   yaw: 0.0012
   task: navigation

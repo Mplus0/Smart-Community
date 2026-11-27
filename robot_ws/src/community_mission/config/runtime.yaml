@@ -2,10 +2,10 @@
 mission:
   obstacle_clear_x_ratio: 0.35
   image_timeout: 5.0
+  vehicle_settle_time: 0.8  # 停车区到点后持续零速的稳定时间（秒），随后采集新图像
   server_timeout: 30.0
   ocr_interval: 3.0
-  normal_lateral_speed: 0.08  # 与普通 DWA 导航一致；录像段单独限速
-  recording_lateral_speed: 0.15
+  recording_lateral_speed: 0.15  # 录像期间横移上限；结束后恢复实际原值
   service_timeout: 5.0
   planner_service_timeout: 1.0
   speech_drain_timeout: 90.0

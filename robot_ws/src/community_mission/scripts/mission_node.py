@@ -11,11 +11,12 @@ import cv2
 from cv_bridge import CvBridge
 import rospy
 from actionlib_msgs.msg import GoalStatus
+from geometry_msgs.msg import Twist
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
-from rules import validate_route, detections, detection_records, obstacle_route
+from rules import validate_route, detections, detection_records, obstacle_route, ocr_detection_records
 from evidence import save_annotation
 from services import Services, SpeechQueue
 from inspection import Inspection
@@ -37,6 +38,9 @@ class Mission:
             raise ValueError('navigation_only and task_only must be booleans')
         if self.navigation_only and self.task_only:
             raise ValueError('navigation_only and task_only cannot both be true')
+        self.skip_traffic_light = rospy.get_param('~skip_traffic_light', False)
+        if type(self.skip_traffic_light) is not bool:
+            raise ValueError('skip_traffic_light must be a boolean')
         self.route = validate_route(rospy.get_param('~'))
         self.obstacle_mode = rospy.get_param('~obstacle_mode', 'clear')
         if self.obstacle_mode not in ('blocked', 'clear'):
@@ -60,6 +64,7 @@ class Mission:
         self.goal_timeout = float(rospy.get_param('~goal_timeout', self.runtime['goal_timeout']))
         self.image_timeout = float(rospy.get_param('~image_timeout', self.runtime['image_timeout']))
         self.light_timeout = float(rospy.get_param('~traffic_light_timeout', self.runtime['traffic_light_timeout']))
+        self.vehicle_settle_time = float(self.runtime['vehicle_settle_time'])
         self.green_confirm_frames = rospy.get_param('~green_confirm_frames', self.runtime['green_confirm_frames'])
         self.navigation_retries = rospy.get_param('~navigation_retries', self.runtime['navigation_retries'])
         self.cancel_timeout = float(rospy.get_param('~navigation_cancel_timeout', self.runtime['navigation_cancel_timeout']))
@@ -68,24 +73,32 @@ class Mission:
         if type(self.navigation_retries) is not int or self.navigation_retries < 0:
             raise ValueError('navigation_retries must be a nonnegative integer')
         if any(not math.isfinite(v) or v <= 0 for v in
-               (self.goal_timeout, self.image_timeout, self.light_timeout, self.cancel_timeout)):
+               (self.goal_timeout, self.image_timeout, self.light_timeout, self.cancel_timeout,
+                self.vehicle_settle_time)):
             raise ValueError('Timeouts must be finite and positive')
         if any(not math.isfinite(self.runtime[k]) or self.runtime[k] <= 0 for k in
                ('server_timeout', 'ocr_interval', 'service_timeout',
-                'planner_service_timeout', 'speech_drain_timeout', 'speech_join_timeout')):
+                'planner_service_timeout', 'speech_drain_timeout', 'speech_join_timeout',
+                'recording_lateral_speed')):
             raise ValueError('Runtime intervals must be finite and positive')
         self.results = ResultManager(rospy.get_param('~data_dir', '~/.ros/community'),
                                      self.route['points'], rospy.loginfo)
         self.results.data.update(navigation_only=self.navigation_only, task_only=self.task_only)
         self.data_dir = self.results.path
         self.video_path = self.data_dir/'videos/video.mp4'
-        self.planner = rospy.get_param('~planner_namespace', '/move_base/DWAPlannerROS')
+        self.planner = None
+        self.saved_lateral_limits = None
         self.client = None if self.task_only else actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.stop_pub = None if self.task_only or self.navigation_only else rospy.Publisher(
+            '/cmd_vel', Twist, queue_size=1)
         self.services = None
         self.bridge = None
         self.condition = threading.Condition()
         self.latest = None
         self.sequence = 0
+        self.image_topic = rospy.get_param('~image_topic', '/usb_cam/image_raw')
+        self.meter_image_topic = rospy.get_param('~meter_image_topic', '/ugreen_4k/image_raw')
+        self.active_image_topic = self.image_topic
         self.recording = False
         self.closed = False
         self.speech = None
@@ -98,8 +111,9 @@ class Mission:
             self.speech = SpeechQueue(self.services, self.runtime)
             self.inspection = Inspection(self.route, self.services, self.speech, rospy.get_param('~recognition_rules'),
                                          self.bridge, self.runtime['ocr_interval'])
-            self.subscriber = rospy.Subscriber(rospy.get_param('~image_topic', '/usb_cam/image_raw'),
-                                               Image, self.image_callback, queue_size=1, buff_size=2**24)
+            self.subscriber = rospy.Subscriber(self.active_image_topic, Image, self.image_callback,
+                                               callback_args=self.active_image_topic,
+                                               queue_size=1, buff_size=2**24)
         rospy.on_shutdown(self.close)
         if not self.navigation_only and rospy.get_param('~judge_enabled', False):
             self.judge = JudgeClient(rospy.get_param('~judge_url', 'http://192.168.31.83:8080'),
@@ -107,11 +121,31 @@ class Mission:
                                      self.data_dir, rospy.loginfo)
             self.results.on_result = self.judge.submit
 
-    def image_callback(self, image):
+    def image_callback(self, image, topic):
         with self.condition:
+            if topic != self.active_image_topic:
+                return
             self.latest = image
             self.sequence += 1
             self.condition.notify_all()
+
+    def point_image_topic(self, point, default='main'):
+        camera = point.get('camera', default)
+        return self.meter_image_topic if camera == 'meter' else self.image_topic
+
+    def select_camera(self, point):
+        topic = self.point_image_topic(point)
+        if topic == self.active_image_topic:
+            return
+        self.check_running()
+        self.subscriber.unregister()
+        with self.condition:
+            self.active_image_topic = topic
+            self.latest = None
+            self.sequence = 0
+        self.subscriber = rospy.Subscriber(topic, Image, self.image_callback, callback_args=topic,
+                                           queue_size=1, buff_size=2**25)
+        rospy.loginfo('[相机] 航点=%s 图像来源=%s', point['id'], topic)
 
     def fresh_image(self, timeout=None):
         deadline = time.monotonic()+(self.image_timeout if timeout is None else timeout)
@@ -196,6 +230,11 @@ class Mission:
             raise
 
     def wait_for_green(self):
+        if self.skip_traffic_light:
+            self.check_running()
+            rospy.logwarn('[红绿灯] skip_traffic_light:=true，显式放行，未执行图像检测')
+            return {'released': True, 'skipped': True, 'reason': 'skip_traffic_light',
+                    'green_streak': 0, 'detected_classes': []}
         deadline = time.monotonic() + self.light_timeout
         streak, last_stamp = 0, 0
         rospy.loginfo('[红绿灯] 进入等待：连续 %s 帧 go，超时 %.1f 秒',
@@ -220,7 +259,7 @@ class Mission:
             streak = streak + 1 if green else 0
             if streak >= self.green_confirm_frames:
                 rospy.loginfo('[红绿灯] 连续 %s 帧有效 go，允许通行', streak)
-                return {'released': True, 'green_streak': streak,
+                return {'released': True, 'skipped': False, 'green_streak': streak,
                         'detected_classes': [obj.label for obj in objects]}
         raise RuntimeError('TRAFFIC_TIMEOUT: Traffic light timeout; mission stopped')
 
@@ -255,7 +294,11 @@ class Mission:
         if not self.client.wait_for_server(rospy.Duration(self.runtime['server_timeout'])):
             raise RuntimeError('move_base is unavailable')
         if not self.navigation_only:
-            self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
+            planner = rospy.get_param('/move_base/base_local_planner').rsplit('/', 1)[-1]
+            if planner not in ('DWAPlannerROS', 'TebLocalPlannerROS'):
+                raise RuntimeError('Unsupported local planner: ' + planner)
+            self.planner = '/move_base/' + planner
+            rospy.loginfo('[录像限速] 当前规划器=%s', self.planner)
         else:
             rospy.loginfo('[导航验收] 只导航模式，跳过全部航点任务及红绿灯等待')
         self.transition('NAVIGATE', '导航服务已就绪')
@@ -281,6 +324,12 @@ class Mission:
         point = self.route['points'][index]
         task_type = point['task']
         self.check_running()
+        if not self.navigation_only and task_type != 'navigation':
+            if task_type not in ('meter', 'temperature', 'record_start', 'record_stop'):
+                self.select_camera(point)
+            rospy.loginfo('[任务] 航点=%s，等待 1 秒画面稳定', point['id'])
+            rospy.sleep(1.0)
+            self.check_running()
         if self.navigation_only or task_type == 'navigation':
             rospy.loginfo('[任务跳过] 航点=%s 类型=%s 原因=%s', point['id'], task_type,
                           '仅导航模式' if self.navigation_only else '纯导航航点')
@@ -289,17 +338,18 @@ class Mission:
         elif task_type == 'meter':
             raw_path = self.data_dir/'photo'/f'{index:03d}_meter.jpg'
             overlay_path = raw_path.with_name(f'{raw_path.stem}_overlay.jpg')
+            energy_path = raw_path.with_name(f'{raw_path.stem}_electricity_annotated.jpg')
             self.results.execute('meter', point, self.read_meter, raw_path, overlay_path,
-                                 paths=[raw_path, overlay_path])
+                                 paths=[raw_path, overlay_path, energy_path])
         elif task_type == 'temperature':
-            result = self.results.execute('temperature', point, self.measure_temperature)
+            evidence_path = self.data_dir/'photo'/f'{index:03d}_temperature_annotated.jpg'
+            result = self.results.execute('temperature', point, self.measure_temperature,
+                                          evidence_path, paths=[evidence_path])
             if result['announcement']:
                 self.check_running()
                 self.speech.put(result['announcement'])
                 if not self.speech.drain():
                     rospy.logwarn('[温度] 等待播报结束超时或巡检已停止')
-        elif task_type == 'announcement':
-            rospy.loginfo('[任务跳过] 航点=%s 类型=announcement 原因=播报任务已暂停', point['id'])
         elif task_type == 'record_start':
             self.results.execute('record_start', point, self.start_recording,
                                  paths=[self.video_path])
@@ -307,13 +357,15 @@ class Mission:
             self.finish_recording(point)
         else:
             image_path = self.data_dir/'photo'/f'{index:03d}.jpg'
+            if task_type == 'vehicle_photo' and not self.task_only:
+                self.settle_vehicle_photo()
             rospy.loginfo('[任务准备] 航点=%s 类型=%s 等待新的相机图像', point['id'], task_type)
             image = self.fresh_image()
             frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
             if not cv2.imwrite(str(image_path), frame):
                 raise RuntimeError('Failed to save inspection image')
-            if task_type == 'obstacle':
-                self.results.execute('obstacle', point, self.select_obstacle_route,
+            if task_type in ('obstacle', 'announcement'):
+                self.results.execute(task_type, point, self.select_obstacle_route,
                                      image, point, image_path,
                                      paths=[image_path, image_path.with_name(image_path.stem + '_obstacle_annotated.jpg')])
             else:
@@ -322,19 +374,56 @@ class Mission:
         rospy.loginfo('[航点完成] 航点=%s 类型=%s', point['id'], task_type)
         self.transition('NEXT_POINT', '本航点任务完成')
 
+    def settle_vehicle_photo(self):
+        """Hold zero velocity after navigation succeeds, then capture a new frame."""
+        rospy.loginfo('[停车区] 已到定点，停车稳定 %.1f 秒后拍照', self.vehicle_settle_time)
+        deadline = time.monotonic() + self.vehicle_settle_time
+        while True:
+            self.check_running()
+            self.stop_pub.publish(Twist())
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            time.sleep(min(0.05, remaining))
+
+    def read_electricity_until(self, image, deadline):
+        # ROS 1 服务调用不能直接设置响应超时，避免 OCR 卡住仪表任务的期限。
+        if time.monotonic() >= deadline:
+            return None, '电表 OCR 等待超时'
+        ready = threading.Event()
+        outcome = {}
+
+        def request():
+            try:
+                outcome['reading'] = self.services.read_electricity(image)
+            except Exception as error:
+                outcome['error'] = str(error)
+            finally:
+                ready.set()
+
+        threading.Thread(target=request, daemon=True).start()
+        while not ready.wait(min(0.1, max(0.0, deadline - time.monotonic()))):
+            self.check_running()
+            if time.monotonic() >= deadline:
+                return None, '电表 OCR 等待超时'
+        self.check_running()
+        if time.monotonic() >= deadline:
+            return None, '电表 OCR 等待超时'
+        return outcome.get('reading'), outcome.get('error', '')
+
     def read_meter(self, raw_path, overlay_path):
         import meter_reader
 
+        timeout = float(rospy.get_param('~meter_timeout', 20.0))
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError('meter_timeout must be positive')
+        deadline = time.monotonic() + timeout
         profile = rospy.get_param('~meter_profile', '')
         profile_path = Path(profile).expanduser() if profile else (
             Path(meter_reader.__file__).with_name('meter_profile')/'profile.json')
         reader = meter_reader.Reader(profile_path)
-        topic = rospy.get_param('~meter_image_topic', '/ugreen_4k/image_raw')
+        topic = self.point_image_topic(self.route['points'][self.index], default='meter')
         last_stamp = rospy.Time.now()
-        timeout = float(rospy.get_param('~meter_timeout', 60.0))
-        if not math.isfinite(timeout) or timeout <= 0:
-            raise ValueError('meter_timeout must be positive')
-        deadline = time.monotonic() + timeout
         frames = threading.Condition()
         latest = None
 
@@ -362,8 +451,12 @@ class Mission:
                     last_stamp = image.header.stamp
                 frame = self.bridge.imgmsg_to_cv2(image, desired_encoding='bgr8')
                 values, overlay, status = reader.read(frame)
-                reading = self.services.read_electricity(image)
+                reading, ocr_error = self.read_electricity_until(image, deadline)
                 self.check_running()
+                if reading is None:
+                    reason = ocr_error
+                    previous_energy, energy_frames = None, 0
+                    continue
                 energy_text = reading.plate_texts[0] if len(reading.plate_texts) == 1 else None
                 if energy_text is not None and energy_text == previous_energy:
                     energy_frames += 1
@@ -386,6 +479,7 @@ class Mission:
                         electricity_kwh=energy_text,
                         electricity_unit='kWh',
                         electricity_confidence=float(reading.confidences[0]),
+                        detections=ocr_detection_records(reading, 'electricity'),
                         camera_topic=topic)
                     cv2.putText(overlay, f'Energy: {energy_text} kWh', (30, 60),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 180, 0), 3)
@@ -395,12 +489,18 @@ class Mission:
                 meter_reader.save_image(raw_path, frame)
                 meter_reader.save_image(overlay_path, overlay)
             if result is None:
-                raise RuntimeError(reason)
+                rospy.logwarn('[仪表] %.1f 秒内无有效结果，跳过任务：%s', timeout, reason)
+                return {'skipped': True, 'reason': 'METER_TIMEOUT: ' + reason,
+                        'timeout_sec': timeout, 'camera_topic': topic}
+            evidence_path = Path(raw_path).with_name(Path(raw_path).stem + '_electricity_annotated.jpg')
+            save_annotation(frame, dict(waypoint_id=self.route['points'][self.index]['id'],
+                task_type='meter', status='SUCCESS', reason='电表数字及单位区域', result=result),
+                evidence_path, rospy.get_param('~evidence_font', ''))
             return result
         finally:
             subscriber.unregister()
 
-    def measure_temperature(self):
+    def measure_temperature(self, evidence_path):
         reading = self.services.measure_building_temperature()
         self.check_running()
         floors = list(reading.abnormal_floors)
@@ -408,8 +508,14 @@ class Mission:
         if floors:
             floor_text = '、'.join(map(str, floors))
             announcement = f'D大楼在 {floor_text} 楼处发现高温情况'
-        return dict(abnormal_floors=floors, max_temperatures_c=list(reading.max_temperatures_c),
-                    announcement=announcement)
+        result = dict(abnormal_floors=floors, max_temperatures_c=list(reading.max_temperatures_c),
+                      announcement=announcement,
+                      image_stamp=reading.evidence_image.header.stamp.to_sec())
+        frame = self.bridge.imgmsg_to_cv2(reading.evidence_image, desired_encoding='bgr8')
+        save_annotation(frame, dict(waypoint_id=self.route['points'][self.index]['id'],
+            task_type='temperature', status='SUCCESS', reason='本次测量同帧热像，框选楼层区域', result=result),
+            evidence_path, rospy.get_param('~evidence_font', ''))
+        return result
 
     def select_obstacle_route(self, image, point=None, media_path=None):
         evidence = []
@@ -424,6 +530,7 @@ class Mission:
                     status='FAILED', reason=str(error), result={'detections': evidence}), media_path)
             raise
         result['detections'] = evidence
+        result['announcement'] = '前方是禁止直行指示牌'
         if point is not None:
             record = dict(waypoint_id=point['id'], task_type='obstacle', status='SUCCESS',
                           reason='', result=result)
@@ -433,6 +540,7 @@ class Mission:
         self.obstacle_mode = result['mode']
         rospy.loginfo('[障碍物] 中心横坐标比例=%.3f，路线=%s',
                       result['center_x_ratio'], self.obstacle_mode)
+        self.announce(result['announcement'])
         return result
 
     def finish_recording(self, point):
@@ -498,22 +606,33 @@ class Mission:
             raise RuntimeError('Failed to save trash result image')
         return [roi_path, result_path]
 
-    def announce(self):
-        text = '前方发现禁止直行标识'
+    def announce(self, text):
+        self.check_running()
         self.speech.put(text)
+        if not self.speech.drain():
+            raise RuntimeError('指示牌播报等待超时或巡检已停止')
         return {'queued_text': text}
 
     def start_recording(self):
         if not self.task_only:
-            self.services.set_lateral_speed(self.planner, self.runtime['recording_lateral_speed'])
+            self.saved_lateral_limits = self.services.get_lateral_limits(self.planner)
+            speed = self.runtime['recording_lateral_speed']
+            limits = {'max_vel_y': min(self.saved_lateral_limits['max_vel_y'], speed)}
+            if 'min_vel_y' in self.saved_lateral_limits:
+                limits['min_vel_y'] = max(self.saved_lateral_limits['min_vel_y'], -speed)
+            self.services.set_lateral_limits(self.planner, limits)
         self.services.start_recording(self.video_path)
         self.recording = True
 
     def stop_recording(self):
         self.services.stop_recording()
         self.recording = False
-        if not self.task_only:
-            self.services.set_lateral_speed(self.planner, self.runtime['normal_lateral_speed'])
+        self.restore_lateral_limits()
+
+    def restore_lateral_limits(self):
+        if self.saved_lateral_limits is not None:
+            self.services.set_lateral_limits(self.planner, self.saved_lateral_limits)
+            self.saved_lateral_limits = None
 
     def next_point(self):
         if self.single_waypoint:
@@ -567,6 +686,11 @@ class Mission:
             except Exception as error:
                 rospy.logerr('[录像清理失败] %s', error)
             self.recording = False
+        if self.saved_lateral_limits is not None:
+            try:
+                self.restore_lateral_limits()
+            except Exception as error:
+                rospy.logerr('[录像限速] Failed to restore lateral limits: %s', error)
         if self.subscriber is not None:
             self.subscriber.unregister()
         if self.speech is not None:

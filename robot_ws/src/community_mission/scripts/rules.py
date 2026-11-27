@@ -29,6 +29,19 @@ def detection_records(objects, source):
                  source=source) for obj in objects]
 
 
+def ocr_detection_records(response, label):
+    if len(response.bboxes) != 4 * len(response.plate_texts) or len(response.confidences) != len(response.plate_texts):
+        raise ValueError('OCR 文字、置信度与坐标数量不一致')
+    records = []
+    for index, text in enumerate(response.plate_texts):
+        box = list(response.bboxes[4*index:4*index+4])
+        if not all(math.isfinite(v) for v in box) or box[2] <= box[0] or box[3] <= box[1]:
+            raise ValueError('OCR 返回无效坐标')
+        records.append(dict(label=label, text=text, bbox=box,
+                            confidence=float(response.confidences[index]), source='ocr'))
+    return records
+
+
 def validate_route(route):
     points = route.get('points') if isinstance(route, dict) else None
     if not isinstance(points, list) or not points:
@@ -51,6 +64,10 @@ def validate_route(route):
         task = point.get('task')
         if not isinstance(task, str) or task not in allowed or 'tasks' in point:
             raise ValueError(f'{name}: task must name one supported task')
+        if 'camera' in point:
+            camera = point['camera']
+            if camera not in ('main', 'meter'):
+                raise ValueError(f'{name}: camera must be main or meter')
         if task == 'obstacle' and not isinstance(route.get('navigation_branches'), dict):
             raise ValueError('obstacle task requires navigation_branches')
         if task == 'person' and point.get('area') not in ('A', 'B'):

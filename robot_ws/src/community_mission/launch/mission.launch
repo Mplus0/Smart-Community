@@ -5,6 +5,7 @@
   <arg name="navigation_only" default="false" />
   <arg name="task_only" default="false" doc="Execute real waypoint tasks without move_base or planner speed updates" />
   <arg name="evidence_font" default="" doc="Optional Chinese TTF/TTC path for task evidence images; empty selects a system font" />
+  <arg name="skip_traffic_light" default="false" />
   <arg name="single_waypoint" default="" />
   <arg name="obstacle_mode" default="clear" />
   <arg name="green_confirm_frames" default="" />
@@ -16,7 +17,7 @@
   <arg name="image_topic" default="/usb_cam/image_raw" />
   <arg name="meter_image_topic" default="/ugreen_4k/image_raw" />
   <arg name="meter_profile" default="" />
-  <arg name="meter_timeout" default="60.0" />
+  <arg name="meter_timeout" default="20.0" />
   <arg name="route" default="$(find community_mission)/config/route.yaml" />
   <node pkg="community_mission" type="mission_node.py" name="community_mission" output="screen" required="true">
     <param name="judge_enabled" type="bool" value="$(arg judge_enabled)" />
@@ -33,6 +34,7 @@
     <param name="navigation_only" type="bool" value="$(arg navigation_only)" />
     <param name="task_only" type="bool" value="$(arg task_only)" />
     <param name="evidence_font" type="str" value="$(arg evidence_font)" />
+    <param name="skip_traffic_light" type="bool" value="$(arg skip_traffic_light)" />
     <param name="single_waypoint" type="str" value="$(arg single_waypoint)" />
     <param name="obstacle_mode" type="str" value="$(arg obstacle_mode)" />
     <param name="data_dir" value="$(arg data_dir)" />
@@ -40,6 +42,5 @@
     <param name="meter_image_topic" value="$(arg meter_image_topic)" />
     <param name="meter_profile" type="str" value="$(arg meter_profile)" />
     <param name="meter_timeout" type="double" value="$(arg meter_timeout)" />
-    <param name="planner_namespace" value="/move_base/DWAPlannerROS" />
   </node>
 </launch>

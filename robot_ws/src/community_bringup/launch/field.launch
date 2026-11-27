@@ -22,6 +22,7 @@
   <arg name="obstacle_mode" default="clear" doc="clear or blocked: wp_05 branch used when navigation_only is true"/>
   <arg name="green_confirm_frames" default=""/>
   <arg name="traffic_light_timeout" default=""/>
+  <arg name="skip_traffic_light" default="false"/>
   <arg name="navigation_retries" default=""/>
   <arg name="navigation_cancel_timeout" default=""/>
   <arg name="goal_timeout" default=""/>
@@ -53,6 +54,7 @@
     <arg name="judge_team" value="$(arg judge_team)" />
     <arg name="green_confirm_frames" value="$(arg green_confirm_frames)"/>
     <arg name="traffic_light_timeout" value="$(arg traffic_light_timeout)"/>
+    <arg name="skip_traffic_light" value="$(arg skip_traffic_light)"/>
     <arg name="navigation_retries" value="$(arg navigation_retries)"/>
     <arg name="navigation_cancel_timeout" value="$(arg navigation_cancel_timeout)"/>
     <arg name="goal_timeout" value="$(arg goal_timeout)"/>

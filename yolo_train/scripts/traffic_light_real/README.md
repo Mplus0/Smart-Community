@@ -27,7 +27,7 @@ python yolo_train/scripts/traffic_light_real/train.py
 
 训练输出至 `yolo_train/results/traffic_light_real/yolo26n/`，包括指标、曲线、`weights/best.pt` 和 `weights/last.pt`，重复训练自动递增目录名。
 
-脚本不会替换实车部署模型。当前实车红绿灯模型配置使用 `red_light/yellow_light/green_light` 三类，本模型只有 `stop/go` 两类；部署前需按 `stop → red_light`、`go → green_light` 核对类别含义，并调整标签配置或映射，不能直接沿用现有三类索引。
+实车当前使用 `stop/go` 两分类，类别顺序为 `0: stop`、`1: go`。2026-11-25 已使用 U 盘 `trained_models/traffic_light/best.pt` 更新 `yolo_train/model/traffic_light.pt/.onnx` 和实车 `community_perception/models/traffic_light.onnx`；该权重来自服务器 YOLO26n 训练，54 轮结束、最佳第 24 轮。已核对源文件 SHA-256、ONNX 结构和部署文件一致性，未进行实车推理评测。导出脚本本身不会自动替换部署模型。
 
 ## 导出 ONNX
 

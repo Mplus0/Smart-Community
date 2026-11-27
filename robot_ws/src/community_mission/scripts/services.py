@@ -2,6 +2,7 @@
 import queue
 import threading
 import time
+import math
 
 import rospy
 from community_mission.srv import Speech
@@ -66,6 +67,25 @@ class Services:
         except (rospy.ROSException, rospy.ServiceException, RuntimeError) as error:
             rospy.logwarn('[导航参数] 侧移速度更新失败：%s', error)
             return False
+
+    def get_lateral_limits(self, namespace):
+        response = self.call(namespace+'/set_parameters', Reconfigure, Config(),
+                             timeout=self.config['planner_service_timeout'])
+        values = {parameter.name: parameter.value for parameter in response.config.doubles}
+        if 'max_vel_y' not in values:
+            raise RuntimeError('Planner does not expose max_vel_y: ' + namespace)
+        # TEB only exposes max_vel_y; DWA also exposes min_vel_y.
+        return {name: values[name] for name in ('max_vel_y', 'min_vel_y') if name in values}
+
+    def set_lateral_limits(self, namespace, limits):
+        config = Config(doubles=[DoubleParameter(name=name, value=value)
+                                 for name, value in limits.items()])
+        response = self.call(namespace+'/set_parameters', Reconfigure, config,
+                             timeout=self.config['planner_service_timeout'])
+        actual = {parameter.name: parameter.value for parameter in response.config.doubles}
+        if any(name not in actual or not math.isclose(actual[name], value, abs_tol=1e-6)
+               for name, value in limits.items()):
+            raise RuntimeError('Planner did not apply lateral limits: ' + namespace)
 
 
 class SpeechQueue:

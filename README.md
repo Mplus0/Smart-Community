@@ -42,7 +42,7 @@ roslaunch community_bringup community.launch base_protocol:=aa_bb
 
 比赛时使用 `roslaunch community_bringup finals.launch base_protocol:=aa_bb` 作为替代入口，不要同时运行两个总入口。`base_protocol`、串口设备、相机、地图及路线须按实际硬件确认。实车自研包为 `community_*`，雷达与 IMU 包保留厂商实现。
 
-红外测温已在 `community_perception` 中提供独立采集和楼宇 D 检测：画面从左到右对应 4、3、2、1 楼，连续 3 帧超过 40℃ 输出异常，支持网页显示分区、温度和中文结果。SDK 必要文件随包提供，尚未接入自动巡检；权限配置、启动和网页访问方式见 [实车测温说明](robot_ws/README.md#seek-红外热成像采集)。
+红外测温已在 `community_perception` 中提供独立采集和楼宇 D 检测：画面从左到右对应 4、3、2、1 楼，连续 3 帧超过 40℃ 输出异常，支持网页显示分区、温度和中文结果。SDK 必要文件随包提供，两个巡检分支均已接入测温任务；权限配置、启动和网页访问方式见 [实车测温说明](robot_ws/README.md#seek-红外热成像采集)。
 
 实车 Web 工作台提供启动项管理、状态和日志、地图遥控与导航、相机识别预览、巡检任务启停和结果浏览。部署方法和功能范围见 [工作台说明](robot_ws/infra/README.md)。
 
@@ -97,6 +97,6 @@ GUI 入口：`python3 /workspace/simulation_ws/src/tools/gui.py`；不要与终�
 - `build/`、`devel/` 等产物可能含绝对路径，迁移工作空间后应重新编译。
 - 仿真结果写入 `simulation_ws/results/<run_id>/`，实车默认输出至 `~/.ros/community`；编译产物、缓存和新增运行结果由 `.gitignore` 忽略，必要模型、地图和配置继续保留。
 - 原实车示例 `robot_ws/src/robot_description/world/test.world` 含历史 `/home/mowen/test_ws` 资源路径，默认实车入口不加载它；本次按限制保留模型文件。旧仿真辅助脚本 `start_simulation.sh` 仍有 Melodic 环境探测，推荐使用上述 Noetic 集中入口，该既有问题未在目录适配中修改。
-- 当前实车巡检任务尚未接入楼层温度检测和动态指示牌判断，尚缺独立泊车结果校验和全程 300 秒预算控制。
+- 当前实车巡检路线已接入楼层温度检测、仪表读取和停车区定点拍照统计；禁止直行指示牌在选路点识别、播报并上报。其他常规识别结果的语音播报尚未接通，尚缺独立泊车结果校验和全程 300 秒预算控制。
 
 项目许可证见 [LICENSE](LICENSE)，第三方模型及依赖授权见 [视觉包声明](simulation_ws/src/robot_perception/NOTICE.md) 和原文件说明。

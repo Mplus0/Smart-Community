@@ -92,8 +92,7 @@ def save_annotation(frame, record, path, font_path=''):
         lines.append(record['reason'])
     if record['task_type'] == 'plate':
         confidence = data.get('plate_confidence')
-        lines.append('OCR 置信度=' + ('未提供' if confidence is None else f'{confidence:.3f}') +
-                     '；OCR 接口未提供框坐标，本图不绘制车牌框')
+        lines.append('OCR 置信度=' + ('未提供' if confidence is None else f'{confidence:.3f}'))
     if record['task_type'] == 'person':
         lines.append('检测框为原始检测；人数和违停按任务 ROI 规则统计，黄框为人员参考区域')
     if skipped:

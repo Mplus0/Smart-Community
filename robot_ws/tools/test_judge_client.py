@@ -113,7 +113,7 @@ class JudgeTests(unittest.TestCase):
         self.assertIn('正常3辆，倒伏1辆', video['result'])
 
     def test_unsupported_failed_and_skipped_results_are_not_uploaded(self):
-        for kind in ('navigation', 'traffic_light', 'obstacle', 'record_start', 'vehicle_photo'):
+        for kind in ('navigation', 'traffic_light', 'obstacle', 'record_start'):
             self.assertEqual(self.client.reports(self.record(kind, {})), [])
         for status in ('FAILED', 'SKIPPED'):
             record = self.record('plate', {'parking_lot': 1, 'plate': 'A'})
@@ -121,6 +121,22 @@ class JudgeTests(unittest.TestCase):
             self.client.submit(record)
         self.client.close()
         self.assertEqual([r[0] for r in self.requests], ['/api/hello'])
+
+    def test_parking_photo_reports_counts_and_current_evidence_without_accumulating(self):
+        record = self.record('vehicle_photo', dict(stand_count=3, fall_count=1, total_count=4))
+        record['paths'] = ['first_vehicle_photo_annotated.jpg']
+        item = self.client.reports(record)[0]
+        self.assertEqual(item['task'], 'ebike')
+        self.assertIn('正常3辆，倒伏1辆', item['result'])
+        self.assertEqual(item['paths'], record['paths'])
+        record['result'] = dict(stand_count=1, fall_count=2, total_count=3)
+        record['paths'] = ['second_vehicle_photo_annotated.jpg']
+        item = self.client.reports(record)[0]
+        self.assertIn('正常1辆，倒伏2辆', item['result'])
+        self.assertEqual(item['paths'], record['paths'])
+        record['result'] = dict(stand_count=0, fall_count=0, total_count=0)
+        record['status'] = 'EMPTY_VALID'
+        self.assertIn('正常0辆，倒伏0辆', self.client.reports(record)[0]['result'])
 
     def test_task_mapping_and_four_trash_bins(self):
         trash = dict(matches=[dict(bin_type='可回收', bin_state='开启', garbage=[{'type': '可回收'}], status='CORRECT') for _ in range(4)])
@@ -134,6 +150,21 @@ class JudgeTests(unittest.TestCase):
             ('announcement', {'queued_text': '禁止直行'}, 'sign'),
         ]:
             self.assertEqual(self.client.reports(self.record(kind, result))[0]['task'], task)
+
+    def test_sign_report_uploads_evidence_and_fire_report_contains_count(self):
+        annotated = self.root/'004_obstacle_annotated.jpg'
+        annotated.write_bytes(b'SIGN_EVIDENCE')
+        sign = self.record('obstacle', dict(mode='blocked', announcement='前方是禁止直行指示牌'))
+        sign['paths'] = [str(annotated)]
+        self.client.submit(sign)
+        self.client.submit(self.record('fire', dict(fire_count=5, building='晨光大厦')))
+        self.client.close()
+        self.assertEqual([r[0] for r in self.requests], ['/api/hello', '/api/report', '/api/report'])
+        self.assertIn(b'SIGN_EVIDENCE', self.requests[1][2])
+        self.assertIn('前方是禁止直行指示牌'.encode(), self.requests[1][2])
+        self.assertIn('晨光大厦发现火灾隐患5个'.encode(), self.requests[2][2])
+        zero = self.client.reports(self.record('fire', dict(fire_count=0, building='A楼')))[0]
+        self.assertIn('A楼发现火灾隐患0个', zero['result'])
 
 
 if __name__ == '__main__':
