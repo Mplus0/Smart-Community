@@ -1,6 +1,6 @@
 # 智慧社区实车 ROS 工作空间
 
-现场命令见 [30 分钟现场正式运行操作单](docs/单点导航与裁判系统调试.md)，按 Windows 本机与 SSH 小车终端区分。
+现场命令见 [实车调试操作单](docs/单点导航与裁判系统调试.md)，按“启动前准备 → 单项识别 → 逐点调坐标 → 全程”执行，并区分 Windows 本机与 SSH 小车终端。
 
 `robot_ws` 是基于 ROS Noetic / Python 3 的实车工作空间，包含硬件接入、建图导航、视觉识别和巡检任务调度。仿真程序位于仓库同级的 `simulation_ws/`，两套工作空间分别编译和加载环境。
 
@@ -495,6 +495,8 @@ CAMERA=orbbec python3 tools/camera_web_preview.py    # Orbbec，1920×1080，30 
 人员、火焰、垃圾桶及障碍物使用 `yolo_train/model/` 导出的 YOLO26n 模型，工作空间文件名分别为 `person.onnx`、`fire.onnx`、`trashbin.onnx`、`obstacle.onnx`。工作空间中的 `trashbin.onnx` 使用重新训练的垃圾桶模型，以 1280×1280 等比例缩放补边输入，检测四种颜色垃圾桶的开盖和关盖状态，灰色类别使用 `grey_close/grey_open`。检测总入口默认启动障碍物服务；可单独运行 `roslaunch community_perception obstacle_detector.launch`，或用 `--detector obstacle_detector` 进行浏览器预览。默认主路线在 `wp_05` 调用障碍物服务自动选择后续 clear/blocked 分支，独立路线文件用于单独调试。
 
 `fire.onnx` 已更新为 2026-11-25 光照增强训练的最佳模型（训练集 4737 张、验证集 79 张，第 80 轮最佳，第 130 轮早停），使用静态 FP32 640×640 输入及外部 NMS，与 `yolo_train/model/fire.onnx` 一致。火焰检测启用 `letterbox: true`，通过等比例缩放补边保持与训练一致的预处理，避免直接拉伸造成漏检。替换后需重启正在运行的火焰检测服务或浏览器预览以重新加载模型。
+
+电动车 `byc.onnx` 使用 `yolo_train/model/best(4).pt` 导出的 YOLOv8s 权重，固定 FP32 640×640 输入、外部 NMS，检测服务采用等比例缩放补边。模型类别 `0=zhan`、`1=dao` 在服务配置中分别映射为 `stand`（站立）和 `fall`（倒伏），供停车区数量、倒伏状态及街区违停统计使用。正式任务、独立检测与视频统计的置信度阈值均为 0.5。训练目录的 `byc.pt`、`byc.onnx` 与实车权重同步；替换后需重启检测服务和模型预览以加载新权重。
 
 `tools/detector_preview.py` 通过 `--detector` 选择 `src/community_perception/config/detectors.yaml` 中的模型，自动读取模型路径、类别名、置信度和 IoU 阈值。脚本独立推理，无需启动巡检或检测服务，支持实车七个 ONNX 检测模型，显示检测框、类别、置信度、全画面目标数量和处理耗时。
 

@@ -1,6 +1,7 @@
 # 原有正式启动参数；只迁移配置，不改变算法。
 model_path: $(find community_perception)/models/byc.onnx
-conf_thres: 0.7
+class_names: {'0': stand, '1': fall}  # 模型标签 zhan/dao 对应站立/倒伏
+conf_thres: 0.5
 iou_thres: 0.5
 roi_enabled: true
 roi_center_x: 0.5

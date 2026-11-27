@@ -106,13 +106,14 @@ detectors:
   bicycle_detector:
     model_path: $(find community_perception)/models/byc.onnx
     model_name: bicycle_detector
-    conf_threshold: 0.85
+    letterbox: true
+    conf_threshold: 0.5
     iou_threshold: 0.4
     save_enabled: false
     save_dir: $(env HOME)/.ros/community/detections/bicycle
     class_names:
-    - stand
-    - fall
+      - stand  # 新模型 0: zhan（站立）
+      - fall   # 新模型 1: dao（倒伏）
     save_classes:
     - 0
     - 1
@@ -136,4 +137,4 @@ mission_confidence:
   trash_bin_detector: 0.7
   waste_detector: 0.5
   fire_detector: 0.9
-  bicycle_detector: 0.85
+  bicycle_detector: 0.5
